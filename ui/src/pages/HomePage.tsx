@@ -70,8 +70,8 @@ const HomePage = () => {
           onStrudelError={orchestrator.onEditorStrudelError}
           onCodeEvaluated={orchestrator.onEditorCodeEvaluated}
           onSelectSection={orchestrator.onSelectSection}
-          onParamChange={orchestrator.onParamChange}
-          onParamCommit={orchestrator.onParamCommit}
+          onTrackGainChange={orchestrator.onTrackGainChange}
+          onTrackGainCommit={orchestrator.onTrackGainCommit}
           onInjectCode={orchestrator.onInjectCode}
           onApplyCode={orchestrator.onApplyGeneratedCode}
           onShuffleRhythm={orchestrator.onShuffleRhythm}

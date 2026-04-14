@@ -289,3 +289,38 @@ export const addJuxRevToRandomMelodicTrack = (code: string): string => {
   const updatedTrack = appendChainToTrack(target.source, '.jux(rev)')
   return replaceTrack(code, target, updatedTrack)
 }
+
+export interface TrackGain {
+  trackId: string
+  trackName: string
+  trackIndex: number
+  gain: number
+  gainStart: number
+  gainEnd: number
+  hasGain: boolean
+}
+
+export const parseTrackGains = (code: string): TrackGain[] => {
+  const tracks = parseTracks(code)
+  return tracks.map((track) => {
+    const gainMatch = track.source.match(/\.gain\(\s*([\d.]+)\s*\)/)
+    const gain = gainMatch ? parseFloat(gainMatch[1]) : 0.8
+    const globalOffset = track.start
+    let gainStart = -1
+    let gainEnd = -1
+    if (gainMatch && gainMatch.index !== undefined) {
+      const innerStart = gainMatch.index + gainMatch[0].indexOf(gainMatch[1])
+      gainStart = globalOffset + innerStart
+      gainEnd = gainStart + gainMatch[1].length
+    }
+    return {
+      trackId: track.id,
+      trackName: track.name,
+      trackIndex: track.index,
+      gain,
+      gainStart,
+      gainEnd,
+      hasGain: gainMatch !== null,
+    }
+  })
+}

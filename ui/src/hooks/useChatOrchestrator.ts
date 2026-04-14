@@ -10,9 +10,11 @@ import {
   mutateDrumTracks,
   parseBpmFromCode,
   parseKeyFromCode,
+  parseTracks,
   updateDetectedParamInCode,
   upsertSetcpsFromBpm,
 } from '@/lib/codeParser'
+import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 import type { ChatMessage, ChatModel, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
@@ -529,6 +531,42 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     void saveVersionSnapshot(currentProject, nextCode, 'param edit', 'user')
   }, [actions, currentProject, getCurrentCode, saveVersionSnapshot])
 
+  const onTrackGainChange = useCallback((trackGain: TrackGain, value: number) => {
+    const code = getCurrentCode()
+    let nextCode: string
+    if (trackGain.hasGain && trackGain.gainStart >= 0) {
+      nextCode = `${code.slice(0, trackGain.gainStart)}${value.toFixed(2)}${code.slice(trackGain.gainEnd)}`
+    } else {
+      const tracks = parseTracks(code)
+      const track = tracks.find(t => t.id === trackGain.trackId)
+      if (!track) return
+      const updated = `${track.source.trimEnd()}\n  .gain(${value.toFixed(2)})\n`
+      nextCode = `${code.slice(0, track.start)}${updated}${code.slice(track.end)}`
+    }
+    editorBridgeRef.current.setCode?.(nextCode)
+    actions.setCode(nextCode)
+    if (isPlaying) {
+      if (paramEvaluateTimerRef.current) window.clearTimeout(paramEvaluateTimerRef.current)
+      paramEvaluateTimerRef.current = window.setTimeout(() => editorBridgeRef.current.evaluate?.(), 120)
+    }
+  }, [actions, getCurrentCode, isPlaying])
+
+  const onTrackGainCommit = useCallback((trackGain: TrackGain, value: number) => {
+    if (!currentProject) return
+    const code = getCurrentCode()
+    let nextCode: string
+    if (trackGain.hasGain && trackGain.gainStart >= 0) {
+      nextCode = `${code.slice(0, trackGain.gainStart)}${value.toFixed(2)}${code.slice(trackGain.gainEnd)}`
+    } else {
+      const tracks = parseTracks(code)
+      const track = tracks.find(t => t.id === trackGain.trackId)
+      if (!track) return
+      const updated = `${track.source.trimEnd()}\n  .gain(${value.toFixed(2)})\n`
+      nextCode = `${code.slice(0, track.start)}${updated}${code.slice(track.end)}`
+    }
+    void saveVersionSnapshot(currentProject, nextCode, 'track gain edit', 'user')
+  }, [currentProject, getCurrentCode, saveVersionSnapshot])
+
   const onRestoreVersion = useCallback(async (version: CodeVersion) => {
     if (!currentProject) return
 
@@ -703,6 +741,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onStopPreview: stopPreview,
     onParamChange,
     onParamCommit,
+    onTrackGainChange,
+    onTrackGainCommit,
     onRestoreVersion,
     onLoadTemplateProject,
     onShare,

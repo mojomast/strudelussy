@@ -9,6 +9,8 @@ import RhythmGenerator from '@/components/RhythmGenerator'
 import SectionStrip from '@/components/SectionStrip'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { parseTrackGains } from '@/lib/codeParser'
+import type { TrackGain } from '@/lib/codeParser'
 import type { ExtractedParam, Project, SectionMarker } from '@/types/project'
 
 export interface EditorBridge {
@@ -47,8 +49,8 @@ interface EditorPanelProps {
   onStrudelError: (error: string) => void
   onCodeEvaluated: () => void
   onSelectSection: (section: SectionMarker) => void
-  onParamChange: (param: ExtractedParam, nextValue: number) => void
-  onParamCommit: (param: ExtractedParam, nextValue: number) => void
+  onTrackGainChange: (trackGain: TrackGain, value: number) => void
+  onTrackGainCommit: (trackGain: TrackGain, value: number) => void
   onInjectCode: (snippet: string) => void
   onApplyCode: (code: string) => void
   onShuffleRhythm: () => void
@@ -81,8 +83,8 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   onStrudelError,
   onCodeEvaluated,
   onSelectSection,
-  onParamChange,
-  onParamCommit,
+  onTrackGainChange,
+  onTrackGainCommit,
   onInjectCode,
   onApplyCode,
   onShuffleRhythm,
@@ -92,7 +94,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
 }, editorContainerRef) => {
   return (
     <Card className="min-h-0 flex-1 border-zinc-900 bg-black/55 text-white shadow-none">
-      <CardContent className="grid h-full min-h-0 gap-3 overflow-hidden p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
+      <CardContent className="grid h-full gap-3 overflow-auto p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="flex flex-col gap-3 overflow-auto pr-1 pb-4">
           <div
             ref={editorContainerRef}
@@ -152,52 +154,57 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
               <FxRack code={project.strudel_code} collapsed={fxCollapsed} onToggle={onToggleFx} onApplyCode={onApplyCode} />
             </div>
 
-            <Card className="min-h-0 border-zinc-900 bg-black/40 shadow-none">
-              <CardContent className="flex h-full min-h-0 flex-col space-y-3 p-3 sm:p-4">
-                <div>
-                  <p className="text-sm font-semibold">Detected parameters</p>
-                  <p className="text-xs text-zinc-500">Adjust detected values and patch the live code in-place.</p>
-                </div>
-                <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
-                  {params.length === 0 ? (
-                    <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No tweakable parameters detected yet.</p>
-                  ) : (
-                    params.slice(0, 6).map((param) => (
-                      <div key={param.id} className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-3">
-                        <div className="flex items-center justify-between text-sm text-zinc-100">
-                          <span>{param.label}</span>
-                          <span className="text-zinc-400">{param.value.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1')}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min={param.min}
-                          max={param.max}
-                          step={param.kind === 'cps' ? 0.01 : 0.05}
-                          value={param.value}
-                          onChange={(event) => onParamChange(param, Number(event.target.value))}
-                          onPointerUp={(event) => onParamCommit(param, Number((event.currentTarget as HTMLInputElement).value))}
-                          onKeyUp={(event) => {
-                            if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) {
-                              onParamCommit(param, Number((event.currentTarget as HTMLInputElement).value))
-                            }
-                          }}
-                          className="mt-3 w-full accent-purple-500"
-                        />
-                        <div className="mt-2 flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-zinc-500">
-                          <span>{param.min}</span>
-                          <span>{param.kind}</span>
-                          <span>{param.max}</span>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {(() => {
+              const trackGains = parseTrackGains(project.strudel_code)
+              return (
+                <Card className="border-zinc-900 bg-black/40 shadow-none">
+                  <CardContent className="flex flex-col space-y-3 p-3 sm:p-4">
+                    <div>
+                      <p className="text-sm font-semibold">Track Mixer</p>
+                      <p className="text-xs text-zinc-500">Per-track volume. Edits gain() live in the code.</p>
+                    </div>
+                    <div className="space-y-2">
+                      {trackGains.length === 0 ? (
+                        <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No tracks detected yet.</p>
+                      ) : (
+                        trackGains.map((tg) => (
+                          <div key={tg.trackId} className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-3">
+                            <div className="flex items-center justify-between text-sm text-zinc-100">
+                              <span className="truncate max-w-[120px]" title={tg.trackName}>{tg.trackName}</span>
+                              <span className="text-zinc-400">{tg.gain.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={1.5}
+                              step={0.01}
+                              value={tg.gain}
+                              onChange={(e) => onTrackGainChange(tg, Number(e.target.value))}
+                              onPointerUp={(e) => onTrackGainCommit(tg, Number((e.currentTarget as HTMLInputElement).value))}
+                              onKeyUp={(e) => {
+                                if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) {
+                                  onTrackGainCommit(tg, Number((e.currentTarget as HTMLInputElement).value))
+                                }
+                              }}
+                              className="mt-2 w-full accent-purple-500"
+                            />
+                            <div className="mt-1 flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+                              <span>0</span>
+                              <span>gain</span>
+                              <span>1.5</span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })()}
           </div>
         </div>
 
-        <div className="hidden min-h-0 2xl:flex flex-col gap-3 overflow-hidden">
+        <div className="hidden 2xl:flex flex-col gap-3 overflow-auto">
           <div className="h-[200px] overflow-hidden rounded-2xl border border-zinc-900 3xl:h-[260px]">
             <HalVisualization isPlaying={isPlaying} isListening={false} />
           </div>
