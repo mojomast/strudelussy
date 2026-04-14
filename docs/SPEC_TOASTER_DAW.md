@@ -2,8 +2,35 @@
 > **Project:** `strudelussy`
 > **Fork of:** [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster)
 > **Author:** Kyle Durepos / The Ussyverse
-> **Status:** SPEC — Ready for agent implementation
+> **Status:** In progress — MVP vertical slice implemented
 > **Stack:** React 18 + TypeScript + Vite + Tailwind + ShadCN + Strudel + Cloudflare Workers + Hono + Supabase + Firebase Auth
+
+---
+
+## Implementation Status
+
+Current repo status after the first build pass:
+
+- Imported the upstream toaster `ui/` and `server/` codebase into this repo as the implementation base
+- Reworked the frontend into a DAW-style project page with:
+- project topbar
+- diff-aware chat panel
+- section strip from `// [section]` comments
+- transport/visualization status area
+- projects gallery route
+- Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
+- Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
+
+Items still intentionally deferred from the full spec:
+
+- Supabase data model and Firebase auth integration
+- resizable multi-panel layout
+- parameter slider editing panel
+- version restore UI
+- public read-only project share route
+- editor minimap and inline diff highlighting
+
+This means the spec is no longer "ready for agent implementation" in the abstract: the MVP is underway and the repo contains a working first vertical slice.
 
 ---
 

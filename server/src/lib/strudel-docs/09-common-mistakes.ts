@@ -1,0 +1,519 @@
+export const SECTION_COMMON_MISTAKES = `
+## Common Mistakes & Corrections
+
+This section highlights frequent errors and their solutions.
+
+### 🚨 CRITICAL: Using note() with Scale Degrees (0-11)
+
+**This is the #1 most common error!**
+
+**❌ WRONG - Using note() with scale degrees:**
+\`\`\`js
+note("0 2 4 7")  // These are scale degrees, not MIDI notes!
+note("<0 [2 4] 7>")  // Scale degrees wrapped in note()!
+note("<[0 ~ 2 4] ~ 7 [9 7] ~ 4 2>")  // Wrong - numbers 0-11 are scale degrees!
+\`\`\`
+
+**✅ CORRECT - Use n() or raw strings for scale degrees:**
+\`\`\`js
+n("0 2 4 7").scale("C:minor").s("piano")  // Use n() for scale degrees
+"0 2 4 7".scale("C:minor").note().s("piano")  // Raw string with .scale()
+note("c3 eb3 g3 bb3").s("piano")  // Letter names are fine with note()
+note("60 63 67 70").s("piano")  // High MIDI numbers (60+) are fine
+\`\`\`
+
+**Rule:** If you see numbers 0-11 in a pattern → Use \`n()\` or raw strings, NOT \`note()\`
+
+### 🚨 CRITICAL: Can't Do Arithmetic on Control Patterns
+
+**This is the #2 most common error!**
+
+**❌ WRONG - Arithmetic after note() or n().scale():**
+\`\`\`js
+note("c e g").add(7)  // Can't do arithmetic after note()!
+note("<0 [2 4] 7>").superimpose(x => x.add(2))  // Wrong - note() with scale degrees AND arithmetic!
+n("0 2 4").scale("C:minor").add(7)  // Can't do arithmetic after n().scale()!
+n("0 2 4").scale("C:minor").superimpose(x => x.add(7))  // Same error!
+\`\`\`
+
+**✅ CORRECT - Arithmetic on RAW STRINGS (chain only, not callbacks):**
+\`\`\`js
+"0 2 4".add(7).scale("C:minor").note().s("piano")  // Arithmetic on raw string chain → scale → note
+\`\`\`
+
+**✅ CORRECT - Use .trans() for control patterns:**
+\`\`\`js
+note("c e g").trans(7).s("piano")  // ✅ .trans() works on note()!
+n("0 2 4").scale("C:minor").trans(12).s("piano")  // ✅ .trans() works on n().scale()!
+\`\`\`
+
+**✅ CORRECT - Use layer() for harmony/octave layering:**
+\`\`\`js
+n("0 2 4").scale("C:minor").layer(
+  x => x.s("piano"),
+  x => x.trans(7).s("piano").gain(0.5)  // ✅ Harmony via layer()
+)
+\`\`\`
+
+**⚠️ superimpose with .trans() does NOT work on control patterns:**
+\`\`\`js
+// ❌ These throw errors - control patterns (n() or note()) can't use superimpose with trans()
+n("0 2 4").scale("C:minor").superimpose(x=>x.trans(7))    // ERROR!
+note("c e g").superimpose(x=>x.trans(7))  // ERROR!
+\`\`\`
+
+**✅ superimpose(x=>x.add()) DOES work on raw strings:**
+\`\`\`js
+// ✅ Works on raw strings (before .note() or .n())
+"0 2 4".superimpose(x=>x.add(7)).scale("C:minor").note()  // ✅ Works!
+"<0 2 4 6>".superimpose(x=>x.add(2)).scale("C:minor").note()  // ✅ Works!
+\`\`\`
+
+**Rules:**
+- Arithmetic (.add, .mul, .div, .sub) works on raw string chains AND in superimpose callbacks on raw strings
+- \`superimpose(x=>x.add())\` works on raw strings ✅
+- \`superimpose(x=>x.trans())\` does NOT work on control patterns ❌
+- n() and note() create control patterns immediately - use layer() for harmony/layering on control patterns
+- Use .trans() on the main chain for simple transposition
+
+**Why:** \`note()\` and \`n()\` create **control patterns**. Arithmetic operations fail with "Can't do arithmetic on control pattern". Use \`.trans()\` on the chain, and \`layer()\` for layered harmonies.
+
+### Chord Notation Errors
+
+**❌ WRONG:**
+chord("Cmaj7")   // This format doesn't exist!
+chord("Dmaj7")   // Wrong - use DM7 instead
+chord("Gmaj7")   // Wrong - use GM7 instead
+chord("c^7")     // Wrong - chord root must be capitalized!
+chord("d7")      // Wrong - chord root must be capitalized!
+
+**✅ CORRECT:**
+chord("C^7")     // Use ^7 for major 7th
+chord("CM7")     // Or CM7 (both work)
+chord("Dm7")     // Minor 7th (this one was already correct)
+chord("G7")      // Dominant 7th (this one was already correct)
+
+**Remember:** Use \`^7\` or \`M7\` for major 7th chords, NOT "maj7"!
+
+**⚠️ IMPORTANT:** Chord root notes MUST be capitalized! \`C^7\` works, but \`c^7\` does NOT. Always use uppercase for the root note (C, D, E, F, G, A, B), whether major or minor.
+
+### Chord Function vs Manual Note Lists
+
+**This is a common confusion!**
+
+**❌ WRONG - Using manual note lists with chord():**
+\`\`\`js
+chord("[c,eb,g,bb]").voicing()  // ❌ chord() expects symbols, not note lists!
+chord("<[c,eb,g,bb] [f,ab,c4,eb4]>").voicing()  // ❌ Wrong!
+chord("<[c,eb,g,bb]!2 [f,ab,c4,eb4] [g,bb,d4,f4]>").dict('ireal').voicing()  // ❌ Wrong!
+\`\`\`
+
+**✅ CORRECT - Two different approaches:**
+\`\`\`js
+// Approach 1: chord() with SYMBOLS → .voicing() generates notes
+chord("Cm7").voicing().s("piano")  // ✅ Chord symbol
+chord("<Cm7 Fm7>").voicing().s("piano")  // ✅ Chord progression with symbols
+chord("<Cm7!2 Fm7 Gm7 Eb7>*2").dict('ireal').voicing().s("piano")  // ✅ Symbols with alternation
+
+// Approach 2: note() with MANUAL NOTE LISTS → Already specified notes
+note("[c,eb,g,bb]").s("piano")  // ✅ Manual notes (no .voicing() needed)
+note("<[c,eb,g,bb] [f,ab,c4,eb4]>").s("piano")  // ✅ Chord progression with manual notes
+note("<[c,eb,g,bb]!2 [f,ab,c4,eb4] [g,bb,d4,f4]>").s("piano")  // ✅ Manual notes with alternation
+\`\`\`
+
+**Key distinction:**
+- **\`chord("Cm7")\`** = chord symbol → needs \`.voicing()\` to generate notes
+- **\`note("[c,eb,g,bb]")\`** = manual notes → already specified, no \`.voicing()\`
+
+**When to use each:**
+- Use \`chord()\` when you want automatic voicing, inversions, and jazz-style voicings with \`.dict('ireal')\`
+- Use \`note()\` when you want exact control over which notes and octaves play
+
+### .mode() Only Works with .chord(), Not .scale()
+
+**❌ WRONG - Using .mode() after .scale():**
+\`\`\`js
+n("[0 2 4 6]").scale("C:lydian").mode("above:c2").voicing()  // ❌ .mode() is not for scales!
+n("0 2 4").scale("D:minor").mode("below:d4").voicing()       // ❌ Wrong context!
+\`\`\`
+
+**✅ CORRECT - .mode() is a VOICING function for chords:**
+\`\`\`js
+n("0 1 2 3").chord("Cm").mode("above:c3").voicing()  // ✅ mode() with chord()
+chord("<Cm7 Fm7 Gm7>").mode("below:c4").voicing()    // ✅ Voicing constraint
+\`\`\`
+
+**Why:** \`.mode("above:c3")\` and \`.mode("below:c4")\` are **voicing constraints** that tell \`.voicing()\` where to place chord notes. They only make sense with \`.chord()\`, which defines chord structures. \`.scale()\` just maps scale degrees to notes—it has no chord voicings to constrain.
+
+### Non-Existent Sounds
+
+**❌ WRONG:**
+s("guitar")      // This sound doesn't exist in default library!
+s("bass")        // No default "bass" sample
+s("strings")     // No default "strings" sample
+s("organ")       // No default "organ" sample
+
+**✅ CORRECT:**
+// For bass and pads, use synthesis:
+note("d2 ~ [d2 f2] ~ [a2 d2] ~ f2 ~").s("sawtooth").lpf(400)  // Synth bass
+note("<g!3 c> ~ [bb d4] [f eb]").s("triangle").attack(0.3).release(2)   // Soft pad
+
+
+// For strings and instruments, use the proper sound name:
+note("<g!3 c> ~ [bb d4] [f eb]").s("gm_violin")
+note("<bb <c g>> <~!3 [g f eb]>").s("gm_cello")
+note("<c2*4!3 [c2 eb2 g2 bb2]>").s("gm_tuba")
+
+
+// Piano DOES work (built-in):
+s("piano")  // ✅ This is correct!
+s("gm_epiano1") // ✅ This works!
+s("gm_electric_piano_1") //  ❌ WRONG - nonexisting sound
+
+**For other sounds:**
+- Use synthesis with built-in waveforms (sawtooth, square, sine, triangle)
+- Query Freesound with Shabda: \`samples('shabda:maracas:2')\`  and then later  \`s("maracas:0 maracas:1")\` - Generic terms work best
+
+### Orbit Conflicts
+
+**❌ WRONG:**
+// Both patterns share orbit 1 - their reverb settings fight!
+$: note("[b3@2 d4] [a3@2 [g3 a3]]").room(1).roomsize(10)
+$: s("bd*4").room(0).roomsize(0)
+
+**✅ CORRECT:**
+// Use different orbits for different effect chains
+$: note("[b3@2 d4] [a3@2 [g3 a3]]").room(1).roomsize(10).orbit(2)
+$: s("bd*4").room(0).roomsize(0).orbit(1)
+
+**Why:** Each orbit has ONE delay and ONE reverb. If multiple patterns use the same orbit with different settings, the last pattern's settings win, causing unexpected results.
+Also, you should use orbit in a way where one instrument occupies an orbit and other duck that orbit (see duck instructions).
+`+
+`
+### Missing $: for Multiple Instruments
+
+**❌ WRONG - Only the last pattern plays!**
+\`\`\`js
+n("[0 2] ~ 4 [6 7]").scale("C:lydian").s("gm_electric_guitar_clean")
+
+s("bd*4, hh*8")  // Only this plays - the guitar pattern is lost!
+\`\`\`
+
+**✅ CORRECT - Use $: before each pattern:**
+\`\`\`js
+$: n("[0 2] ~ 4 [6 7]").scale("C:lydian").s("gm_electric_guitar_clean")
+
+$: s("bd*4, hh*8")  // Now both play together!
+\`\`\`
+
+**Why:** Without \`$:\`, each line replaces the previous pattern. The \`$:\` prefix registers each pattern as a separate track, allowing multiple instruments to play simultaneously. Always use \`$:\` when you have more than one pattern.
+`
++`
+### Commenting Out Tracks (Silencing & muting)
+
+\`\`\`js
+$: //note("[c5@2 f5] [f5@2 c6]").s("piano")  // ❌ WRONG
+//$: note("[c5@2 f5] [f5@2 c6]").s("piano")  // ✅ CORRECT
+\`\`\`
+
+### Signals Without Events
+
+**❌ WRONG:**
+// This creates NO events - nothing will play!
+n(irand(8)).scale("C:major").s("triangle")
+
+**✅ CORRECT:**
+// Use .segment() to create events
+n(irand(8)).segment(16).scale("E:minor").s("triangle")
+
+// Or use a string pattern
+n("[0 2 4 6 9 2 0 -2]*3").scale("F:lydian").s("triangle")
+
+**Why:** Signals like \`irand()\` don't create events by themselves - they only provide values when events occur. Use \`.segment()\` to create events that sample the signal.
+
+### Continuous Modulation Errors
+
+**❌ WRONG:**
+// This won't smoothly modulate - only changes when note triggers
+s("sawtooth").lpf(sine.range(100, 2000))
+note("<g4 c5 a4 [ab4 <eb5 f5>]>").lpf(saw.range(500, 5000).slow(2))
+
+**✅ CORRECT:**
+// Use .segment() to create more events for smooth modulation
+s("sawtooth").segment(16).lpf(sine.range(100, 2000))
+note("<g4 c5 a4 [ab4 <eb5 f5>]>").segment(16).lpf(saw.range(500, 5000).slow(2))
+
+**Why:** Signals are only sampled when events occur. Without \`.segment()\`, modulation only changes at note boundaries.
+
+**Exceptions (these ARE continuous):**
+- ADSR envelopes
+- Filter envelopes (lpenv, hpenv, bpenv)
+- Pitch envelopes (penv)
+- Tremolo, Phaser, Vibrato, Ducking
+
+### Using Signals Where Discrete Values Are Required
+
+**❌ WRONG:**
+s("jazz:4").slice(8, rand)  // Error - slice needs discrete values!
+s("bd sd hh oh").n(rand)  // Won't work
+
+**✅ CORRECT:**
+s("jazz:4").slice(8, rand.segment(8))  // Use .segment() to create discrete values
+s("bd sd hh oh").n(irand(4).segment(8))  // Or use pattern strings: n("[0 2] ~ [1 3]")
+
+**Rule:** Functions like \`slice()\` and \`n()\` need discrete values - use \`.segment()\`. Effects like \`pan()\`, \`gain()\`, \`lpf()\` work with signals directly.
+
+### String Syntax Errors
+
+**❌ WRONG:**
+note('c e g')    // Single quotes create a literal string, not a pattern
+s('bd sd')       // Won't parse as mini-notation
+
+**✅ CORRECT:**
+note("[f#5 d5] [b4 g4] bb4 [b4 a4]")    // Double quotes for mini-notation
+s(\`bd sd\`)      // Or backticks for multi-line patterns
+
+**When to use single quotes:**
+.dict('ireal')   // For regular string parameters (not patterns)
+samples('shabda:clap:1')  // For sample loading (non-pattern strings)
+samples('github:user/repo')  // For URLs
+
+
+### Effect Chain Order
+
+**❌ WRONG:**
+// Trying to use the same effect twice (second lpf overrides first)
+s("bd").lpf(100).distort(2).lpf(800)
+
+**✅ CORRECT:**
+// Effects are applied in a fixed order regardless of chain order
+// Each effect can only be used once per event
+s("bd").lpf(800).distort(2)  // Just use lpf once
+
+// For complex filtering, use filter envelopes instead:
+s("bd").lpf(100).lpenv(8).lpa(0.001).lpd(0.1)
+
+**Signal Flow Order:**
+Sound → Gain/ADSR → LPF → HPF → BPF → Vowel → Coarse → Crush → Shape → Distort → Tremolo → Compressor → Pan → Phaser → Postgain → [Dry, Delay, Reverb] → Orbit → Output
+
+### Sample Loop Errors
+
+**❌ WRONG:**
+// Looping without clip causes overlapping sounds
+s("space:2").loop(1)
+
+**✅ CORRECT:**
+// Use .clip() to prevent overlap
+s("space:2").loop(1).clip(1)
+
+### Scale Degree vs MIDI Note
+
+**❌ WRONG:**
+// Using MIDI note numbers with .scale()
+note("60 62 64").scale("C:minor")  // Wrong!
+
+**✅ CORRECT:**
+// Use n() for scale degrees (numbers 0-7) with .scale()
+n("<6 5 4 3>*2").scale("C:minor")  // Correct - numbers are scale degrees
+n("[0 2 4 7]").scale("D:minor").s("piano")  // Correct
+
+// Or use note() without scale:
+note("60 62 64")  // MIDI notes (no scale needed)
+note("[d5@2 [c5 b4]] [[c5 b4] g4@2]")     // Letter notation (no scale needed)
+note("eb4 d4 c4 b3")  // Letter names (no scale needed)
+
+### Bank Usage Errors
+
+**❌ WRONG:**
+// Using banks with sounds that don't have that bank
+s("piano").bank("RolandTR808")  // piano is not in TR808 bank!
+
+**✅ CORRECT:**
+// Banks work with drum abbreviations only
+s("bd sd hh").bank("RolandTR808")  // Correct
+
+// Piano is standalone
+s("piano")  // Correct (no bank needed)
+
+### Shabda Async Loading Errors
+
+**⚠️ CRITICAL RULE:** The \`samples()\` function must ALWAYS be at the TOP of your code. NEVER inline it with patterns, stack calls, or any other code.
+
+**❌ WRONG - Separate code blocks:**
+// Don't do this - samples won't be ready!
+samples('shabda:bass:4')
+// Later/different execution - ERROR: 'bass' undefined!
+$: s("bass:0 bass:1")
+
+**❌ WRONG - Inline with patterns:**
+// Don't inline samples() with patterns!
+stack(
+  samples('shabda:bass:4'),  // ❌ NEVER DO THIS
+  s("bass:0 bass:1")
+)
+
+**❌ WRONG - Inline anywhere:**
+// Don't put samples() anywhere except the top!
+s("bd*4").stack(samples('shabda:bass:4'), s("bass:0"))  // ❌ NEVER
+
+**✅ CORRECT - samples() at the top:**
+// 1. ALWAYS load samples at the TOP (first lines of code)
+samples('shabda:bass:4')
+samples('bubo:waveforms')
+samples('github:tidalcycles/dirt-samples')
+
+// 2. Then use in patterns (below)
+s("bass:0 bass:1 bass:2 bass:3")
+
+// 3. Or in stack
+stack(
+  s("bass:0 bass:1"),
+  s("bass:2 bass:3")
+)
+
+**Why:** The \`samples()\` function loads samples asynchronously. If you try to use them before they're loaded, you'll get "Cannot read properties of undefined" errors.
+
+**Rule:** Always put ALL \`samples()\` calls at the very TOP of your code, on their own line(s), before any patterns, stack calls, or other code. This applies to:
+- \`samples('shabda:...')\` - Freesound samples
+- \`samples('bubo:waveforms')\` - Wavetables
+- \`samples('github:...')\` - GitHub samples
+- Any other \`samples()\` call
+
+### Drum Pattern Mistakes
+
+**❌ Overly dense with no variation:**
+s("bd*4, sd*4, hh*16")  // Mechanical - every step filled
+
+**✅ Use space, euclidean rhythms, and variation:**
+s("bd(5,8), ~ sd ~ sd, [hh oh]*4")  // Natural groove
+s("bd ~ <bd [bd bd]> sd, hh*8")     // Alternating patterns
+
+**❌ Misunderstanding brackets:**
+s("bd [sd cp]")  // Subdivides - plays sd then cp quickly
+
+**✅ Use comma to layer sounds:**
+s("bd [sd,cp]")  // Layers - plays sd and cp together
+
+**Note on tempo:** Use \`setcpm()\` for global tempo control. \`.fast()\`/\`.slow()\` can be useful for creative effects (like doubling a hi-hat part), but shouldn't be your primary tempo control
+
+Don't put a $: before the setcpm() call. It should be at the top of the code on its own, just \`setcpm(120/4)\` or similar.
+
+**❌ WRONG: \`$: setcpm(120/4)\`**
+**✅ CORRECT: \`setcpm(120/4)\`**
+
+### Arp Usage
+
+**❌ WRONG - Using arp for arpeggiation:**
+n("0 2 4 7 9").scale("E:minor").arp("up")  // arp() doesn't work this way!
+
+**✅ CORRECT - For melodic patterns, skip arp entirely:**
+note("[a5 f5@2 c5] [d5@2 f5] ~ f5").s("gm_electric_guitar_clean")  // Sequential notes
+n("0 1 2 3").chord("Em").mode("above:e3").voicing().s("piano")  // Chord voicings
+
+**Why:** \`.arp()\` selects indices from stacked notes (e.g., \`note("[c,eb,g]").arp("0 1 2")\`). It's for advanced cases, not general arpeggiation.
+
+### Boring, Uninteresting Patterns
+
+For comprehensive pattern design guidance, see **Section 15: Style Guide**.
+
+**Key principles to avoid boring patterns:**
+- Add rhythmic variation with \`[]\`, \`~\`, \`@\`, \`!\`,
+- Use euclidean rhythms \`(3,8)\`, \`(5,8)\` for natural grooves (inside the quotes)
+- Include rests and breathing room
+- Add passing tones and melodic contour
+- Use alternation \`<>\` for variation over time
+- Avoid plain triads, scale walks, and mechanical repetition
+
+### Incorrect Use of Arithmetic Transformations
+
+**❌ WRONG - arithmetic transformations after note() or n().scale():**
+note("[f#5 d5] [b4 g4]").superimpose(x=>x.add(7))  // ❌ Can't do arithmetic - note() creates control patterns!
+note("[c5@2 f5] [f5@2 c6]").juxBy(0.5, x => x.add(7))  // ❌ Same issue - note() already made control patterns!
+n("<6 5 4 3>").scale("C:minor").superimpose(x=>x.add(2))  // ❌ Can't do arithmetic after n().scale()!
+
+**❌ WRONG - using .note() after n().scale():**
+n("[0 2 4 6 9]").scale("F:lydian").note()  // n() already creates notes!
+
+**❌ WRONG - using superimpose on control patterns:**
+n("[0 2] 4 ~")
+  .superimpose(x=>x.add(2))  // ❌ Error: n() creates control pattern - can't use superimpose with add/trans
+  .scale("E:minor").note()
+
+// Note: If this were a raw string, it would work:
+// "[0 2] 4 ~".superimpose(x=>x.add(2)).scale("E:minor").note()  // ✅ This would work!
+
+**❌ WRONG - using transformations with n() before .scale():**
+n("[0 2 4 6]").add("<0 2 4>").scale("C:major")  // Error: Can't do arithmetic on control pattern
+
+**✅ CORRECT - Use layer() for harmony layering:**
+\`\`\`js
+note("[f#5 d5] [b4 g4] bb4 [b4 a4]").layer(
+  x => x.s("sawtooth"),
+  x => x.trans(7).s("sawtooth").gain(0.5)  // Fifth up via layer()
+)
+
+n("[0 2 4 6]").scale("F:lydian").layer(
+  x => x.s("piano"),
+  x => x.trans(3).s("piano").gain(0.6)  // Thirds via layer()
+)
+\`\`\`
+
+**✅ CORRECT - Arithmetic on raw string chains:**
+\`\`\`js
+"[0 2 4 6 9 2 0 -2]*3"
+  .add("<0 2>/4")  // Add transformation on raw string CHAIN
+  .scale("C:major").note()
+  .s("triangle")
+\`\`\`
+
+**✅ CORRECT - superimpose(x=>x.add()) works on RAW STRINGS:**
+\`\`\`js
+// ✅ Works on raw strings (before .note() or .n())
+"<0 2 4 6 ~ 4 ~ 2 0!3 ~!5>*8"
+  .superimpose(x=>x.add(2))  // Add harmony (thirds)
+  .scale('C:minor').note()
+
+"c2 eb2 g2 bb2"
+  .superimpose(x=>x.add(0.05))  // Detune for chorus
+  .s("sawtooth")
+\`\`\`
+
+**⚠️ superimpose with .trans() does NOT work on control patterns:**
+\`\`\`js
+// ❌ These throw errors - control patterns (n() or note()) can't use superimpose with trans()
+n("0 2 4").scale("C:minor").superimpose(x=>x.trans(12))   // ERROR!
+note("c e g").superimpose(x=>x.trans(7))  // ERROR!
+\`\`\`
+
+**Why:** 
+- **Raw strings** → \`superimpose(x=>x.add())\` works ✅
+- **Control patterns** (\`n()\` or \`note()\`) → \`superimpose(x=>x.trans())\` throws errors ❌
+- Use \`layer()\` for harmony/octave layering on control patterns ✅
+
+**Key insight:** \`superimpose(x=>x.add())\` works on raw strings, but \`superimpose(x=>x.trans())\` throws "[object Object]" errors on control patterns. Use \`layer()\` for harmony layering on control patterns!
+
+### Quick Checklist
+
+Before generating patterns, check:
+
+- [ ] Using \`C^7\` or \`CM7\` (not "Cmaj7") for major 7th chords?
+- [ ] Using \`chord()\` with SYMBOLS like "Cm7", NOT manual note lists like "[c,eb,g,bb]"?
+- [ ] Using \`note()\` for manual note lists, \`chord()\` for chord symbols?
+- [ ] Only using sounds that exist in default library or loaded via Shabda?
+- [ ] If using Shabda/wavetables: putting \`samples()\` at the TOP, before patterns?
+- [ ] Using different orbits for patterns with different reverb/delay settings?
+- [ ] Using \`.segment(16)\` when using LFOs for smooth LFO modulation?
+- [ ] Using double quotes \`""\` or backticks for mini-notation?
+- [ ] Using \`n()\` for scale degrees, \`note()\` for MIDI/letters?
+- [ ] Using \`.clip(1)\` with \`.loop(1)\` to prevent overlap?
+- [ ] Avoiding \`.arp()\` unless specifically selecting indices from stacked notes?
+- [ ] For drums: using \`setcpm()\` for tempo, Euclidean rhythms for groove, and \`<>\` for variation?
+- [ ] Creating interesting melodies with rhythmic variation, rests, passing tones, and contour (not just "0 2 4 7")?
+- [ ] Using \`layer()\` for harmony/octave layering on control patterns, or \`superimpose(x=>x.add())\` on raw strings?
+- [ ] Using \`.trans()\` on the chain (not in callbacks) to transpose patterns?
+- [ ] NOT using \`.note()\` after \`n().scale()\` (n() already creates notes)?
+- [ ] Leveraging euclidean rhythms \`(3,8)\`, \`(5,8)\` etc. for natural, musical grooves?
+- [ ] When commenting out tracks: using \`//$:\` (not \`$: //\`) to silence a track?
+- [ ] Using \`$:\` before each pattern when multiple instruments play together?
+`;
+
