@@ -77,5 +77,6 @@ wrangler.toml
 _toaster_upstream/
 scripts/*
 !scripts/public_proxy.py
+!scripts/live_sync.sh
 server/src/lib/strudel-samples/*
 server/wrangler.toml

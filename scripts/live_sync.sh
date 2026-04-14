@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+REPO_ROOT="${1:-/home/mojo/projects/strudelussy-live}"
+LOCKFILE="/tmp/strudelussy-live-sync.lock"
+
+exec 9>"${LOCKFILE}"
+flock -n 9 || exit 0
+
+cd "${REPO_ROOT}"
+
+git fetch origin main
+
+LOCAL_HEAD="$(git rev-parse HEAD)"
+REMOTE_HEAD="$(git rev-parse origin/main)"
+UPDATED=0
+
+if [[ "${LOCAL_HEAD}" != "${REMOTE_HEAD}" ]]; then
+  git reset --hard origin/main
+  UPDATED=1
+fi
+
+if [[ ! -d "${REPO_ROOT}/ui/node_modules" ]]; then
+  pnpm install --dir "${REPO_ROOT}/ui" --frozen-lockfile
+  UPDATED=1
+fi
+
+if [[ ! -d "${REPO_ROOT}/server/node_modules" ]]; then
+  pnpm install --dir "${REPO_ROOT}/server" --frozen-lockfile
+  UPDATED=1
+fi
+
+if [[ ${UPDATED} -eq 1 || ! -f "${REPO_ROOT}/ui/dist/index.html" ]]; then
+  (cd "${REPO_ROOT}/ui" && pnpm build)
+  pkill -f "${REPO_ROOT}/scripts/public_proxy.py" || true
+  pkill -f "${REPO_ROOT}/scripts/run_worker.sh" || true
+fi
+
+if ! pgrep -f "${REPO_ROOT}/scripts/run_worker.sh" >/dev/null; then
+  nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/strudelussy-live-worker.log 2>&1 &
+fi
+
+if ! pgrep -f "${REPO_ROOT}/scripts/public_proxy.py" >/dev/null; then
+  nohup python3 "${REPO_ROOT}/scripts/public_proxy.py" >/tmp/strudelussy-live-proxy.log 2>&1 &
+fi

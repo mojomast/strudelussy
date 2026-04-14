@@ -104,6 +104,7 @@ Public runtime on the maintainer machine currently uses:
 
 - `https://strudel.ussyco.de` for the app
 - a local path-aware proxy that serves the built SPA and forwards `/api/*` to the worker on `:8788`
+- a dedicated deploy clone at `/home/mojo/projects/strudelussy-live` plus `scripts/live_sync.sh` to fast-forward `origin/main`, rebuild `ui/dist`, and restart the local proxy/worker
 
 ## Environment
 

@@ -51,6 +51,8 @@ APP_URL=http://localhost:5173
 - `SHARES_KV`
 - `PROJECTS_KV`
 
+For the maintainer-hosted live site, this file is intentionally host-local and not committed. The live clone uses `server/wrangler.toml.example` as the template and fills in local KV ids + vars before starting the worker.
+
 ## Verification
 
 ```bash
