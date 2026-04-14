@@ -62,7 +62,7 @@ pnpm exec tsc --noEmit
 - Auth is currently header-based (`x-user-id`) to support guest mode and unblock MVP persistence.
 - The chat route streams incremental chunks and then ends with the existing structured `AIResponse` payload.
 - The chat route now degrades safely when the upstream model returns non-JSON text instead of the requested structured payload.
-- The server accepts a UI-selected model but restricts it to an allowlist; otherwise it falls back to `OPENROUTER_MODEL` or `google/gemini-2.5-flash`.
+- The server currently uses `OPENROUTER_MODEL` or falls back to `google/gemini-2.5-flash`.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
-- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, removes stray `await`, replaces unsupported sound names like `chirp`, and rejects oversized generated code.
+- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, removes stray `await`, replaces unsupported sound names like `chirp`, and rejects oversized generated code.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.

@@ -14,7 +14,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
-- selectable chat models in the UI with a server-side allowlist
+- rhythm generator, arrange mask, FX rack, mutate toolbar, keyboard shortcuts overlay, and BPM tap tempo
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -37,6 +37,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - visualization/transport strip
 - section strip parsed from `// [section]` comments
 - editable parameter panel that patches numeric literals in-place
+- rhythm generator, arrange mask, FX rack, mutate toolbar, keyboard shortcuts overlay, and BPM tap tempo
 - version history panel with refresh and restore
 - topbar actions for starting a blank project or reloading the demo template
 - viewport-first responsive layout with earlier panel stacking and internal scrolling
@@ -50,6 +51,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - chat parsing is hardened so non-JSON model responses degrade into normal assistant messages instead of 500s
 - chat history sent to the LLM is capped to the last 20 non-system messages
 - oversized generated code is rejected with a structured assistant message instead of reaching the editor
+- unsupported generated methods like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, and `.acidenv()` are stripped before code reaches the editor
 - `GET/POST/PUT/DELETE /api/projects` provide KV-backed project persistence
 - `GET/POST /api/projects/:id/versions` provide lightweight snapshot history
 - existing `/api/share` remains available for share links

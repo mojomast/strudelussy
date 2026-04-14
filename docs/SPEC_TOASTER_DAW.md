@@ -19,13 +19,14 @@ Current repo status after the first build pass:
 - transport/visualization status area
 - projects gallery route
 - editable parameter sliders backed by live code patching
+- rhythm generator, arrange mask panel, FX rack, mutate toolbar, keyboard shortcut overlay, and BPM tap tempo
 - version history refresh and restore UI
 - explicit blank-project and demo-project loading actions
 - viewport-first responsive layout tuning so the dashboard stacks earlier and fits common screens without browser zoom
 - Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
 - Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
 - Hardened AI chat parsing so malformed/non-JSON model responses fail soft instead of crashing the endpoint
-- Added streaming chat responses over SSE, model selection with an allowlist, preview-before-apply diff auditioning, and multi-pending diff tracking keyed by message id
+- Added streaming chat responses over SSE, preview-before-apply diff auditioning, multi-pending diff tracking keyed by message id, and stricter unsupported-pattern sanitizing
 
 Items still intentionally deferred from the full spec:
 
