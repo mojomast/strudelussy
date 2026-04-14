@@ -30,7 +30,9 @@ const HomePage = () => {
           masterVolume={orchestrator.masterVolume}
           customApiEndpoint={orchestrator.customApiEndpoint}
           customApiKey={orchestrator.customApiKey}
+          customSystemPrompt={orchestrator.customSystemPrompt}
           selectedModel={orchestrator.selectedModel}
+          systemPromptMode={orchestrator.systemPromptMode}
           availableModels={orchestrator.availableModels}
           isLoadingModels={orchestrator.isLoadingModels}
           modelLoadError={orchestrator.modelLoadError}
@@ -40,7 +42,9 @@ const HomePage = () => {
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}
           onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
           onCustomApiKeyChange={orchestrator.onCustomApiKeyChange}
+          onCustomSystemPromptChange={orchestrator.onCustomSystemPromptChange}
           onModelChange={orchestrator.onModelChange}
+          onSystemPromptModeChange={orchestrator.onSystemPromptModeChange}
           onLoadModels={() => void orchestrator.onLoadModels()}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}

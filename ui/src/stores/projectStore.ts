@@ -1,6 +1,6 @@
 import { create } from 'zustand'
-import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, Project, SectionMarker } from '@/types/project'
-import { DEFAULT_CHAT_MODEL } from '@/types/project'
+import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, Project, SectionMarker, SystemPromptMode } from '@/types/project'
+import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
 import { extractParams, parseBpmFromCode, parseKeyFromCode, parseSections } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 
@@ -26,6 +26,7 @@ interface ProjectStore {
   params: ExtractedParam[]
   sections: SectionMarker[]
   selectedModel: ChatModel
+  systemPromptMode: SystemPromptMode
   isDirty: boolean
   isSaving: boolean
   saveError: string | null
@@ -50,6 +51,7 @@ interface ProjectStore {
     setStrudelError: (error: string | null) => void
     setActiveSection: (label: string | null) => void
     setSelectedModel: (model: ChatModel) => void
+    setSystemPromptMode: (mode: SystemPromptMode) => void
     upsertVersion: (code: string, label: string | undefined, createdBy: 'user' | 'ai') => void
     replaceVersions: (versions: Project['versions']) => void
   }
@@ -80,6 +82,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   params: [],
   sections: [],
   selectedModel: DEFAULT_CHAT_MODEL,
+  systemPromptMode: DEFAULT_SYSTEM_PROMPT_MODE,
   isDirty: false,
   isSaving: false,
   saveError: null,
@@ -226,6 +229,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     setStrudelError: (strudelError) => set({ strudelError }),
     setActiveSection: (activeSection) => set({ activeSection }),
     setSelectedModel: (selectedModel) => set({ selectedModel }),
+    setSystemPromptMode: (systemPromptMode) => set({ systemPromptMode }),
 
     upsertVersion: (code, label, createdBy) =>
       set((state) => {

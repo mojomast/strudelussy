@@ -67,6 +67,8 @@ pnpm exec tsc --noEmit
 - The server currently uses `OPENROUTER_MODEL` or falls back to `google/gemini-2.5-flash`.
 - The chat route defaults to `google/gemini-2.5-flash`, but it also proxies custom endpoint + API key overrides from the UI.
 - `POST /api/chat/models` loads available model ids from a custom provider's `/models` endpoint so the UI can populate its selector dynamically.
+- The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `strudelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
+- The chat route can also append a user-authored custom system prompt override on top of the selected base prompt.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
-- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code.
+- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code. The Strudelussy prompt uses the same verified bank/voice table to reduce prompt/runtime drift.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.

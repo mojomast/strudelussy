@@ -46,7 +46,7 @@ VITE_API_URL=http://localhost:8788
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - project metadata, GitHub links beside the project identity, compact model controls, BPM tap tempo, master volume, custom provider config, export/share, shortcuts, and template actions
+- `src/components/ProjectTopbar.tsx` - project metadata, GitHub links beside the project identity, prompt/model controls, editable prompt override, BPM tap tempo, master volume, custom provider config, export/share, shortcuts, and template actions
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
 - `src/components/EditorPanel.tsx` - Strudel editor wrapper, section strip, and mutate toolbar
 - `src/components/DawPanel.tsx` - right-side DAW utilities for telemetry, mixer, rhythm, arrange, and FX
@@ -69,5 +69,7 @@ VITE_API_URL=http://localhost:8788
 - The DAW shell is intentionally designed around panel-local scrolling rather than document-level page scrolling.
 - Chat requests default to `google/gemini-2.5-flash`, but users can provide a custom endpoint + API key override in the topbar.
 - When a custom provider is configured, clicking `Load Models` populates the model selector from that provider's `/models` API.
+- The topbar also switches between a legacy toaster prompt and a stricter Strudelussy prompt tuned for full-code JSON responses and safer Strudel edits.
+- The topbar also lets users append their own custom system prompt instructions without replacing the selected base prompt entirely.
 - The streaming chat client keeps the pending assistant message visible on stream failures and malformed SSE chunks instead of losing the patch preview.
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.

@@ -1,3 +1,4 @@
+import type { SystemPromptMode } from '@/types/project'
 import { useCallback, useRef } from 'react'
 import { Disc3, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,9 @@ interface ProjectTopbarProps {
   masterVolume: number
   customApiEndpoint: string
   customApiKey: string
+  customSystemPrompt: string
   selectedModel: string
+  systemPromptMode: SystemPromptMode
   availableModels: string[]
   isLoadingModels: boolean
   modelLoadError: string | null
@@ -19,7 +22,9 @@ interface ProjectTopbarProps {
   onMasterVolumeChange: (volume: number) => void
   onCustomApiEndpointChange: (endpoint: string) => void
   onCustomApiKeyChange: (apiKey: string) => void
+  onCustomSystemPromptChange: (prompt: string) => void
   onModelChange: (model: string) => void
+  onSystemPromptModeChange: (mode: SystemPromptMode) => void
   onLoadModels: () => void
   onNewProject: () => void
   onLoadDemo: () => void
@@ -36,7 +41,9 @@ const ProjectTopbar = ({
   masterVolume,
   customApiEndpoint,
   customApiKey,
+  customSystemPrompt,
   selectedModel,
+  systemPromptMode,
   availableModels,
   isLoadingModels,
   modelLoadError,
@@ -46,7 +53,9 @@ const ProjectTopbar = ({
   onMasterVolumeChange,
   onCustomApiEndpointChange,
   onCustomApiKeyChange,
+  onCustomSystemPromptChange,
   onModelChange,
+  onSystemPromptModeChange,
   onLoadModels,
   onNewProject,
   onLoadDemo,
@@ -130,9 +139,23 @@ const ProjectTopbar = ({
               placeholder="Custom API key"
               className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
             />
+            <textarea
+              value={customSystemPrompt}
+              onChange={(event) => onCustomSystemPromptChange(event.target.value)}
+              placeholder="Optional system prompt override"
+              className="min-h-[76px] min-w-[260px] flex-[1.4] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={systemPromptMode}
+              onChange={(event) => onSystemPromptModeChange(event.target.value as SystemPromptMode)}
+              className="min-w-[190px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            >
+              <option value="legacy-toaster">Legacy toaster prompt</option>
+              <option value="strudelussy">Strudelussy prompt</option>
+            </select>
             <select
               value={selectedModel}
               onChange={(event) => onModelChange(event.target.value)}

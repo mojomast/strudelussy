@@ -1,6 +1,9 @@
 export const DEFAULT_CHAT_MODEL = 'google/gemini-2.5-flash'
+export const DEFAULT_SYSTEM_PROMPT_MODE = 'strudelussy'
 
 export type ChatModel = string
+export type SystemPromptMode = 'legacy-toaster' | 'strudelussy'
+export type CustomSystemPrompt = string
 
 export interface CodeDiff {
   before: string

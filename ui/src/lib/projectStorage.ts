@@ -1,4 +1,5 @@
-import type { Project } from '@/types/project'
+import { DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
+import type { Project, SystemPromptMode } from '@/types/project'
 import { createId } from '@/lib/utils'
 
 const PROJECTS_KEY = 'strudelussy.projects'
@@ -71,6 +72,8 @@ export interface StoredChatProviderConfig {
   endpoint: string
   apiKey: string
   selectedModel: string
+  systemPromptMode: SystemPromptMode
+  customSystemPrompt: string
 }
 
 export const loadChatProviderConfig = (): StoredChatProviderConfig | null => {
@@ -79,7 +82,14 @@ export const loadChatProviderConfig = (): StoredChatProviderConfig | null => {
   if (!raw) return null
 
   try {
-    return JSON.parse(raw) as StoredChatProviderConfig
+    const parsed = JSON.parse(raw) as Partial<StoredChatProviderConfig>
+    return {
+      endpoint: parsed.endpoint || '',
+      apiKey: parsed.apiKey || '',
+      selectedModel: parsed.selectedModel || '',
+      systemPromptMode: parsed.systemPromptMode || DEFAULT_SYSTEM_PROMPT_MODE,
+      customSystemPrompt: parsed.customSystemPrompt || '',
+    }
   } catch {
     return null
   }

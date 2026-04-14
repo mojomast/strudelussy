@@ -16,8 +16,8 @@ import {
 } from '@/lib/codeParser'
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
-import { DEFAULT_CHAT_MODEL } from '@/types/project'
-import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
+import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
+import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker, SystemPromptMode } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
 
@@ -108,6 +108,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [masterVolume, setMasterVolume] = useState(0.85)
   const [customApiEndpoint, setCustomApiEndpoint] = useState('')
   const [customApiKey, setCustomApiKey] = useState('')
+  const [customSystemPrompt, setCustomSystemPrompt] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_CHAT_MODEL])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [modelLoadError, setModelLoadError] = useState<string | null>(null)
@@ -146,6 +147,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     strudelError,
     params,
     selectedModel,
+    systemPromptMode,
     actions,
   } = useProjectStore()
 
@@ -159,9 +161,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     setCustomApiEndpoint(savedConfig.endpoint)
     setCustomApiKey(savedConfig.apiKey)
+    setCustomSystemPrompt(savedConfig.customSystemPrompt || '')
     activeProviderRef.current = formatProviderConfig(savedConfig.endpoint, savedConfig.apiKey)
     setAvailableModels(savedConfig.selectedModel ? [savedConfig.selectedModel] : [DEFAULT_CHAT_MODEL])
     actions.setSelectedModel(savedConfig.selectedModel || DEFAULT_CHAT_MODEL)
+    actions.setSystemPromptMode(savedConfig.systemPromptMode || DEFAULT_SYSTEM_PROMPT_MODE)
   }, [actions])
 
   useEffect(() => {
@@ -471,6 +475,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         messages: trimChatHistoryForApi([...useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)]),
         current_code: currentCode,
         model: selectedModel,
+        system_prompt_mode: systemPromptMode,
+        custom_system_prompt: customSystemPrompt.trim() || undefined,
         provider: customProvider ?? undefined,
         project_meta: {
           bpm: currentProject.bpm,
@@ -520,7 +526,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
       setIsSending(false)
       pendingSendContentsRef.current.delete(trimmedContent)
     }
-  }, [actions, currentProject, customProvider, getCurrentCode, selectedModel, userId])
+  }, [actions, currentProject, customProvider, customSystemPrompt, getCurrentCode, selectedModel, systemPromptMode, userId])
 
   const onPreviewDiff = useCallback((messageId: string, diff: CodeDiff) => {
     previewSnapshotRef.current = getCurrentCode()
@@ -799,6 +805,18 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const onCustomApiKeyChange = useCallback((apiKey: string) => {
     setCustomApiKey(apiKey)
   }, [])
+  const onCustomSystemPromptChange = useCallback((prompt: string) => {
+    setCustomSystemPrompt(prompt)
+    if (customProvider) {
+      saveChatProviderConfig({
+        endpoint: customProvider.endpoint,
+        apiKey: customProvider.apiKey,
+        selectedModel,
+        systemPromptMode,
+        customSystemPrompt: prompt,
+      })
+    }
+  }, [customProvider, selectedModel, systemPromptMode])
   const onModelChange = useCallback((model: string) => {
     actions.setSelectedModel(model)
     if (customProvider) {
@@ -806,9 +824,23 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         endpoint: customProvider.endpoint,
         apiKey: customProvider.apiKey,
         selectedModel: model,
+        systemPromptMode,
+        customSystemPrompt,
       })
     }
-  }, [actions, customProvider])
+  }, [actions, customProvider, customSystemPrompt, systemPromptMode])
+  const onSystemPromptModeChange = useCallback((mode: SystemPromptMode) => {
+    actions.setSystemPromptMode(mode)
+    if (customProvider) {
+      saveChatProviderConfig({
+        endpoint: customProvider.endpoint,
+        apiKey: customProvider.apiKey,
+        selectedModel,
+        systemPromptMode: mode,
+        customSystemPrompt,
+      })
+    }
+  }, [actions, customProvider, customSystemPrompt, selectedModel])
   const onLoadModels = useCallback(async () => {
     const nextProvider = formatProviderConfig(customApiEndpoint, customApiKey)
     if (!nextProvider) {
@@ -835,6 +867,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         endpoint: nextProvider.endpoint,
         apiKey: nextProvider.apiKey,
         selectedModel: nextModel,
+        systemPromptMode,
+        customSystemPrompt,
       })
     } catch (error) {
       activeProviderRef.current = null
@@ -844,7 +878,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     } finally {
       setIsLoadingModels(false)
     }
-  }, [actions, customApiEndpoint, customApiKey, selectedModel, userId])
+  }, [actions, customApiEndpoint, customApiKey, customSystemPrompt, selectedModel, systemPromptMode, userId])
   const onMasterVolumeChange = useCallback((volume: number) => {
     const nextVolume = Math.min(1, Math.max(0, volume))
     masterVolumeRef.current = nextVolume
@@ -864,6 +898,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     activeSection,
     params,
     selectedModel,
+    systemPromptMode,
     isDirty,
     isSaving,
     saveError,
@@ -885,6 +920,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     masterVolume,
     customApiEndpoint,
     customApiKey,
+    customSystemPrompt,
     availableModels,
     isLoadingModels,
     modelLoadError,
@@ -923,7 +959,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onProjectKeyChange,
     onCustomApiEndpointChange,
     onCustomApiKeyChange,
+    onCustomSystemPromptChange,
     onModelChange,
+    onSystemPromptModeChange,
     onLoadModels,
     onMasterVolumeChange,
     onEditorCodeChange,

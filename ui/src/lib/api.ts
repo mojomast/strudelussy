@@ -1,4 +1,4 @@
-import type { AIResponse, ChatMessage, ChatModel, CodeVersion, Project, ProjectSummary } from '@/types/project'
+import type { AIResponse, ChatMessage, ChatModel, CodeVersion, Project, ProjectSummary, SystemPromptMode } from '@/types/project'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -14,6 +14,8 @@ export interface ChatPayload {
   messages: Pick<ChatMessage, 'role' | 'content'>[]
   current_code: string
   model?: ChatModel
+  system_prompt_mode?: SystemPromptMode
+  custom_system_prompt?: string
   provider?: ChatProviderOverride
   project_meta: { bpm?: number; key?: string; tags?: string[] }
 }
