@@ -40,7 +40,7 @@ const unsupportedPatterns: RegExp[] = [
   /\.acidenv\s*\([^)]*(?:\([^)]*\)[^)]*)*\)/g,
 ]
 
-const unsupportedSoundNames = ['chirp']
+const unsupportedSoundNames = ['chirp', 'bongo', 'conga', 'timbale', 'cowbell', 'tambourine', 'clap2']
 
 export const chatRoute = new Hono<{ Bindings: Env }>()
 
@@ -74,6 +74,13 @@ Rules:
 - Do not invent unsupported sound names like chirp unless you have explicitly loaded a compatible sample pack and know the sound exists.
 - For built-in drums prefer bd, sd, hh, cp, rim, lt, mt, ht, perc. For melodic instruments prefer working gm_ instruments already present in the code.
 - Use Euclidean rhythms for drums: s("bd(3,16)").bank("RolandTR808") is always preferred over manual sequencing.
+- ONLY use these verified bank+voice combinations. Never invent others.
+  RolandTR808: bd, sd, hh, cp, lt, mt, ht, cb, cy, cl, rs, ma
+  RolandTR909: bd, sd, hh, oh, cp, lt, mt, ht, rim, cb
+  RolandTR707: bd, sd, hh, oh, cp, lt, ht, cy, rs
+  AkaiLinn: bd, sd, hh, oh, cp, tm, lt, mt, ht, cy
+  Never use: bongo, conga, timbale, shaker, or any percussion name not in the list above.
+  If the user asks for a percussion sound not in the list, map it to the nearest available voice.
 - Use .mask("<0!N 1!M>") to arrange when the user asks for song structure or sections to appear or disappear over time.
 - Use .jux(rev) for subtle stereo interest on melodic patterns.
 - Use .off(1/8, x=>x.add(7)) on melodic tracks only (those using note() or n()). Never apply .off() to drum or sample patterns — it will produce broken output.
@@ -95,6 +102,24 @@ const sanitizeCode = (code: string): string => {
   for (const pattern of unsupportedPatterns) {
     nextCode = nextCode.replace(pattern, ' /* unsupported pattern removed */')
   }
+
+  const VALID_BANK_VOICES: Record<string, string[]> = {
+    RolandTR808: ['bd', 'sd', 'hh', 'cp', 'lt', 'mt', 'ht', 'cb', 'cy', 'cl', 'rs', 'ma', 'oh'],
+    RolandTR909: ['bd', 'sd', 'hh', 'oh', 'cp', 'lt', 'mt', 'ht', 'rim', 'cb'],
+    RolandTR707: ['bd', 'sd', 'hh', 'oh', 'cp', 'lt', 'ht', 'cy', 'rs'],
+    AkaiLinn: ['bd', 'sd', 'hh', 'oh', 'cp', 'tm', 'lt', 'mt', 'ht', 'cy'],
+  }
+
+  nextCode = nextCode.replace(
+    /s\("([a-z]+)\([^)]*\)"\)\.bank\("([^"]+)"\)/g,
+    (match, voice: string, bank: string) => {
+      const validVoices = VALID_BANK_VOICES[bank]
+      if (!validVoices) return match
+      if (validVoices.includes(voice)) return match
+      return match.replace(`"${voice}(`, '"bd(')
+    },
+  )
+
   nextCode = nextCode.replace(/\bawait\s+/g, '')
   for (const soundName of unsupportedSoundNames) {
     nextCode = nextCode.replace(new RegExp(`\\b${soundName}\\b`, 'g'), 'hh')

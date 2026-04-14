@@ -16,7 +16,7 @@ import {
 } from '@/lib/codeParser'
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
-import type { ChatMessage, ChatModel, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
+import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
 
@@ -452,18 +452,16 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         },
       })
     } catch (error) {
+      const errorText = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
       const messages = useProjectStore.getState().chatMessages.map((message) =>
         message.id === streamingAssistantId
-          ? {
-              ...message,
-              content: error instanceof Error ? error.message : 'Chat request failed.',
-            }
+          ? { ...message, content: `⚠️ ${errorText}`, status: 'error' as const }
           : message,
       )
       actions.setChatMessages(messages)
     } finally {
+      setIsSending(false)
       pendingSendContentsRef.current.delete(trimmedContent)
-      setIsSending(pendingSendContentsRef.current.size > 0)
     }
   }, [actions, currentProject, getCurrentCode, selectedModel, userId])
 
@@ -738,7 +736,6 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   const onProjectNameChange = useCallback((name: string) => actions.setProjectName(name), [actions])
   const onProjectKeyChange = useCallback((key: string) => actions.setProjectKey(key), [actions])
-  const onModelChange = useCallback((model: ChatModel) => actions.setSelectedModel(model), [actions])
   const onEditorCodeChange = useCallback((code: string) => actions.setCode(code), [actions])
   const onEditorPlayStateChange = useCallback((playing: boolean) => actions.setPlaying(playing), [actions])
   const onEditorStrudelError = useCallback((error: string | null) => actions.setStrudelError(error), [actions])
@@ -803,7 +800,6 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onJuxRev,
     onProjectNameChange,
     onProjectKeyChange,
-    onModelChange,
     onEditorCodeChange,
     loadVersions,
     onEditorPlayStateChange,

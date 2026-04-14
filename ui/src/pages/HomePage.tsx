@@ -8,7 +8,6 @@ import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
-import { CHAT_MODELS } from '@/types/project'
 
 const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -28,9 +27,6 @@ const HomePage = () => {
           projectName={orchestrator.currentProject.name}
           bpm={orchestrator.currentProject.bpm}
           musicalKey={orchestrator.currentProject.key}
-          selectedModel={orchestrator.selectedModel}
-          onModelChange={orchestrator.onModelChange}
-          models={CHAT_MODELS}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onBpmChange={orchestrator.onBpmChange}
           onKeyChange={orchestrator.onProjectKeyChange}

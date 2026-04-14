@@ -11,7 +11,7 @@ import type { CodeDiff } from '@/types/project'
 interface DiffPreviewCardProps {
   messageId: string
   diff: CodeDiff
-  status?: 'pending' | 'applied' | 'rejected'
+  status?: 'pending' | 'applied' | 'rejected' | 'error'
   isPreviewing?: boolean
   onApply?: (messageId: string, diff: CodeDiff) => void
   onReject?: (messageId: string, diff: CodeDiff) => void
@@ -23,6 +23,7 @@ const statusLabel: Record<NonNullable<DiffPreviewCardProps['status']>, string> =
   pending: 'Awaiting review',
   applied: 'Applied',
   rejected: 'Rejected',
+  error: 'Error',
 }
 
 const DIFF_PREVIEW_LINE_LIMIT = 20

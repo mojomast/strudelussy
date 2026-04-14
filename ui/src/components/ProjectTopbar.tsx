@@ -1,18 +1,14 @@
 import { useCallback, useRef } from 'react'
 import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import type { ChatModel } from '@/types/project'
 
 interface ProjectTopbarProps {
   projectName: string
   bpm?: number
   musicalKey?: string
-  selectedModel: string
-  models: readonly string[]
   onProjectNameChange: (name: string) => void
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
-  onModelChange: (model: ChatModel) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -25,12 +21,9 @@ const ProjectTopbar = ({
   projectName,
   bpm,
   musicalKey,
-  selectedModel,
-  models,
   onProjectNameChange,
   onBpmChange,
   onKeyChange,
-  onModelChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -116,15 +109,6 @@ const ProjectTopbar = ({
               placeholder="Key / scale"
               className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
-            <select
-              value={selectedModel}
-              onChange={(e) => onModelChange(e.target.value as ChatModel)}
-              className="rounded-lg border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-xs text-zinc-200 outline-none focus:border-purple-500"
-            >
-              {models.map((model) => (
-                <option key={model} value={model}>{model.split('/')[1]}</option>
-              ))}
-            </select>
           </div>
         </div>
       </div>

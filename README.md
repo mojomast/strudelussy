@@ -14,7 +14,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a visible restricted model selector
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a fixed Gemini 2.5 Flash chat model
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -38,7 +38,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - always-visible right-side DAW utility panel
 - section strip parsed from `// [section]` comments
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a visible restricted model selector
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a fixed Gemini 2.5 Flash chat model
 - version history panel with refresh and restore
 - topbar actions for starting a blank project or reloading the demo template
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
@@ -50,7 +50,9 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 
 - `POST /api/chat` streams SSE chunks, then finishes with the existing structured `AIResponse` shape
 - chat parsing is hardened so non-JSON model responses degrade into normal assistant messages instead of 500s
-- chat model selection is restricted to `google/gemini-2.5-flash`, `google/gemini-3.1-flash-lite-preview`, `google/gemini-3-flash-preview`, and `openai/gpt-5.4-mini`
+- chat SSE parsing is hardened so malformed chunks and delayed `[DONE]` boundaries do not drop pending AI patches
+- chat requests default to `google/gemini-2.5-flash` with no user-facing model chooser
+- invalid drum bank+voice combinations are remapped to verified sample combos before code reaches the editor
 - chat history sent to the LLM is capped to the last 20 non-system messages
 - oversized generated code is rejected with a structured assistant message instead of reaching the editor
 - unsupported generated methods like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, and `.acidenv()` are stripped before code reaches the editor

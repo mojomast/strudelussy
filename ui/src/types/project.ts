@@ -26,7 +26,7 @@ export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
   content: string
   code_diff?: CodeDiff
-  status?: 'pending' | 'applied' | 'rejected'
+  status?: 'pending' | 'applied' | 'rejected' | 'error'
   isPreviewing?: boolean
   timestamp: string
 }

@@ -82,8 +82,8 @@ export const api = {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}))
-      throw new Error(error.message || error.error || `Request failed: ${response.status}`)
+      const error = await response.json().catch(() => ({})) as Record<string, string>
+      throw new Error(error['message'] || error['error'] || `Request failed: ${response.status}`)
     }
 
     if (!response.body) {
@@ -94,9 +94,9 @@ export const api = {
     const decoder = new TextDecoder()
     let buffer = ''
     let finalResponse: AIResponse | null = null
-    let isDone = false
+    let streamError: string | null = null
 
-    const processLine = (rawEvent: string) => {
+    const processLine = (rawEvent: string): boolean => {
       const lines = rawEvent.split('\n')
       let data = ''
       for (const line of lines) {
@@ -104,58 +104,64 @@ export const api = {
         data += `${line.slice(5).trimStart()}\n`
       }
       const payloadText = data.trim()
-      if (!payloadText) return
-
-      if (payloadText === '[DONE]') {
-        isDone = true
-        return
-      }
+      if (!payloadText) return false
+      if (payloadText === '[DONE]') return true
 
       let parsed: { type?: string; chunk?: string; response?: AIResponse; error?: string }
       try {
-        parsed = JSON.parse(payloadText) as { type?: string; chunk?: string; response?: AIResponse; error?: string }
+        parsed = JSON.parse(payloadText) as typeof parsed
       } catch {
-        return
+        return false
       }
 
       if (parsed.type === 'chunk' && parsed.chunk) {
         handlers.onChunk?.(parsed.chunk)
-        return
+        return false
       }
       if (parsed.type === 'error') {
-        throw new Error(parsed.error || 'Streaming chat failed')
+        streamError = parsed.error || 'Streaming chat failed'
+        return true
       }
       if (parsed.type === 'done' && parsed.response) {
         finalResponse = parsed.response
+        return false
       }
+      return false
     }
 
-    while (true) {
+    let readerDone = false
+    while (!readerDone) {
       const { done, value } = await reader.read()
+      if (done) readerDone = true
       buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
 
       let boundaryIndex = buffer.indexOf('\n\n')
       while (boundaryIndex !== -1) {
         const rawEvent = buffer.slice(0, boundaryIndex)
         buffer = buffer.slice(boundaryIndex + 2)
-        processLine(rawEvent)
-        if (isDone) break
+        const streamDone = processLine(rawEvent)
         boundaryIndex = buffer.indexOf('\n\n')
+        if (streamDone) {
+          readerDone = true
+          break
+        }
       }
-
-      if (done || isDone) break
     }
 
-    if (isDone && !finalResponse) {
-      throw new Error('Streaming chat ended before final response')
+    if (buffer.trim()) {
+      processLine(buffer)
     }
 
-    if (finalResponse) {
-      handlers.onDone?.(finalResponse)
-      return finalResponse
+    if (streamError) {
+      throw new Error(streamError)
     }
 
-    throw new Error('Streaming chat ended before final response')
+    if (!finalResponse) {
+      throw new Error('Streaming chat ended before final response was received')
+    }
+
+    handlers.onDone?.(finalResponse)
+    return finalResponse
   },
 
   shareCode: (code: string) =>
