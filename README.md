@@ -10,7 +10,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - diff-aware AI chat flow with Apply/Reject review
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
-- parsed BPM, key, sections, and editable parameter controls from live code
+- parsed BPM, key, sections, and a per-track gain mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
@@ -36,11 +36,11 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - Strudel editor panel
 - visualization/transport strip
 - section strip parsed from `// [section]` comments
-- editable parameter panel that patches numeric literals in-place
+- per-track mixer panel that edits `gain()` live in the code
 - rhythm generator, arrange mask, FX rack, mutate toolbar, keyboard shortcuts overlay, and BPM tap tempo
 - version history panel with refresh and restore
 - topbar actions for starting a blank project or reloading the demo template
-- viewport-first responsive layout with earlier panel stacking and internal scrolling
+- viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available

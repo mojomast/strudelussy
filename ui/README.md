@@ -11,7 +11,7 @@ Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](h
 - diff-aware AI chat review flow
 - streaming assistant responses with a live typing bubble
 - Strudel editor + playback using the existing upstream editor/runtime
-- parsed BPM, key, section, and editable parameter metadata from current code
+- parsed BPM, key, section, and per-track gain metadata from current code
 - guest-mode local project persistence
 - version history refresh + restore panel
 - preview/apply/reject AI patch flow with multiple pending diffs keyed per assistant message
@@ -48,7 +48,7 @@ VITE_API_URL=http://localhost:8788
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
 - `src/components/ProjectTopbar.tsx` - project metadata, BPM tap tempo, export/share, shortcuts, and template actions
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
-- `src/components/EditorPanel.tsx` - Strudel editor wrapper, telemetry, section strip, DAW helper panels, mutate toolbar, and param controls
+- `src/components/EditorPanel.tsx` - Strudel editor wrapper, telemetry, section strip, DAW helper panels, mutate toolbar, and track mixer
 - `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper
 - `src/components/ArrangePanel.tsx` - per-track mask scheduling helper
 - `src/components/FxRack.tsx` - global track FX application helper
@@ -56,10 +56,10 @@ VITE_API_URL=http://localhost:8788
 
 ## Notes
 
-- Parameter sliders patch live code in-place and trigger a debounced re-evaluation while playback is active.
+- Track mixer sliders patch per-track `gain()` calls live in the code and trigger a debounced re-evaluation while playback is active.
 - Slider commits create version snapshots on pointer/key release when the code actually changed.
 - AI previews can audition a proposed patch in the editor before Apply; Reject or Stop Preview restores the pre-preview snapshot.
-- DAW helper panels live below the editor and require the editor column itself to scroll; the shell is intentionally tuned around internal panel scrolling.
+- DAW helper panels live below the editor and require the editor column itself to scroll; the shell is intentionally tuned around internal panel scrolling so Rhythm Generator, Arrange, FX Rack, and Track Mixer remain reachable.
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
 - `pnpm preview` is only the local Vite production preview, not the production hosting path.
 - Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.

@@ -18,7 +18,7 @@ Current repo status after the first build pass:
 - section strip from `// [section]` comments
 - transport/visualization status area
 - projects gallery route
-- editable parameter sliders backed by live code patching
+- per-track gain mixer backed by live code patching, with the editor column fixed to allow scrolling through the lower DAW helper panels
 - rhythm generator, arrange mask panel, FX rack, mutate toolbar, keyboard shortcut overlay, and BPM tap tempo
 - version history refresh and restore UI
 - explicit blank-project and demo-project loading actions
