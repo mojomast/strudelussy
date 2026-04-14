@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom'
 import { FolderKanban } from 'lucide-react'
 import ArrangePanel from '@/components/ArrangePanel'
 import FxRack from '@/components/FxRack'
-import HalVisualization from '@/components/HalVisualization'
 import RhythmGenerator from '@/components/RhythmGenerator'
 import { Button } from '@/components/ui/button'
 import { parseTrackGains } from '@/lib/codeParser'
@@ -14,7 +13,6 @@ interface DawPanelProps {
   project: Project
   sections: SectionMarker[]
   params: ExtractedParam[]
-  isPlaying: boolean
   isEditorInitialized: boolean
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null
@@ -29,7 +27,7 @@ interface DawPanelProps {
 }
 
 const DawPanel = ({
-  project, sections, params, isPlaying, isEditorInitialized, isEditorInitializing,
+  project, sections, params, isEditorInitialized, isEditorInitializing,
   cycleInfo, pendingPatchCount,
   onTrackGainChange, onTrackGainCommit, onTrackPanChange, onTrackPanCommit,
   onInjectCode, onApplyCode,
@@ -38,11 +36,6 @@ const DawPanel = ({
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
-
-      {/* Visualization */}
-      <div className="h-[200px] shrink-0 overflow-hidden rounded-t-2xl border-b border-zinc-900">
-        <HalVisualization isPlaying={isPlaying} isListening={false} />
-      </div>
 
       <div className="flex flex-col gap-0 divide-y divide-zinc-900 p-3 space-y-3">
 

@@ -7,6 +7,7 @@ interface HalVisualizationProps {
 }
 
 const HalVisualization = ({ isPlaying, isListening, audioAnalyser }: HalVisualizationProps) => {
+  const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const mirrorCanvasRef = useRef<HTMLCanvasElement>(null)
   const analyserRef = useRef<AnalyserNode | null>(null)
@@ -611,39 +612,36 @@ const HalVisualization = ({ isPlaying, isListening, audioAnalyser }: HalVisualiz
 
   // Handle canvas resize for both HAL eye and mirror canvas
   useEffect(() => {
+    const container = containerRef.current
     const canvas = canvasRef.current
     const mirrorCanvas = mirrorCanvasRef.current
-    if (!canvas) return
+    if (!container || !canvas || !mirrorCanvas) return
 
     const handleResize = () => {
-      const container = canvas.parentElement
-      if (container) {
-        // Resize HAL eye canvas
-        canvas.width = container.clientWidth
-        canvas.height = container.clientHeight
-        
-        // Resize mirror canvas to match
-        if (mirrorCanvas) {
-          mirrorCanvas.width = container.clientWidth
-          mirrorCanvas.height = container.clientHeight
-        }
+      const width = container.clientWidth
+      const height = container.clientHeight
+      if (width > 0 && height > 0) {
+        canvas.width = width
+        canvas.height = height
+        mirrorCanvas.width = width
+        mirrorCanvas.height = height
       }
     }
 
     handleResize()
-    window.addEventListener('resize', handleResize)
+    const resizeObserver = new ResizeObserver(handleResize)
+    resizeObserver.observe(container)
     
-    return () => window.removeEventListener('resize', handleResize)
+    return () => resizeObserver.disconnect()
   }, [])
 
   return (
-    <div className="relative w-full h-full bg-gradient-to-br from-slate-950 to-slate-900 overflow-hidden">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-slate-900">
       {/* Strudel visualization mirror canvas - copies visualization frame-by-frame */}
       <canvas
         ref={mirrorCanvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none transition-all duration-300"
+        className="absolute inset-0 block h-full w-full pointer-events-none transition-all duration-300"
         style={{
-          display: 'block',
           zIndex: 5,
           opacity: isPlaying ? 0.7 : 0.4,
           filter: isPlaying 
@@ -659,9 +657,8 @@ const HalVisualization = ({ isPlaying, isListening, audioAnalyser }: HalVisualiz
       {/* HAL Eye Canvas - on top of Strudel viz */}
       <canvas 
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 block h-full w-full"
         style={{ 
-          display: 'block',
           zIndex: 10,
         }}
       />
@@ -670,4 +667,3 @@ const HalVisualization = ({ isPlaying, isListening, audioAnalyser }: HalVisualiz
 }
 
 export default HalVisualization
-
