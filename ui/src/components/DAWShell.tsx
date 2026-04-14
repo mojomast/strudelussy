@@ -18,7 +18,9 @@ const DAWShell = ({ topbar, chatPanel, editorPanel, dawPanel, transportBar, vers
         <div className="flex h-full min-h-0 flex-col gap-2 sm:gap-3">
           {topbar}
           <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)_380px] gap-2 overflow-hidden xl:grid-cols-[320px_minmax(0,1fr)_400px] 2xl:grid-cols-[340px_minmax(0,1fr)_420px]">
-            {chatPanel}
+            <div className="min-h-0 overflow-hidden">
+              {chatPanel}
+            </div>
             <section className="flex min-h-0 flex-col gap-2 overflow-hidden">
               <div className="min-h-0 flex-1 overflow-hidden">
                 {editorPanel}
