@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
 import { StrudelMirror } from '@strudel/codemirror'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
@@ -37,7 +37,11 @@ interface StrudelEditorProps {
   onSetCodeReady?: (setCodeFn: (code: string) => void) => void
 }
 
-const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady }: StrudelEditorProps) => {
+export interface StrudelEditorHandle {
+  jumpToLine: (line: number) => void
+}
+
+const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady }, ref) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
@@ -68,6 +72,28 @@ const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, on
   const strudelLogListenerRef = useRef<((e: Event) => void) | null>(null)
   const playStartTimeRef = useRef<number>(0) // Track when playback started - fallback only
   const cpsRef = useRef<number>(0.5) // Default CPS - fallback when scheduler not accessible
+
+  const jumpToLine = (line: number) => {
+    const cmEditor = strudelMirrorRef.current?.editor
+    const view = cmEditor?.view
+    const doc = view?.state?.doc
+
+    if (!view || !doc) {
+      return
+    }
+
+    const safeLine = Math.max(1, Math.min(line, doc.lines))
+    const lineInfo = doc.line(safeLine)
+    view.dispatch({
+      selection: { anchor: lineInfo.from },
+      scrollIntoView: true,
+    })
+    view.focus()
+  }
+
+  useImperativeHandle(ref, () => ({
+    jumpToLine,
+  }), [])
 
   useEffect(() => {
     // Initialize StrudelMirror when component mounts - only once
@@ -422,23 +448,7 @@ const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, on
           }
 
           if (onJumpToLineReady) {
-            onJumpToLineReady((line: number) => {
-              const cmEditor = strudelMirrorRef.current?.editor
-              const view = cmEditor?.view
-              const doc = view?.state?.doc
-
-              if (!view || !doc) {
-                return
-              }
-
-              const safeLine = Math.max(1, Math.min(line, doc.lines))
-              const lineInfo = doc.line(safeLine)
-              view.dispatch({
-                selection: { anchor: lineInfo.from },
-                scrollIntoView: true,
-              })
-              view.focus()
-            })
+            onJumpToLineReady(jumpToLine)
           }
           
           // Listen for Strudel log events (warnings/errors/code updates)
@@ -568,6 +578,8 @@ const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, on
       </div>
     </>
   )
-}
+})
+
+StrudelEditor.displayName = 'StrudelEditor'
 
 export default StrudelEditor

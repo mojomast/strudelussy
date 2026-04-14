@@ -1,22 +1,17 @@
-import { Check, Disc3, PauseCircle, Play, Save, Undo2, Redo2 } from 'lucide-react'
+import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CHAT_MODELS, type ChatModel } from '@/types/project'
 
 interface ProjectTopbarProps {
   projectName: string
   bpm?: number
   musicalKey?: string
-  isPlaying: boolean
-  isSaving: boolean
-  isDirty: boolean
-  error: string | null
+  selectedModel: ChatModel
   onProjectNameChange: (name: string) => void
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
-  onPlay: () => void
-  onStop: () => void
-  onSave: () => void
-  onUndo: () => void
-  onRedo: () => void
+  onModelChange: (model: ChatModel) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -28,18 +23,11 @@ const ProjectTopbar = ({
   projectName,
   bpm,
   musicalKey,
-  isPlaying,
-  isSaving,
-  isDirty,
-  error,
+  selectedModel,
   onProjectNameChange,
   onBpmChange,
   onKeyChange,
-  onPlay,
-  onStop,
-  onSave,
-  onUndo,
-  onRedo,
+  onModelChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -69,20 +57,6 @@ const ProjectTopbar = ({
 
         <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={isPlaying ? onStop : onPlay}>
-              {isPlaying ? <PauseCircle className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-              {isPlaying ? 'Stop' : 'Play'}
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onUndo}>
-              <Undo2 className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onRedo}>
-              <Redo2 className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onSave}>
-              {isDirty ? <Save className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-400" />}
-              {isSaving ? 'Saving...' : isDirty ? 'Save Version' : 'Saved'}
-            </Button>
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onNewProject}>
               New Project
             </Button>
@@ -116,9 +90,18 @@ const ProjectTopbar = ({
               placeholder="Key / scale"
               className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
-            <span className={`max-w-full truncate rounded-full px-3 py-2 text-xs ${error ? 'bg-red-950/70 text-red-300' : 'bg-zinc-950 text-zinc-400'}`}>
-              {error ? `Error: ${error}` : 'Engine ready'}
-            </span>
+            <Select value={selectedModel} onValueChange={(value) => onModelChange(value as ChatModel)}>
+              <SelectTrigger className="min-w-[220px]">
+                <SelectValue placeholder="Select model" />
+              </SelectTrigger>
+              <SelectContent>
+                {CHAT_MODELS.map((model) => (
+                  <SelectItem key={model} value={model}>
+                    {model}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
       </div>

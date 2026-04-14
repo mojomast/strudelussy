@@ -1,20 +1,30 @@
 import { create } from 'zustand'
-import type { ChatMessage, CodeDiff, ExtractedParam, Project, SectionMarker } from '@/types/project'
+import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import { extractParams, parseBpmFromCode, parseKeyFromCode, parseSections } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 
 interface PendingDiffState {
   messageId: string
   diff: CodeDiff
+  isPreviewing: boolean
 }
+
+export const MAX_CHAT_HISTORY_FOR_API = 20
+
+export const trimChatHistoryForApi = (messages: ChatMessage[]) =>
+  messages
+    .filter((message) => message.role !== 'system')
+    .slice(-MAX_CHAT_HISTORY_FOR_API)
+    .map(({ role, content }) => ({ role, content }))
 
 interface ProjectStore {
   currentProject: Project | null
   chatMessages: ChatMessage[]
-  pendingDiff: PendingDiffState | null
+  pendingDiffs: Map<string, PendingDiffState>
   activeSection: string | null
   params: ExtractedParam[]
   sections: SectionMarker[]
+  selectedModel: ChatModel
   isDirty: boolean
   isSaving: boolean
   saveError: string | null
@@ -29,14 +39,16 @@ interface ProjectStore {
     setChatMessages: (messages: ChatMessage[]) => void
     appendMessage: (message: ChatMessage) => void
     setPendingDiff: (messageId: string, diff: CodeDiff) => void
-    applyDiff: () => CodeDiff | null
-    rejectDiff: () => void
+    applyDiff: (messageId: string) => CodeDiff | null
+    rejectDiff: (messageId: string) => void
+    setDiffPreviewing: (messageId: string, isPreviewing: boolean) => void
     setSaving: (isSaving: boolean) => void
     setSaveError: (message: string | null) => void
     markSaved: (timestamp: string) => void
     setPlaying: (isPlaying: boolean) => void
     setStrudelError: (error: string | null) => void
     setActiveSection: (label: string | null) => void
+    setSelectedModel: (model: ChatModel) => void
     upsertVersion: (code: string, label: string | undefined, createdBy: 'user' | 'ai') => void
     replaceVersions: (versions: Project['versions']) => void
   }
@@ -51,13 +63,22 @@ const deriveProject = (project: Project): Project => ({
 const markMessageStatus = (messages: ChatMessage[], messageId: string, status: 'applied' | 'rejected') =>
   messages.map((message) => (message.id === messageId ? { ...message, status } : message))
 
+const syncChatHistory = (state: ProjectStore, chatMessages: ChatMessage[]) => ({
+  chatMessages,
+  currentProject: state.currentProject
+    ? { ...state.currentProject, chat_history: chatMessages, updated_at: new Date().toISOString() }
+    : state.currentProject,
+  isDirty: true,
+})
+
 export const useProjectStore = create<ProjectStore>((set, get) => ({
   currentProject: null,
   chatMessages: [],
-  pendingDiff: null,
+  pendingDiffs: new Map(),
   activeSection: null,
   params: [],
   sections: [],
+  selectedModel: 'google/gemini-2.5-flash',
   isDirty: false,
   isSaving: false,
   saveError: null,
@@ -70,7 +91,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set({
         currentProject: nextProject,
         chatMessages: nextProject.chat_history,
-        pendingDiff: null,
+        pendingDiffs: new Map(),
         activeSection: null,
         sections: parseSections(nextProject.strudel_code),
         params: extractParams(nextProject.strudel_code),
@@ -134,33 +155,68 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     },
 
     setPendingDiff: (messageId, diff) =>
-      set((state) => ({
-        pendingDiff: { messageId, diff },
-        chatMessages: state.chatMessages.map((message) =>
-          message.id === messageId ? { ...message, code_diff: diff, status: 'pending' } : message,
-        ),
-      })),
+      set((state) => {
+        const pendingDiffs = new Map(state.pendingDiffs)
+        pendingDiffs.set(messageId, { messageId, diff, isPreviewing: false })
+        const chatMessages = state.chatMessages.map((message) =>
+          message.id === messageId ? { ...message, code_diff: diff, status: 'pending' as const } : message,
+        )
+        return {
+          pendingDiffs,
+          ...syncChatHistory(state, chatMessages),
+        }
+      }),
 
-    applyDiff: () => {
-      const pendingDiff = get().pendingDiff
+    applyDiff: (messageId) => {
+      const pendingDiff = get().pendingDiffs.get(messageId)
       if (!pendingDiff) return null
 
       get().actions.setCode(pendingDiff.diff.after)
-      set((state) => ({
-        pendingDiff: null,
-        chatMessages: markMessageStatus(state.chatMessages, pendingDiff.messageId, 'applied'),
-      }))
+      set((state) => {
+        const pendingDiffs = new Map(state.pendingDiffs)
+        pendingDiffs.delete(messageId)
+        const chatMessages = markMessageStatus(state.chatMessages, pendingDiff.messageId, 'applied').map((message) =>
+          message.id === pendingDiff.messageId ? { ...message, isPreviewing: false } : message,
+        )
+        return {
+          pendingDiffs,
+          ...syncChatHistory(state, chatMessages),
+        }
+      })
       return pendingDiff.diff
     },
 
-    rejectDiff: () => {
-      const pendingDiff = get().pendingDiff
+    rejectDiff: (messageId) => {
+      const pendingDiff = get().pendingDiffs.get(messageId)
       if (!pendingDiff) return
-      set((state) => ({
-        pendingDiff: null,
-        chatMessages: markMessageStatus(state.chatMessages, pendingDiff.messageId, 'rejected'),
-      }))
+      set((state) => {
+        const pendingDiffs = new Map(state.pendingDiffs)
+        pendingDiffs.delete(messageId)
+        const chatMessages = markMessageStatus(state.chatMessages, pendingDiff.messageId, 'rejected').map((message) =>
+          message.id === pendingDiff.messageId ? { ...message, isPreviewing: false } : message,
+        )
+        return {
+          pendingDiffs,
+          ...syncChatHistory(state, chatMessages),
+        }
+      })
     },
+
+    setDiffPreviewing: (messageId, isPreviewing) =>
+      set((state) => {
+        const pendingDiff = state.pendingDiffs.get(messageId)
+        const pendingDiffs = new Map(state.pendingDiffs)
+        if (pendingDiff) {
+          pendingDiffs.set(messageId, { ...pendingDiff, isPreviewing })
+        }
+        const chatMessages = state.chatMessages.map((message) =>
+          message.id === messageId ? { ...message, isPreviewing } : message,
+        )
+        return {
+          pendingDiffs,
+          ...syncChatHistory(state, chatMessages),
+        }
+      }),
 
     setSaving: (isSaving) => set({ isSaving }),
     setSaveError: (saveError) => set({ saveError }),
@@ -168,6 +224,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     setPlaying: (isPlaying) => set({ isPlaying }),
     setStrudelError: (strudelError) => set({ strudelError }),
     setActiveSection: (activeSection) => set({ activeSection }),
+    setSelectedModel: (selectedModel) => set({ selectedModel }),
 
     upsertVersion: (code, label, createdBy) =>
       set((state) => {

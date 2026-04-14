@@ -1,3 +1,14 @@
+export const CHAT_MODELS = [
+  'google/gemini-2.5-flash',
+  'google/gemini-2.5-pro',
+  'anthropic/claude-3-haiku',
+  'anthropic/claude-3.5-sonnet',
+  'openai/gpt-4o-mini',
+  'openai/gpt-4o',
+] as const
+
+export type ChatModel = (typeof CHAT_MODELS)[number]
+
 export interface CodeDiff {
   before: string
   after: string
@@ -18,6 +29,7 @@ export interface ChatMessage {
   content: string
   code_diff?: CodeDiff
   status?: 'pending' | 'applied' | 'rejected'
+  isPreviewing?: boolean
   timestamp: string
 }
 

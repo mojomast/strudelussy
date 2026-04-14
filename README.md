@@ -2,15 +2,19 @@
 
 `strudelussy` is a DAW-style fork of Toaster for building Strudel projects with an AI copilot.
 
+Upstream credit: this repo extends [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster), and keeps large parts of the original editor/runtime workflow intact while layering DAW-oriented orchestration on top.
+
 This repo now includes a working MVP built on top of the upstream toaster codebase:
 
 - DAW-style single-project workspace
 - diff-aware AI chat flow with Apply/Reject review
+- streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
 - parsed BPM, key, sections, and editable parameter controls from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
+- selectable chat models in the UI with a server-side allowlist
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -42,8 +46,10 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 
 ### Backend
 
-- `POST /api/chat` returns structured AI responses for the diff-review flow
+- `POST /api/chat` streams SSE chunks, then finishes with the existing structured `AIResponse` shape
 - chat parsing is hardened so non-JSON model responses degrade into normal assistant messages instead of 500s
+- chat history sent to the LLM is capped to the last 20 non-system messages
+- oversized generated code is rejected with a structured assistant message instead of reaching the editor
 - `GET/POST/PUT/DELETE /api/projects` provide KV-backed project persistence
 - `GET/POST /api/projects/:id/versions` provide lightweight snapshot history
 - existing `/api/share` remains available for share links

@@ -25,6 +25,7 @@ Current repo status after the first build pass:
 - Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
 - Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
 - Hardened AI chat parsing so malformed/non-JSON model responses fail soft instead of crashing the endpoint
+- Added streaming chat responses over SSE, model selection with an allowlist, preview-before-apply diff auditioning, and multi-pending diff tracking keyed by message id
 
 Items still intentionally deferred from the full spec:
 
@@ -58,7 +59,7 @@ This means the spec is no longer "ready for agent implementation" in the abstrac
 - User can **accept, reject, or partially apply** a bot suggestion before it goes live in the editor
 - Bot understands current code state at all times (current editor code is injected into system context on every message)
 - Support for **natural language song instructions**: "add a breakbeat at bar 3", "make the bass heavier", "switch to a minor key", "add reverb to the hi-hats"
-- Chat history is persisted per project in Supabase
+- Chat history is persisted per project. Current implementation stores the full history for display/persistence but only sends the most recent 20 non-system messages to the LLM.
 
 ### 2.2 Strudel Code Editor (Enhanced)
 - Existing `StrudelEditor.tsx` is preserved and extended — **do not replace it**
@@ -234,7 +235,7 @@ Strudel reference cheat sheet:
 ```
 
 ### 3.2 Response Format (Structured Output)
-The LLM is prompted to respond in JSON (use `response_format: { type: "json_object" }` where supported):
+The LLM is prompted to respond in JSON. Current implementation parses JSON when present, but deliberately falls back to a plain assistant message when a provider returns non-JSON text instead of failing the request:
 
 ```ts
 interface AIResponse {
@@ -249,10 +250,11 @@ interface AIResponse {
 1. User sends message
 2. Bot responds with `AIResponse`
 3. If `has_code_change === true`:
-   - Show **diff preview card** in chat thread (green additions, red removals)
-   - Two buttons: **✅ Apply** | **❌ Reject**
-   - Apply → pushes code to editor + saves a version snapshot
-   - Reject → code unchanged, conversation continues
+    - Show **diff preview card** in chat thread (green additions, red removals)
+    - Three review actions: **Preview** | **✅ Apply** | **❌ Reject**
+    - Preview → loads the proposed code into the editor, can auto-start playback, and can be stopped/restored before committing
+    - Apply → pushes code to editor + saves a version snapshot
+    - Reject → code unchanged, conversation continues
 4. User can **edit applied code manually** at any time — no lock-in
 
 ---
@@ -271,7 +273,7 @@ Body:
   project_meta: { bpm?: number, key?: string, tags?: string[] }
 }
 ```
-Response: `AIResponse` (structured JSON)
+Response: streamed SSE chunks during generation, followed by the existing `AIResponse` shape at stream completion.
 
 ### `GET /api/projects` (authenticated)
 Returns list of user's projects.

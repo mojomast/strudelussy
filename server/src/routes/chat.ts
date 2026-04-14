@@ -1,13 +1,27 @@
 import { Hono } from 'hono'
+import { streamText } from 'hono/streaming'
 import OpenAI from 'openai'
 import type { ChatCompletionMessageParam } from 'openai/resources/chat/completions'
 import type { Env } from '../index'
 import { STRUDEL_DOCS } from '../lib/strudel-docs'
 
+const ALLOWED_MODELS = [
+  'google/gemini-2.5-flash',
+  'google/gemini-2.5-pro',
+  'anthropic/claude-3-haiku',
+  'anthropic/claude-3.5-sonnet',
+  'openai/gpt-4o-mini',
+  'openai/gpt-4o',
+] as const
+
+const MAX_CHAT_HISTORY = 20
+const MAX_CODE_LENGTH = 8000
+
 interface ChatPayload {
   project_id?: string
   messages: { role: string; content: string }[]
   current_code: string
+  model?: string
   project_meta?: { bpm?: number; key?: string; tags?: string[] }
 }
 
@@ -20,6 +34,9 @@ interface AIResponse {
 
 const unsupportedPatterns = [
   /\.bend\s*\([^)]*\)/g,
+  /\.stutter\s*\([^)]*\)/g,
+  /\.bounce\s*\([^)]*\)/g,
+  /\.pingpong\s*\([^)]*\)/g,
 ]
 
 const unsupportedSoundNames = ['chirp']
@@ -69,8 +86,9 @@ const fallbackJsonResponse = (content: string): AIResponse => ({
 const sanitizeCode = (code: string): string => {
   let nextCode = code
   for (const pattern of unsupportedPatterns) {
-    nextCode = nextCode.replace(pattern, '')
+    nextCode = nextCode.replace(pattern, ' /* unsupported pattern removed */')
   }
+  nextCode = nextCode.replace(/\bawait\s+/g, '')
   for (const soundName of unsupportedSoundNames) {
     nextCode = nextCode.replace(new RegExp(`\\b${soundName}\\b`, 'g'), 'hh')
   }
@@ -107,6 +125,13 @@ const parseJsonResponse = (content: string): AIResponse => {
   }
 
   const sanitizedCode = parsed.code ? sanitizeCode(parsed.code) : undefined
+  if (sanitizedCode && sanitizedCode.length > MAX_CODE_LENGTH) {
+    return {
+      message: 'The proposed code change is too large to review safely. Ask for a smaller, more focused change.',
+      has_code_change: false,
+    }
+  }
+
   return {
     message: parsed.message || 'Updated the project.',
     code: sanitizedCode,
@@ -140,26 +165,51 @@ chatRoute.post('/', async (c) => {
       },
     })
 
+    const selectedModel = (ALLOWED_MODELS.includes((payload.model || '') as (typeof ALLOWED_MODELS)[number])
+      ? payload.model
+      : c.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash') as (typeof ALLOWED_MODELS)[number] | string
+
+    const recentMessages = payload.messages.filter((message) => message.role !== 'system').slice(-MAX_CHAT_HISTORY)
+
     const messages: ChatCompletionMessageParam[] = [
       { role: 'system', content: buildSystemPrompt(payload) },
-      ...payload.messages.map((message) => ({
+      ...recentMessages.map((message) => ({
         role: message.role === 'assistant' || message.role === 'system' ? message.role : 'user',
         content: message.content,
       })) as ChatCompletionMessageParam[],
     ]
 
-    const completion = await openai.chat.completions.create({
-      model: c.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
-      temperature: 0.6,
-      messages,
+    c.header('Content-Type', 'text/event-stream')
+    c.header('Cache-Control', 'no-cache')
+    c.header('Connection', 'keep-alive')
+
+    return streamText(c, async (stream) => {
+      const completion = await openai.chat.completions.create({
+        model: selectedModel,
+        temperature: 0.6,
+        messages,
+        stream: true,
+      })
+
+      let content = ''
+
+      for await (const chunk of completion) {
+        const delta = chunk.choices[0]?.delta?.content ?? ''
+        if (!delta) continue
+        content += delta
+        await stream.write(`data: ${JSON.stringify({ type: 'chunk', chunk: delta })}\n\n`)
+      }
+
+      if (!content.trim()) {
+        await stream.write(`data: ${JSON.stringify({ type: 'error', error: 'LLM returned an empty response' })}\n\n`)
+        await stream.write('data: [DONE]\n\n')
+        return
+      }
+
+      const parsed = parseJsonResponse(content.trim())
+      await stream.write(`data: ${JSON.stringify({ type: 'done', response: parsed })}\n\n`)
+      await stream.write('data: [DONE]\n\n')
     })
-
-    const content = completion.choices[0]?.message?.content?.trim()
-    if (!content) {
-      return c.json({ error: 'LLM returned an empty response' }, 502)
-    }
-
-    return c.json(parseJsonResponse(content))
   } catch (error) {
     console.error('Error handling chat:', error)
     return c.json({

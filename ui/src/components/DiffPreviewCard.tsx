@@ -1,13 +1,22 @@
+import { useMemo, useState } from 'react'
+import { ChevronDown, ChevronUp, Square } from 'lucide-react'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { diffLines } from '@/lib/diffUtils'
+import { cn } from '@/lib/utils'
 import type { CodeDiff } from '@/types/project'
 
 interface DiffPreviewCardProps {
+  messageId: string
   diff: CodeDiff
   status?: 'pending' | 'applied' | 'rejected'
-  onApply?: (diff: CodeDiff) => void
-  onReject?: (diff: CodeDiff) => void
+  isPreviewing?: boolean
+  onApply?: (messageId: string, diff: CodeDiff) => void
+  onReject?: (messageId: string, diff: CodeDiff) => void
+  onPreview?: (messageId: string, diff: CodeDiff) => void
+  onStopPreview?: (messageId: string, diff: CodeDiff) => void
 }
 
 const statusLabel: Record<NonNullable<DiffPreviewCardProps['status']>, string> = {
@@ -16,8 +25,26 @@ const statusLabel: Record<NonNullable<DiffPreviewCardProps['status']>, string> =
   rejected: 'Rejected',
 }
 
-const DiffPreviewCard = ({ diff, status = 'pending', onApply, onReject }: DiffPreviewCardProps) => {
+const DIFF_PREVIEW_LINE_LIMIT = 20
+
+const syntaxStyle = {
+  ...oneDark,
+  'pre[class*="language-"]': {
+    ...oneDark['pre[class*="language-"]'],
+    background: 'transparent',
+    margin: 0,
+    padding: 0,
+  },
+  'code[class*="language-"]': {
+    ...oneDark['code[class*="language-"]'],
+    background: 'transparent',
+  },
+}
+
+const DiffPreviewCard = ({ messageId, diff, status = 'pending', isPreviewing = false, onApply, onReject, onPreview, onStopPreview }: DiffPreviewCardProps) => {
+  const [isExpanded, setIsExpanded] = useState(false)
   const lines = diffLines(diff.before, diff.after)
+  const visibleLines = useMemo(() => (isExpanded ? lines : lines.slice(0, DIFF_PREVIEW_LINE_LIMIT)), [isExpanded, lines])
 
   return (
     <Card className="border-purple-500/20 bg-black/40 shadow-none">
@@ -33,32 +60,63 @@ const DiffPreviewCard = ({ diff, status = 'pending', onApply, onReject }: DiffPr
         </div>
       </CardHeader>
       <CardContent className="space-y-4 px-4 pb-4">
+        <div className="flex items-center justify-between text-xs text-zinc-400">
+          <button
+            type="button"
+            onClick={() => setIsExpanded((value) => !value)}
+            className="inline-flex items-center gap-1 rounded-full border border-zinc-800 bg-zinc-950 px-2.5 py-1 transition hover:border-zinc-700 hover:text-white"
+          >
+            {isExpanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {isExpanded ? 'Collapse' : 'Expand'}
+          </button>
+          {!isExpanded && lines.length > DIFF_PREVIEW_LINE_LIMIT ? <span>Showing {DIFF_PREVIEW_LINE_LIMIT} of {lines.length} lines</span> : null}
+        </div>
+
         <div className="max-h-56 overflow-auto rounded-md border border-zinc-900 bg-zinc-950/90 p-3 font-mono text-xs">
-          {lines.map((line, index) => (
+          {visibleLines.map((line, index) => (
             <div
               key={`${line.type}-${index}`}
-              className={
+              className={cn('flex items-start gap-2',
                 line.type === 'added'
                   ? 'text-emerald-300'
                   : line.type === 'removed'
                     ? 'text-rose-300'
-                    : 'text-zinc-500'
-              }
+                    : 'text-zinc-500')}
             >
-              <span className="mr-2 inline-block w-4 text-zinc-600">
+              <span className="inline-block w-4 shrink-0 text-zinc-600">
                 {line.type === 'added' ? '+' : line.type === 'removed' ? '-' : ' '}
               </span>
-              <span>{line.text || ' '}</span>
+              <div className="min-w-0 flex-1">
+                <SyntaxHighlighter
+                  language="javascript"
+                  style={syntaxStyle}
+                  customStyle={{ background: 'transparent', padding: 0, margin: 0 }}
+                  codeTagProps={{ style: { background: 'transparent' } }}
+                  wrapLongLines
+                >
+                  {line.text || ' '}
+                </SyntaxHighlighter>
+              </div>
             </div>
           ))}
         </div>
 
         {status === 'pending' ? (
           <div className="flex gap-2">
-            <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={() => onApply?.(diff)}>
+            {isPreviewing ? (
+              <Button variant="outline" className="border-cyan-700 bg-transparent text-cyan-200 hover:bg-cyan-950/40" onClick={() => onStopPreview?.(messageId, diff)}>
+                <Square className="mr-2 h-4 w-4" />
+                Stop Preview
+              </Button>
+            ) : (
+              <Button variant="outline" className="border-cyan-700 bg-transparent text-cyan-200 hover:bg-cyan-950/40" onClick={() => onPreview?.(messageId, diff)}>
+                Preview
+              </Button>
+            )}
+            <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={() => onApply?.(messageId, diff)}>
               Apply
             </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => onReject?.(diff)}>
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => onReject?.(messageId, diff)}>
               Reject
             </Button>
           </div>

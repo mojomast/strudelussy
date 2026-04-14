@@ -1,8 +1,21 @@
-import type { AIResponse, ChatMessage, CodeVersion, Project, ProjectSummary } from '@/types/project'
+import type { AIResponse, ChatMessage, ChatModel, CodeVersion, Project, ProjectSummary } from '@/types/project'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
 type ProjectUpdate = Partial<Project> & Pick<Project, 'id'>
+
+export interface ChatPayload {
+  project_id?: string
+  messages: Pick<ChatMessage, 'role' | 'content'>[]
+  current_code: string
+  model?: ChatModel
+  project_meta: { bpm?: number; key?: string; tags?: string[] }
+}
+
+interface ChatStreamHandlers {
+  onChunk?: (chunk: string) => void
+  onDone?: (response: AIResponse) => void
+}
 
 const request = async <T>(path: string, options: RequestInit = {}, userId?: string): Promise<T> => {
   const response = await fetch(`${API_URL}${path}`, {
@@ -52,11 +65,105 @@ export const api = {
 
   getVersions: (projectId: string, userId: string) => request<CodeVersion[]>(`/api/projects/${projectId}/versions`, {}, userId),
 
-  chat: (payload: { project_id?: string; messages: Pick<ChatMessage, 'role' | 'content'>[]; current_code: string; project_meta: { bpm?: number; key?: string; tags?: string[] } }, userId: string) =>
+  chat: (payload: ChatPayload, userId: string) =>
     request<AIResponse>('/api/chat', {
       method: 'POST',
       body: JSON.stringify(payload),
     }, userId),
+
+  chatStream: async (payload: ChatPayload, userId: string, handlers: ChatStreamHandlers = {}) => {
+    const response = await fetch(`${API_URL}/api/chat`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(userId ? { 'x-user-id': userId } : {}),
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}))
+      throw new Error(error.message || error.error || `Request failed: ${response.status}`)
+    }
+
+    if (!response.body) {
+      throw new Error('Streaming response body unavailable')
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+
+    let finalResponse: AIResponse | null = null
+
+    const processEvent = (rawEvent: string): AIResponse | null => {
+      const lines = rawEvent.split('\n')
+      let data = ''
+
+      for (const line of lines) {
+        if (!line.startsWith('data:')) continue
+        data += `${line.slice(5).trimStart()}\n`
+      }
+
+      const payloadText = data.trim()
+      if (!payloadText) return null
+      if (payloadText === '[DONE]') {
+        if (!finalResponse) {
+          throw new Error('Streaming chat ended before final response')
+        }
+        handlers.onDone?.(finalResponse)
+        return finalResponse
+      }
+
+      let parsed: { type?: string; chunk?: string; response?: AIResponse; error?: string }
+      try {
+        parsed = JSON.parse(payloadText) as { type?: string; chunk?: string; response?: AIResponse; error?: string }
+      } catch {
+        return null
+      }
+
+      if (parsed.type === 'chunk' && parsed.chunk) {
+        handlers.onChunk?.(parsed.chunk)
+        return null
+      }
+
+      if (parsed.type === 'error') {
+        throw new Error(parsed.error || 'Streaming chat failed')
+      }
+
+      if (parsed.type === 'done') {
+        finalResponse = parsed.response ?? null
+      }
+
+      return null
+    }
+
+    while (true) {
+      const { done, value } = await reader.read()
+      buffer += decoder.decode(value ?? new Uint8Array(), { stream: !done })
+
+      let boundaryIndex = buffer.indexOf('\n\n')
+      while (boundaryIndex !== -1) {
+        const rawEvent = buffer.slice(0, boundaryIndex)
+        buffer = buffer.slice(boundaryIndex + 2)
+        const finalResponse = processEvent(rawEvent)
+        if (finalResponse) {
+          return finalResponse
+        }
+        boundaryIndex = buffer.indexOf('\n\n')
+      }
+
+      if (done) {
+        break
+      }
+    }
+    if (finalResponse) {
+      handlers.onDone?.(finalResponse)
+      return finalResponse
+    }
+
+    throw new Error('Streaming chat ended before final response')
+  },
 
   shareCode: (code: string) =>
     request<{ id: string; url: string }>('/api/share', {

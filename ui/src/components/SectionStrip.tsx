@@ -1,8 +1,10 @@
+import { parseSections } from '@/lib/codeParser'
 import type { SectionMarker } from '@/types/project'
 
 interface SectionStripProps {
   sections: SectionMarker[]
   activeSection: string | null
+  code: string
   onSelect: (section: SectionMarker) => void
 }
 
@@ -13,7 +15,7 @@ const colors = [
   'from-emerald-500/30 to-emerald-500/10 border-emerald-400/30',
 ]
 
-const SectionStrip = ({ sections, activeSection, onSelect }: SectionStripProps) => {
+const SectionStrip = ({ sections, activeSection, code, onSelect }: SectionStripProps) => {
   if (sections.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/60 px-4 py-3 text-sm text-zinc-500">
@@ -32,7 +34,10 @@ const SectionStrip = ({ sections, activeSection, onSelect }: SectionStripProps) 
           <button
             key={`${section.label}-${section.line}`}
             type="button"
-            onClick={() => onSelect(section)}
+            onClick={() => {
+              const lineMatch = parseSections(code).find((candidate) => candidate.label === section.label && candidate.line === section.line) ?? section
+              onSelect(lineMatch)
+            }}
             className={`rounded-xl border bg-gradient-to-br px-3 py-2 text-left transition ${color} ${
               isActive ? 'scale-[1.02] text-white shadow-[0_0_20px_rgba(139,92,246,0.18)]' : 'text-zinc-300 hover:text-white'
             }`}

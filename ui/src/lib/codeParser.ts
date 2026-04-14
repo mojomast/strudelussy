@@ -69,7 +69,7 @@ export const extractParams = (code: string): ExtractedParam[] => {
 }
 
 export const upsertSetcpsFromBpm = (code: string, bpm: number): string => {
-  const cps = Math.max(1, Math.round((bpm / 240) * 1000) / 1000)
+  const cps = Math.max(0.1, Math.round((bpm / 240) * 1000) / 1000)
   const replacement = `setcps(${cps})`
   if (cpsPattern.test(code)) {
     cpsPattern.lastIndex = 0

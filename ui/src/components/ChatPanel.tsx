@@ -10,11 +10,13 @@ interface ChatPanelProps {
   messages: ChatMessage[]
   isSending: boolean
   onSend: (content: string) => Promise<void>
-  onApplyDiff: (diff: CodeDiff) => void
-  onRejectDiff: (diff: CodeDiff) => void
+  onApplyDiff: (messageId: string, diff: CodeDiff) => void
+  onRejectDiff: (messageId: string, diff: CodeDiff) => void
+  onPreviewDiff: (messageId: string, diff: CodeDiff) => void
+  onStopPreview: (messageId: string, diff: CodeDiff) => void
 }
 
-const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: ChatPanelProps) => {
+const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
   const [value, setValue] = useState('')
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -24,11 +26,11 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
     container.scrollTop = container.scrollHeight
   }, [messages, isSending])
 
-  const canSend = useMemo(() => value.trim().length > 0 && !isSending, [value, isSending])
+  const canSend = useMemo(() => value.trim().length > 0, [value])
 
   const handleSubmit = async () => {
     const nextValue = value.trim()
-    if (!nextValue || isSending) return
+    if (!nextValue) return
     setValue('')
     await onSend(nextValue)
   }
@@ -61,10 +63,14 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
             {message.code_diff ? (
               <div className="pl-11">
                 <DiffPreviewCard
+                  messageId={message.id}
                   diff={message.code_diff}
                   status={message.status}
+                  isPreviewing={message.isPreviewing}
                   onApply={onApplyDiff}
                   onReject={onRejectDiff}
+                  onPreview={onPreviewDiff}
+                  onStopPreview={onStopPreview}
                 />
               </div>
             ) : null}
@@ -77,7 +83,7 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
               <Bot className="h-4 w-4" />
             </div>
             <div className="rounded-2xl border border-zinc-900 bg-zinc-950/70 px-4 py-3">
-              Bot is thinking...
+              Streaming response...
             </div>
           </div>
         ) : null}

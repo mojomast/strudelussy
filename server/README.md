@@ -2,11 +2,13 @@
 
 Cloudflare Workers + Hono backend for the strudelussy MVP.
 
+Upstream credit: this API layer builds on the forked [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster) server structure and adapts it for the DAW/chat review flow.
+
 ## Implemented Endpoints
 
 - `GET /` health check
 - `POST /api/generate` legacy toaster generation route retained
-- `POST /api/chat` structured AI chat endpoint for diff-aware code suggestions
+- `POST /api/chat` streaming SSE chat endpoint for diff-aware code suggestions
 - `GET /api/projects` list projects for `x-user-id`
 - `POST /api/projects` create project
 - `GET /api/projects/:id` load project
@@ -58,6 +60,9 @@ pnpm exec tsc --noEmit
 ## Notes
 
 - Auth is currently header-based (`x-user-id`) to support guest mode and unblock MVP persistence.
+- The chat route streams incremental chunks and then ends with the existing structured `AIResponse` payload.
 - The chat route now degrades safely when the upstream model returns non-JSON text instead of the requested structured payload.
-- The prompt also explicitly discourages unsupported Strudel methods like `.bend()` to reduce invalid patch suggestions.
+- The server accepts a UI-selected model but restricts it to an allowlist; otherwise it falls back to `OPENROUTER_MODEL` or `google/gemini-2.5-flash`.
+- Only the last 20 non-system chat messages are forwarded to the LLM on each request.
+- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, removes stray `await`, replaces unsupported sound names like `chirp`, and rejects oversized generated code.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.
