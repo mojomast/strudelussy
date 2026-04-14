@@ -93,49 +93,41 @@ export const api = {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
-
     let finalResponse: AIResponse | null = null
+    let isDone = false
 
-    const processEvent = (rawEvent: string): AIResponse | null => {
+    const processLine = (rawEvent: string) => {
       const lines = rawEvent.split('\n')
       let data = ''
-
       for (const line of lines) {
         if (!line.startsWith('data:')) continue
         data += `${line.slice(5).trimStart()}\n`
       }
-
       const payloadText = data.trim()
-      if (!payloadText) return null
+      if (!payloadText) return
+
       if (payloadText === '[DONE]') {
-        if (!finalResponse) {
-          throw new Error('Streaming chat ended before final response')
-        }
-        handlers.onDone?.(finalResponse)
-        return finalResponse
+        isDone = true
+        return
       }
 
       let parsed: { type?: string; chunk?: string; response?: AIResponse; error?: string }
       try {
         parsed = JSON.parse(payloadText) as { type?: string; chunk?: string; response?: AIResponse; error?: string }
       } catch {
-        return null
+        return
       }
 
       if (parsed.type === 'chunk' && parsed.chunk) {
         handlers.onChunk?.(parsed.chunk)
-        return null
+        return
       }
-
       if (parsed.type === 'error') {
         throw new Error(parsed.error || 'Streaming chat failed')
       }
-
-      if (parsed.type === 'done') {
-        finalResponse = parsed.response ?? null
+      if (parsed.type === 'done' && parsed.response) {
+        finalResponse = parsed.response
       }
-
-      return null
     }
 
     while (true) {
@@ -146,17 +138,18 @@ export const api = {
       while (boundaryIndex !== -1) {
         const rawEvent = buffer.slice(0, boundaryIndex)
         buffer = buffer.slice(boundaryIndex + 2)
-        const finalResponse = processEvent(rawEvent)
-        if (finalResponse) {
-          return finalResponse
-        }
+        processLine(rawEvent)
+        if (isDone) break
         boundaryIndex = buffer.indexOf('\n\n')
       }
 
-      if (done) {
-        break
-      }
+      if (done || isDone) break
     }
+
+    if (isDone && !finalResponse) {
+      throw new Error('Streaming chat ended before final response')
+    }
+
     if (finalResponse) {
       handlers.onDone?.(finalResponse)
       return finalResponse

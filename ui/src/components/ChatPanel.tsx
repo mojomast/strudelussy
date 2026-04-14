@@ -55,7 +55,12 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff, onP
                   <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
                 <div className="mt-2 whitespace-pre-wrap rounded-2xl border border-zinc-900 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100">
-                  {message.content}
+                  {message.role === 'assistant' &&
+                   !message.status &&
+                   !message.code_diff &&
+                   message.content.trimStart().startsWith('{')
+                    ? '✦ Composing...'
+                    : message.content}
                 </div>
               </div>
             </div>
