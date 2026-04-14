@@ -57,7 +57,10 @@ export interface ExtractedParam {
   value: number
   min: number
   max: number
+  kind: 'gain' | 'speed' | 'room' | 'cps'
   expression: string
+  valueStart: number
+  valueEnd: number
 }
 
 export interface AIResponse {

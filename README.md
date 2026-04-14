@@ -7,9 +7,9 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - DAW-style single-project workspace
 - diff-aware AI chat flow with Apply/Reject review
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
-- parsed BPM, key, sections, and parameter summaries from live code
+- parsed BPM, key, sections, and editable parameter controls from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
-- projects gallery route and share/export basics
+- projects gallery route, share/export basics, and version restore UI
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
 
@@ -30,6 +30,8 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - Strudel editor panel
 - visualization/transport strip
 - section strip parsed from `// [section]` comments
+- editable parameter panel that patches numeric literals in-place
+- version history panel with refresh and restore
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available
@@ -44,8 +46,6 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 ## Still Deferred From The Full Spec
 
 - Firebase auth and Supabase-backed persistence
-- version history UI restore flow
-- parameter slider editing panel
 - public read-only share route backed by project visibility
 - multi-panel resizing
 - minimap and inline editor diff rendering

@@ -4,11 +4,16 @@ const sectionPattern = /^\s*\/\/\s*\[([^\]]+)\]/
 const scalePattern = /\.scale\((['"`])([^'"`]+)\1\)/g
 const cpsPattern = /setcps\((\d*\.?\d+)\)/g
 const paramPatterns = [
-  { label: 'Gain', regex: /\.gain\((\d*\.?\d+)\)/g, min: 0, max: 1.5 },
-  { label: 'Speed', regex: /\.speed\((\d*\.?\d+)\)/g, min: 0.25, max: 4 },
-  { label: 'Room', regex: /\.room\((\d*\.?\d+)\)/g, min: 0, max: 1 },
-  { label: 'CPS', regex: /setcps\((\d*\.?\d+)\)/g, min: 0.1, max: 2 },
+  { label: 'Gain', kind: 'gain' as const, regex: /\.gain\((\d*\.?\d+)\)/g, min: 0, max: 1.5 },
+  { label: 'Speed', kind: 'speed' as const, regex: /\.speed\((\d*\.?\d+)\)/g, min: 0.25, max: 4 },
+  { label: 'Room', kind: 'room' as const, regex: /\.room\((\d*\.?\d+)\)/g, min: 0, max: 1 },
+  { label: 'CPS', kind: 'cps' as const, regex: /setcps\((\d*\.?\d+)\)/g, min: 0.1, max: 2 },
 ]
+
+const formatParamValue = (value: number) => {
+  const fixed = value.toFixed(3)
+  return fixed.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1')
+}
 
 export const parseBpmFromCode = (code: string): number | undefined => {
   const matches = [...code.matchAll(cpsPattern)]
@@ -39,18 +44,23 @@ export const parseSections = (code: string): SectionMarker[] => {
 export const extractParams = (code: string): ExtractedParam[] => {
   const params: ExtractedParam[] = []
 
-  for (const { label, regex, min, max } of paramPatterns) {
+  for (const { label, kind, regex, min, max } of paramPatterns) {
     const matches = [...code.matchAll(regex)]
     matches.forEach((match, index) => {
       const value = Number.parseFloat(match[1])
       if (!Number.isFinite(value)) return
+      const matchIndex = match.index ?? 0
+      const valueIndex = match[0].indexOf(match[1])
       params.push({
-        id: `${label.toLowerCase()}-${index}-${match.index ?? 0}`,
+        id: `${label.toLowerCase()}-${index}-${matchIndex}`,
         label,
+        kind,
         value,
         min,
         max,
         expression: match[0],
+        valueStart: matchIndex + valueIndex,
+        valueEnd: matchIndex + valueIndex + match[1].length,
       })
     })
   }
@@ -67,4 +77,10 @@ export const upsertSetcpsFromBpm = (code: string, bpm: number): string => {
   }
 
   return `${replacement}\n\n${code.trimStart()}`
+}
+
+export const updateDetectedParamInCode = (code: string, param: ExtractedParam, nextValue: number): string => {
+  const boundedValue = Math.min(param.max, Math.max(param.min, nextValue))
+  const formattedValue = formatParamValue(boundedValue)
+  return `${code.slice(0, param.valueStart)}${formattedValue}${code.slice(param.valueEnd)}`
 }

@@ -18,6 +18,8 @@ Current repo status after the first build pass:
 - section strip from `// [section]` comments
 - transport/visualization status area
 - projects gallery route
+- editable parameter sliders backed by live code patching
+- version history refresh and restore UI
 - Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
 - Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
 
@@ -25,8 +27,6 @@ Items still intentionally deferred from the full spec:
 
 - Supabase data model and Firebase auth integration
 - resizable multi-panel layout
-- parameter slider editing panel
-- version restore UI
 - public read-only project share route
 - editor minimap and inline diff highlighting
 

@@ -7,14 +7,15 @@ import ChatPanel from '@/components/ChatPanel'
 import ProjectTopbar from '@/components/ProjectTopbar'
 import SectionStrip from '@/components/SectionStrip'
 import VisualizationBar from '@/components/VisualizationBar'
+import VersionHistoryPanel from '@/components/VersionHistoryPanel'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { api } from '@/lib/api'
 import { buildCodeDiff } from '@/lib/diffUtils'
-import { parseBpmFromCode, parseKeyFromCode, upsertSetcpsFromBpm } from '@/lib/codeParser'
+import { parseBpmFromCode, parseKeyFromCode, updateDetectedParamInCode, upsertSetcpsFromBpm } from '@/lib/codeParser'
 import { getLastProjectId, getOrCreateGuestUserId, loadLocalProject, saveLocalProject } from '@/lib/projectStorage'
 import { useProjectStore } from '@/stores/projectStore'
-import type { ChatMessage, Project } from '@/types/project'
+import type { ChatMessage, CodeVersion, ExtractedParam, Project } from '@/types/project'
 
 const DEFAULT_CODE = `setcps(0.5)
 
@@ -82,15 +83,20 @@ const HomePage = () => {
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
   const [isEditorInitializing, setIsEditorInitializing] = useState(false)
   const [isLoadingProject, setIsLoadingProject] = useState(true)
+  const [isLoadingVersions, setIsLoadingVersions] = useState(false)
+  const [isRestoringVersion, setIsRestoringVersion] = useState(false)
+  const [versionError, setVersionError] = useState<string | null>(null)
 
   const editorPlayRef = useRef<(() => void) | null>(null)
   const editorStopRef = useRef<(() => void) | null>(null)
+  const editorEvaluateRef = useRef<(() => void) | null>(null)
   const editorUndoRef = useRef<(() => void) | null>(null)
   const editorRedoRef = useRef<(() => void) | null>(null)
   const getCurrentCodeRef = useRef<(() => string) | null>(null)
   const getCycleInfoRef = useRef<(() => CycleInfo | null) | null>(null)
   const jumpToLineRef = useRef<((line: number) => void) | null>(null)
   const autoSaveTimerRef = useRef<number | null>(null)
+  const paramEvaluateTimerRef = useRef<number | null>(null)
 
   const {
     currentProject,
@@ -109,6 +115,39 @@ const HomePage = () => {
 
   const userId = useMemo(() => getOrCreateGuestUserId(), [])
 
+  const loadVersions = useCallback(async (projectId: string) => {
+    setIsLoadingVersions(true)
+    setVersionError(null)
+
+    try {
+      const versions = await api.getVersions(projectId, userId)
+      actions.replaceVersions(versions)
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('Project not found')) {
+        actions.replaceVersions([])
+      } else {
+        setVersionError(error instanceof Error ? error.message : 'Failed to load version history.')
+      }
+    } finally {
+      setIsLoadingVersions(false)
+    }
+  }, [actions, userId])
+
+  const createSnapshot = useCallback(async (
+    projectId: string,
+    code: string,
+    label: string,
+    createdBy: 'user' | 'ai',
+  ) => {
+    const versions = await api.createVersion(projectId, {
+      code,
+      label,
+      created_by: createdBy,
+    }, userId)
+    actions.replaceVersions(versions)
+    return versions
+  }, [actions, userId])
+
   const loadProject = useCallback(async (projectId?: string | null) => {
     setIsLoadingProject(true)
 
@@ -119,6 +158,7 @@ const HomePage = () => {
       actions.setProject(project)
       saveLocalProject(project)
       setSearchParams({ project: project.id })
+      void loadVersions(project.id)
       setIsLoadingProject(false)
       return
     }
@@ -127,6 +167,7 @@ const HomePage = () => {
     if (localProject) {
       actions.setProject(localProject)
       setSearchParams({ project: localProject.id })
+      void loadVersions(localProject.id)
       setIsLoadingProject(false)
       return
     }
@@ -136,15 +177,17 @@ const HomePage = () => {
       actions.setProject(remoteProject)
       saveLocalProject(remoteProject)
       setSearchParams({ project: remoteProject.id })
+      await loadVersions(remoteProject.id)
     } catch {
       const fallbackProject = createDefaultProject(userId)
       actions.setProject(fallbackProject)
       saveLocalProject(fallbackProject)
       setSearchParams({ project: fallbackProject.id })
+      void loadVersions(fallbackProject.id)
     } finally {
       setIsLoadingProject(false)
     }
-  }, [actions, searchParams, setSearchParams, userId])
+  }, [actions, loadVersions, searchParams, setSearchParams, userId])
 
   useEffect(() => {
     const shareId = searchParams.get('share')
@@ -159,6 +202,7 @@ const HomePage = () => {
         actions.setProject(project)
         saveLocalProject(project)
         setSearchParams({ project: project.id })
+        void loadVersions(project.id)
         setIsLoadingProject(false)
       }).catch(() => {
         void loadProject(null)
@@ -167,15 +211,16 @@ const HomePage = () => {
     }
 
     void loadProject(null)
-  }, [actions, loadProject, searchParams, setSearchParams, userId])
+  }, [actions, loadProject, loadVersions, searchParams, setSearchParams, userId])
 
-  const persistProject = useCallback(async (project: Project) => {
+  const persistProject = useCallback(async (project: Project): Promise<Project> => {
     actions.setSaving(true)
     actions.setSaveError(null)
 
     const payload: Project = {
       ...project,
       chat_history: chatMessages,
+      versions: useProjectStore.getState().currentProject?.versions ?? project.versions,
       updated_at: new Date().toISOString(),
     }
 
@@ -190,11 +235,36 @@ const HomePage = () => {
       actions.setProject(savedProject)
       actions.markSaved(savedProject.updated_at)
       setSearchParams({ project: savedProject.id })
+      return savedProject
     } catch (error) {
       actions.setSaveError(error instanceof Error ? error.message : 'Unable to save project to API. Local guest copy kept.')
       actions.markSaved(payload.updated_at)
+      return payload
     }
   }, [actions, chatMessages, searchParams, setSearchParams, userId])
+
+  const saveVersionSnapshot = useCallback(async (
+    project: Project,
+    code: string,
+    label: string,
+    createdBy: 'user' | 'ai',
+  ) => {
+    const persistedProject = await persistProject({
+      ...project,
+      strudel_code: code,
+      bpm: parseBpmFromCode(code),
+      key: parseKeyFromCode(code),
+    })
+
+    try {
+      await createSnapshot(persistedProject.id, code, label, createdBy)
+      await loadVersions(persistedProject.id)
+    } catch (error) {
+      setVersionError(error instanceof Error ? error.message : 'Failed to save snapshot.')
+    }
+
+    return persistedProject
+  }, [createSnapshot, loadVersions, persistProject])
 
   useEffect(() => {
     if (!currentProject || !isDirty) return
@@ -237,17 +307,13 @@ const HomePage = () => {
       if (modifierKey && event.key.toLowerCase() === 's') {
         event.preventDefault()
         if (!currentProject) return
-        actions.upsertVersion(currentProject.strudel_code, 'Manual save', 'user')
-        void persistProject({
-          ...currentProject,
-          chat_history: chatMessages,
-        })
+        void saveVersionSnapshot(currentProject, getCurrentCodeRef.current?.() ?? currentProject.strudel_code, 'Manual save', 'user')
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [actions, chatMessages, currentProject, isPlaying, persistProject])
+  }, [currentProject, isPlaying, saveVersionSnapshot])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -315,12 +381,67 @@ const HomePage = () => {
   const handleApplyDiff = useCallback(() => {
     const applied = actions.applyDiff()
     if (!applied || !currentProject) return
-    actions.upsertVersion(applied.after, 'Applied AI patch', 'ai')
-  }, [actions, currentProject])
+    void saveVersionSnapshot(currentProject, applied.after, 'Applied AI patch', 'ai')
+  }, [actions, currentProject, saveVersionSnapshot])
 
   const handleRejectDiff = useCallback(() => {
     actions.rejectDiff()
   }, [actions])
+
+  const handleParamChange = useCallback((param: ExtractedParam, nextValue: number) => {
+    const sourceCode = getCurrentCodeRef.current?.() ?? currentProject?.strudel_code ?? ''
+    const nextCode = updateDetectedParamInCode(sourceCode, param, nextValue)
+    actions.setCode(nextCode)
+
+    if (isPlaying) {
+      if (paramEvaluateTimerRef.current) {
+        window.clearTimeout(paramEvaluateTimerRef.current)
+      }
+
+      paramEvaluateTimerRef.current = window.setTimeout(() => {
+        editorEvaluateRef.current?.()
+      }, 120)
+    }
+  }, [actions, currentProject?.strudel_code, isPlaying])
+
+  const handleRestoreVersion = useCallback(async (version: CodeVersion) => {
+    if (!currentProject) return
+
+    setIsRestoringVersion(true)
+    setVersionError(null)
+
+    try {
+      if (pendingDiff) {
+        actions.rejectDiff()
+      }
+
+      const currentCode = getCurrentCodeRef.current?.() ?? currentProject.strudel_code
+      await saveVersionSnapshot(currentProject, currentCode, 'Before restore', 'user')
+
+      actions.setCode(version.code)
+
+      await persistProject({
+        ...currentProject,
+        strudel_code: version.code,
+        bpm: parseBpmFromCode(version.code),
+        key: parseKeyFromCode(version.code),
+      })
+
+      await loadVersions(currentProject.id)
+    } catch (error) {
+      setVersionError(error instanceof Error ? error.message : 'Failed to restore version.')
+    } finally {
+      setIsRestoringVersion(false)
+    }
+  }, [actions, currentProject, loadVersions, pendingDiff, persistProject, saveVersionSnapshot])
+
+  useEffect(() => {
+    return () => {
+      if (paramEvaluateTimerRef.current) {
+        window.clearTimeout(paramEvaluateTimerRef.current)
+      }
+    }
+  }, [])
 
   if (isLoadingProject || !currentProject) {
     return <main className="flex min-h-screen items-center justify-center bg-[#050505] text-zinc-400">Loading project...</main>
@@ -343,8 +464,7 @@ const HomePage = () => {
           onPlay={() => editorPlayRef.current?.()}
           onStop={() => editorStopRef.current?.()}
           onSave={() => {
-            actions.upsertVersion(currentProject.strudel_code, 'Manual save', 'user')
-            void persistProject(currentProject)
+            void saveVersionSnapshot(currentProject, getCurrentCodeRef.current?.() ?? currentProject.strudel_code, 'Manual save', 'user')
           }}
           onUndo={() => editorUndoRef.current?.()}
           onRedo={() => editorRedoRef.current?.()}
@@ -385,6 +505,9 @@ const HomePage = () => {
                     }}
                     onGetCurrentCode={(getCode) => {
                       getCurrentCodeRef.current = getCode
+                    }}
+                    onEvaluateReady={(evaluateFn) => {
+                      editorEvaluateRef.current = evaluateFn
                     }}
                     onCycleInfoReady={(getCycleInfo) => {
                       getCycleInfoRef.current = getCycleInfo
@@ -447,7 +570,7 @@ const HomePage = () => {
               </CardContent>
             </Card>
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px]">
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px_360px]">
               <Card className="border-zinc-900 bg-black/55 text-white shadow-none">
                 <CardContent className="space-y-4 p-4">
                   <div className="flex items-center justify-between gap-3">
@@ -485,7 +608,7 @@ const HomePage = () => {
                 <CardContent className="space-y-3 p-4">
                   <div>
                     <p className="text-sm font-semibold">Detected parameters</p>
-                    <p className="text-xs text-zinc-500">Read-only MVP view. Slider editing is documented as next work.</p>
+                    <p className="text-xs text-zinc-500">Adjust detected values and patch the live code in-place.</p>
                   </div>
                   <div className="space-y-2">
                     {params.length === 0 ? (
@@ -495,13 +618,21 @@ const HomePage = () => {
                         <div key={param.id} className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-3">
                           <div className="flex items-center justify-between text-sm text-zinc-100">
                             <span>{param.label}</span>
-                            <span className="text-zinc-400">{param.value}</span>
+                            <span className="text-zinc-400">{param.value.toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1')}</span>
                           </div>
-                          <div className="mt-2 h-2 rounded-full bg-zinc-900">
-                            <div
-                              className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-purple-500"
-                              style={{ width: `${((param.value - param.min) / (param.max - param.min || 1)) * 100}%` }}
-                            />
+                          <input
+                            type="range"
+                            min={param.min}
+                            max={param.max}
+                            step={param.kind === 'cps' ? 0.01 : 0.05}
+                            value={param.value}
+                            onChange={(event) => handleParamChange(param, Number(event.target.value))}
+                            className="mt-3 w-full accent-purple-500"
+                          />
+                          <div className="mt-2 flex items-center justify-between text-[11px] uppercase tracking-[0.14em] text-zinc-500">
+                            <span>{param.min}</span>
+                            <span>{param.kind}</span>
+                            <span>{param.max}</span>
                           </div>
                         </div>
                       ))
@@ -509,6 +640,17 @@ const HomePage = () => {
                   </div>
                 </CardContent>
               </Card>
+
+              <VersionHistoryPanel
+                versions={currentProject.versions}
+                isLoading={isLoadingVersions}
+                isRestoring={isRestoringVersion}
+                error={versionError}
+                onRefresh={() => void loadVersions(currentProject.id)}
+                onRestore={(version) => {
+                  void handleRestoreVersion(version)
+                }}
+              />
             </div>
           </section>
         </div>
