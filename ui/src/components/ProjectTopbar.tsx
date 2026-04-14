@@ -47,8 +47,8 @@ const ProjectTopbar = ({
   onShare,
 }: ProjectTopbarProps) => {
   return (
-    <header className="rounded-2xl border border-zinc-900 bg-black/60 px-4 py-4 backdrop-blur-xl">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-3 backdrop-blur-xl sm:px-4 sm:py-4">
+      <div className="flex min-w-0 flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 text-black shadow-[0_0_30px_rgba(139,92,246,0.25)]">
@@ -63,11 +63,11 @@ const ProjectTopbar = ({
           <input
             value={projectName}
             onChange={(event) => onProjectNameChange(event.target.value)}
-            className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-3 text-lg font-semibold text-white outline-none transition focus:border-purple-500"
+            className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-2.5 text-base font-semibold text-white outline-none transition focus:border-purple-500 xl:min-w-[280px]"
           />
         </div>
 
-        <div className="flex flex-col gap-3 xl:items-end">
+        <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
           <div className="flex flex-wrap items-center gap-2">
             <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={isPlaying ? onStop : onPlay}>
               {isPlaying ? <PauseCircle className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -114,9 +114,9 @@ const ProjectTopbar = ({
               value={musicalKey ?? ''}
               onChange={(event) => onKeyChange(event.target.value)}
               placeholder="Key / scale"
-              className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
+              className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
-            <span className={`rounded-full px-3 py-2 text-xs ${error ? 'bg-red-950/70 text-red-300' : 'bg-zinc-950 text-zinc-400'}`}>
+            <span className={`max-w-full truncate rounded-full px-3 py-2 text-xs ${error ? 'bg-red-950/70 text-red-300' : 'bg-zinc-950 text-zinc-400'}`}>
               {error ? `Error: ${error}` : 'Engine ready'}
             </span>
           </div>

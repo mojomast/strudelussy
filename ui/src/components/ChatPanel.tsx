@@ -3,14 +3,15 @@ import { Bot, SendHorizonal, User2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import DiffPreviewCard from '@/components/DiffPreviewCard'
+import type { CodeDiff } from '@/types/project'
 import type { ChatMessage } from '@/types/project'
 
 interface ChatPanelProps {
   messages: ChatMessage[]
   isSending: boolean
   onSend: (content: string) => Promise<void>
-  onApplyDiff: () => void
-  onRejectDiff: () => void
+  onApplyDiff: (diff: CodeDiff) => void
+  onRejectDiff: (diff: CodeDiff) => void
 }
 
 const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: ChatPanelProps) => {
@@ -34,12 +35,12 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-900 bg-black/50">
-      <div className="border-b border-zinc-900 px-5 py-4">
+      <div className="border-b border-zinc-900 px-4 py-3 sm:px-5 sm:py-4">
         <p className="text-sm font-semibold text-white">Session Chat</p>
         <p className="text-xs text-zinc-500">Prompt the bot, review patches, then decide what lands in the editor.</p>
       </div>
 
-      <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-4 py-4">
+      <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
         {messages.map((message) => (
           <div key={message.id} className="space-y-3">
             <div className="flex gap-3">
@@ -82,7 +83,7 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
         ) : null}
       </div>
 
-      <div className="border-t border-zinc-900 p-4">
+      <div className="border-t border-zinc-900 p-3 sm:p-4">
         <Textarea
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -93,9 +94,9 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
             }
           }}
           placeholder="Describe a change, ask for a section, or request a fix..."
-          className="min-h-[104px] resize-none border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-purple-500"
+          className="min-h-[84px] resize-none border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-purple-500 sm:min-h-[104px]"
         />
-        <div className="mt-3 flex items-center justify-between gap-3">
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-xs text-zinc-500">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
           <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={() => void handleSubmit()} disabled={!canSend}>
             <SendHorizonal className="h-4 w-4" />

@@ -19,8 +19,10 @@ interface AIResponse {
 }
 
 const unsupportedPatterns = [
-  /\.bend\s*\(/g,
+  /\.bend\s*\([^)]*\)/g,
 ]
+
+const unsupportedSoundNames = ['chirp']
 
 export const chatRoute = new Hono<{ Bindings: Env }>()
 
@@ -51,6 +53,8 @@ Rules:
 - Prefer incremental changes.
 - Do not use unsupported methods such as .bend().
 - Favor conservative, commonly supported Strudel functions like s, note, n, sound, gain, room, delay, slow, fast, stack, cat, mini, color, scale.
+- Do not invent unsupported sound names like chirp unless you have explicitly loaded a compatible sample pack and know the sound exists.
+- For built-in drums prefer bd, sd, hh, cp, rim, lt, mt, ht, perc. For melodic instruments prefer working gm_ instruments already present in the code.
 - If no code change is needed, omit the code field and set has_code_change to false.
 - Return JSON only.
 
@@ -65,9 +69,23 @@ const fallbackJsonResponse = (content: string): AIResponse => ({
 const sanitizeCode = (code: string): string => {
   let nextCode = code
   for (const pattern of unsupportedPatterns) {
-    nextCode = nextCode.replace(pattern, '(')
+    nextCode = nextCode.replace(pattern, '')
+  }
+  for (const soundName of unsupportedSoundNames) {
+    nextCode = nextCode.replace(new RegExp(`\\b${soundName}\\b`, 'g'), 'hh')
   }
   return nextCode
+}
+
+const extractJsonObject = (content: string): string | null => {
+  const start = content.indexOf('{')
+  const end = content.lastIndexOf('}')
+
+  if (start === -1 || end === -1 || end <= start) {
+    return null
+  }
+
+  return content.slice(start, end + 1)
 }
 
 const parseJsonResponse = (content: string): AIResponse => {
@@ -76,13 +94,14 @@ const parseJsonResponse = (content: string): AIResponse => {
     .replace(/```\n?/g, '')
     .trim()
 
-  if (!cleaned.startsWith('{')) {
+  const jsonCandidate = cleaned.startsWith('{') ? cleaned : extractJsonObject(cleaned)
+  if (!jsonCandidate) {
     return fallbackJsonResponse(cleaned)
   }
 
   let parsed: AIResponse
   try {
-    parsed = JSON.parse(cleaned) as AIResponse
+    parsed = JSON.parse(jsonCandidate) as AIResponse
   } catch {
     return fallbackJsonResponse(cleaned)
   }

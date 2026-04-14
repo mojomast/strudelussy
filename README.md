@@ -35,6 +35,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - editable parameter panel that patches numeric literals in-place
 - version history panel with refresh and restore
 - topbar actions for starting a blank project or reloading the demo template
+- viewport-first responsive layout with earlier panel stacking and internal scrolling
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available

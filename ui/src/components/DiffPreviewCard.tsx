@@ -6,8 +6,8 @@ import type { CodeDiff } from '@/types/project'
 interface DiffPreviewCardProps {
   diff: CodeDiff
   status?: 'pending' | 'applied' | 'rejected'
-  onApply?: () => void
-  onReject?: () => void
+  onApply?: (diff: CodeDiff) => void
+  onReject?: (diff: CodeDiff) => void
 }
 
 const statusLabel: Record<NonNullable<DiffPreviewCardProps['status']>, string> = {
@@ -55,10 +55,10 @@ const DiffPreviewCard = ({ diff, status = 'pending', onApply, onReject }: DiffPr
 
         {status === 'pending' ? (
           <div className="flex gap-2">
-            <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={onApply}>
+            <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={() => onApply?.(diff)}>
               Apply
             </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onReject}>
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => onReject?.(diff)}>
               Reject
             </Button>
           </div>

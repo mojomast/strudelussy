@@ -3,6 +3,14 @@ import { Env } from '../index'
 
 export const shareRoute = new Hono<{ Bindings: Env }>()
 
+const getPublicAppUrl = (appUrl?: string) => {
+  if (!appUrl) return 'https://strudel.ussyco.de'
+  if (appUrl.includes('100.72.41.9') || appUrl.includes('localhost')) {
+    return 'https://strudel.ussyco.de'
+  }
+  return appUrl
+}
+
 // Helper function to generate a short URL-safe ID
 const generateShortId = (length = 8): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'
@@ -64,9 +72,10 @@ shareRoute.post('/', async (c) => {
     
     if (existingId) {
       // Return existing share URL
+      const publicAppUrl = getPublicAppUrl(c.env.APP_URL)
       return c.json({ 
         id: existingId,
-        url: `${c.env.APP_URL || 'http://localhost:5173'}/?share=${existingId}`,
+        url: `${publicAppUrl}/?share=${existingId}`,
         isNew: false
       })
     }
@@ -91,9 +100,10 @@ shareRoute.post('/', async (c) => {
     // Store the hash -> ID mapping for deduplication
     await c.env.SHARES_KV.put(`hash:${codeHash}`, shareId)
 
+    const publicAppUrl = getPublicAppUrl(c.env.APP_URL)
     return c.json({ 
       id: shareId,
-      url: `${c.env.APP_URL || 'http://localhost:5173'}/?share=${shareId}`,
+      url: `${publicAppUrl}/?share=${shareId}`,
       isNew: true
     })
   } catch (error) {
@@ -142,4 +152,3 @@ shareRoute.get('/:id', async (c) => {
     return c.json({ error: 'Failed to retrieve share' }, 500)
   }
 })
-

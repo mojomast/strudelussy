@@ -36,7 +36,6 @@ $: s("bd [~ hh] sd hh")
 
 // [lead]
 $: note("<c4 eb4 g4 bb4>")
-  .scale("C:minor")
   .s("gm_epiano1")
   .slow(2)
   .gain(0.65)
@@ -396,11 +395,11 @@ const HomePage = () => {
     }
   }, [actions, chatMessages, currentProject, userId])
 
-  const handleApplyDiff = useCallback(() => {
-    const applied = actions.applyDiff()
-    if (!applied || !currentProject) return
+  const handleApplyDiff = useCallback((diff: { before: string; after: string; summary: string }) => {
+    if (!currentProject) return
 
-    editorSetCodeRef.current?.(applied.after)
+    editorSetCodeRef.current?.(diff.after)
+    actions.setCode(diff.after)
 
     if (isPlaying) {
       window.setTimeout(() => {
@@ -408,12 +407,18 @@ const HomePage = () => {
       }, 60)
     }
 
-    void saveVersionSnapshot(currentProject, applied.after, 'Applied AI patch', 'ai')
-  }, [actions, currentProject, isPlaying, saveVersionSnapshot])
+    if (pendingDiff && pendingDiff.diff.after === diff.after) {
+      actions.applyDiff()
+    }
 
-  const handleRejectDiff = useCallback(() => {
-    actions.rejectDiff()
-  }, [actions])
+    void saveVersionSnapshot(currentProject, diff.after, 'Applied AI patch', 'ai')
+  }, [actions, currentProject, isPlaying, pendingDiff, saveVersionSnapshot])
+
+  const handleRejectDiff = useCallback((diff: { before: string; after: string; summary: string }) => {
+    if (pendingDiff && pendingDiff.diff.after === diff.after) {
+      actions.rejectDiff()
+    }
+  }, [actions, pendingDiff])
 
   const handleParamChange = useCallback((param: ExtractedParam, nextValue: number) => {
     const sourceCode = getCurrentCodeRef.current?.() ?? currentProject?.strudel_code ?? ''
@@ -492,8 +497,8 @@ const HomePage = () => {
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-[#050505] px-3 py-3 text-white sm:px-4 lg:px-6">
-      <div className="mx-auto flex h-full min-h-0 max-w-[1800px] flex-col gap-3 overflow-hidden">
+    <main className="h-screen overflow-hidden bg-[#050505] px-2 py-2 text-white sm:px-3 sm:py-3 lg:px-4 lg:py-4">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1680px] flex-col gap-2 overflow-hidden sm:gap-3">
         <ProjectTopbar
           projectName={currentProject.name}
           bpm={currentProject.bpm}
@@ -521,7 +526,7 @@ const HomePage = () => {
           }}
         />
 
-        <div className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(320px,0.34fr)_minmax(0,0.66fr)]">
+        <div className="grid min-h-0 flex-1 gap-2 overflow-hidden xl:grid-cols-[minmax(300px,0.34fr)_minmax(0,0.66fr)] 2xl:grid-cols-[minmax(340px,0.33fr)_minmax(0,0.67fr)]">
           <ChatPanel
             messages={chatMessages}
             isSending={isSending}
@@ -532,8 +537,8 @@ const HomePage = () => {
 
           <section className="flex min-h-0 flex-col gap-3 overflow-hidden">
             <Card className="min-h-0 flex-1 overflow-hidden border-zinc-900 bg-black/55 text-white shadow-none">
-              <CardContent className="grid h-full min-h-0 gap-3 overflow-hidden p-3 lg:grid-cols-[minmax(0,1fr)_300px]">
-                <div className="min-h-0 overflow-auto rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-4">
+              <CardContent className="grid h-full min-h-0 gap-2 overflow-hidden p-2 sm:gap-3 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
+                <div className="min-h-0 overflow-auto rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4">
                   <StrudelEditor
                     initialCode={currentProject.strudel_code}
                     onCodeChange={actions.setCode}
@@ -574,8 +579,8 @@ const HomePage = () => {
                   />
                 </div>
 
-                <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-                  <div className="h-[260px] overflow-hidden rounded-2xl border border-zinc-900">
+                <div className="hidden min-h-0 2xl:flex flex-col gap-3 overflow-hidden">
+                  <div className="h-[200px] overflow-hidden rounded-2xl border border-zinc-900 3xl:h-[260px]">
                     <HalVisualization isPlaying={isPlaying} isListening={false} />
                   </div>
 
@@ -619,21 +624,23 @@ const HomePage = () => {
               </CardContent>
             </Card>
 
-            <div className="grid min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px_320px]">
+            <div className="grid min-h-0 gap-2 overflow-auto lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)_minmax(260px,300px)]">
               <Card className="min-h-0 border-zinc-900 bg-black/55 text-white shadow-none">
-                <CardContent className="space-y-4 p-4">
-                  <div className="flex items-center justify-between gap-3">
+                <CardContent className="space-y-3 p-3 sm:p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold">Section strip</p>
                       <p className="text-xs text-zinc-500">Comment markers map to clickable DAW regions.</p>
                     </div>
-                    <div className="flex items-center gap-2 rounded-full bg-zinc-950 px-3 py-1.5 text-xs text-zinc-400">
+                    <div className="flex items-center gap-2 self-start rounded-full bg-zinc-950 px-3 py-1.5 text-xs text-zinc-400">
                       <Sparkles className="h-3.5 w-3.5 text-purple-300" />
                       AI diff review enabled
                     </div>
                   </div>
 
-                  <VisualizationBar isPlaying={isPlaying} phase={cycleInfo?.phase ?? 0} />
+                  <div className="hidden md:block">
+                    <VisualizationBar isPlaying={isPlaying} phase={cycleInfo?.phase ?? 0} />
+                  </div>
 
                   <div className="h-2 overflow-hidden rounded-full bg-zinc-900">
                     <div
@@ -654,7 +661,7 @@ const HomePage = () => {
               </Card>
 
               <Card className="min-h-0 border-zinc-900 bg-black/55 text-white shadow-none">
-                <CardContent className="flex h-full min-h-0 flex-col space-y-3 p-4">
+                <CardContent className="flex h-full min-h-0 flex-col space-y-3 p-3 sm:p-4">
                   <div>
                     <p className="text-sm font-semibold">Detected parameters</p>
                     <p className="text-xs text-zinc-500">Adjust detected values and patch the live code in-place.</p>
@@ -663,7 +670,7 @@ const HomePage = () => {
                     {params.length === 0 ? (
                       <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No tweakable parameters detected yet.</p>
                     ) : (
-                      params.slice(0, 8).map((param) => (
+                      params.slice(0, 6).map((param) => (
                         <div key={param.id} className="rounded-xl border border-zinc-800 bg-zinc-950/60 px-3 py-3">
                           <div className="flex items-center justify-between text-sm text-zinc-100">
                             <span>{param.label}</span>

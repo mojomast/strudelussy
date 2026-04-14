@@ -12,6 +12,7 @@ Frontend for the strudelussy DAW MVP.
 - guest-mode local project persistence
 - version history refresh + restore panel
 - topbar actions for blank-project and demo-project bootstrapping
+- viewport-first responsive shell that keeps the main workspace visible without browser zoom on typical laptop/tablet sizes
 
 ## Commands
 
@@ -46,3 +47,4 @@ VITE_API_URL=http://localhost:8788
 - Parameter sliders patch live code in-place and trigger a debounced re-evaluation while playback is active.
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
 - Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.
+- The DAW shell is intentionally designed around panel-local scrolling rather than document-level page scrolling.

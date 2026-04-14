@@ -5,6 +5,7 @@ from __future__ import annotations
 import http.client
 import os
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from socket import timeout as SocketTimeout
 from urllib.parse import urlsplit
 
 
@@ -58,30 +59,40 @@ class PublicProxyHandler(SimpleHTTPRequestHandler):
         self._proxy_request()
 
     def _proxy_request(self):
-        target = urlsplit(API_BASE)
-        connection = http.client.HTTPConnection(target.hostname, target.port)
+        try:
+            target = urlsplit(API_BASE)
+            connection = http.client.HTTPConnection(target.hostname, target.port, timeout=10)
 
-        content_length = int(self.headers.get("Content-Length", "0"))
-        body = self.rfile.read(content_length) if content_length else None
+            content_length = int(self.headers.get("Content-Length", "0"))
+            body = self.rfile.read(content_length) if content_length else None
 
-        headers = {key: value for key, value in self.headers.items()}
-        headers["Host"] = target.netloc
-        headers["X-Forwarded-Proto"] = "https"
-        headers["X-Forwarded-Host"] = self.headers.get("Host", "strudel.ussyco.de")
+            headers = {key: value for key, value in self.headers.items()}
+            headers["Host"] = target.netloc
+            headers["X-Forwarded-Proto"] = "https"
+            headers["X-Forwarded-Host"] = self.headers.get("Host", "strudel.ussyco.de")
 
-        connection.request(self.command, self.path, body=body, headers=headers)
-        response = connection.getresponse()
-        payload = response.read()
+            connection.request(self.command, self.path, body=body, headers=headers)
+            response = connection.getresponse()
+            payload = response.read()
 
-        self.send_response(response.status)
-        for key, value in response.getheaders():
-            if key.lower() in {"transfer-encoding", "connection", "keep-alive"}:
-                continue
-            self.send_header(key, value)
-        self.end_headers()
+            self.send_response(response.status)
+            for key, value in response.getheaders():
+                if key.lower() in {"transfer-encoding", "connection", "keep-alive"}:
+                    continue
+                self.send_header(key, value)
+            self.end_headers()
 
-        if self.command != "HEAD":
-            self.wfile.write(payload)
+            if self.command != "HEAD":
+                self.wfile.write(payload)
+        except (ConnectionRefusedError, http.client.HTTPException, OSError, SocketTimeout):
+            payload = b'{"error":"upstream unavailable"}'
+            self.send_response(502)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+
+            if self.command != "HEAD":
+                self.wfile.write(payload)
 
 
 if __name__ == "__main__":

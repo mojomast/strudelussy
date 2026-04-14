@@ -14,8 +14,8 @@ interface VersionHistoryPanelProps {
 const VersionHistoryPanel = ({ versions, isLoading, isRestoring, error, onRefresh, onRestore }: VersionHistoryPanelProps) => {
   return (
     <Card className="flex min-h-0 flex-col border-zinc-900 bg-black/55 text-white shadow-none">
-      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 p-4">
-        <div className="flex items-center justify-between gap-3">
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 p-3 sm:p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold">Version history</p>
             <p className="text-xs text-zinc-500">Server-backed snapshots you can restore into the editor.</p>

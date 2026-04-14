@@ -21,6 +21,7 @@ Current repo status after the first build pass:
 - editable parameter sliders backed by live code patching
 - version history refresh and restore UI
 - explicit blank-project and demo-project loading actions
+- viewport-first responsive layout tuning so the dashboard stacks earlier and fits common screens without browser zoom
 - Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
 - Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
 - Hardened AI chat parsing so malformed/non-JSON model responses fail soft instead of crashing the endpoint
