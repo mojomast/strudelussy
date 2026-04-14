@@ -1,6 +1,7 @@
 import { useSearchParams } from 'react-router-dom'
 import ChatPanel from '@/components/ChatPanel'
 import DAWShell from '@/components/DAWShell'
+import DawPanel from '@/components/DawPanel'
 import EditorPanel from '@/components/EditorPanel'
 import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
@@ -15,6 +16,9 @@ const HomePage = () => {
   if (orchestrator.isLoadingProject || !orchestrator.currentProject) {
     return <main className="flex min-h-screen items-center justify-center bg-[#050505] text-zinc-400">Loading project...</main>
   }
+
+  const { currentProject, sections, params, pendingDiffs, isPlaying } = orchestrator
+  const pendingPatchCount = pendingDiffs.size
 
   return (
     <DAWShell
@@ -51,22 +55,13 @@ const HomePage = () => {
       editorPanel={
         <EditorPanel
           ref={orchestrator.editorContainerRef}
-          project={orchestrator.currentProject}
-          sections={orchestrator.sections}
+          project={currentProject}
+          sections={sections}
           activeSection={orchestrator.activeSection}
-          params={orchestrator.params}
-          isPlaying={orchestrator.isPlaying}
+          isPlaying={isPlaying}
           isEditorInitialized={orchestrator.isEditorInitialized}
           isEditorInitializing={orchestrator.isEditorInitializing}
           cycleInfo={orchestrator.cycleInfo}
-          shareUrl={orchestrator.shareUrl}
-          pendingPatchCount={orchestrator.pendingDiffs.size}
-          rhythmCollapsed={orchestrator.isRhythmGeneratorCollapsed}
-          arrangeCollapsed={orchestrator.isArrangePanelCollapsed}
-          fxCollapsed={orchestrator.isFxRackCollapsed}
-          onToggleRhythm={orchestrator.toggleRhythmGenerator}
-          onToggleArrange={orchestrator.toggleArrangePanel}
-          onToggleFx={orchestrator.toggleFxRack}
           onEditorReady={orchestrator.registerEditor}
           onCodeChange={orchestrator.onEditorCodeChange}
           onPlayStateChange={orchestrator.onEditorPlayStateChange}
@@ -74,21 +69,34 @@ const HomePage = () => {
           onStrudelError={orchestrator.onEditorStrudelError}
           onCodeEvaluated={orchestrator.onEditorCodeEvaluated}
           onSelectSection={orchestrator.onSelectSection}
-          onTrackGainChange={orchestrator.onTrackGainChange}
-          onTrackGainCommit={orchestrator.onTrackGainCommit}
-          onTrackPanChange={orchestrator.onTrackPanChange}
-          onTrackPanCommit={orchestrator.onTrackPanCommit}
-          onInjectCode={orchestrator.onInjectCode}
-          onApplyCode={orchestrator.onApplyGeneratedCode}
           onShuffleRhythm={orchestrator.onShuffleRhythm}
           onAddVariation={orchestrator.onAddVariation}
           onRandomReverb={orchestrator.onRandomReverb}
           onJuxRev={orchestrator.onJuxRev}
         />
       }
+      dawPanel={
+        <DawPanel
+          project={currentProject}
+          sections={sections}
+          params={params}
+          isPlaying={isPlaying}
+          isEditorInitialized={orchestrator.isEditorInitialized}
+          isEditorInitializing={orchestrator.isEditorInitializing}
+          cycleInfo={orchestrator.cycleInfo}
+          shareUrl={orchestrator.shareUrl}
+          pendingPatchCount={pendingPatchCount}
+          onTrackGainChange={orchestrator.onTrackGainChange}
+          onTrackGainCommit={orchestrator.onTrackGainCommit}
+          onTrackPanChange={orchestrator.onTrackPanChange}
+          onTrackPanCommit={orchestrator.onTrackPanCommit}
+          onInjectCode={orchestrator.onInjectCode}
+          onApplyCode={orchestrator.onApplyGeneratedCode}
+        />
+      }
       transportBar={
         <TransportBar
-          isPlaying={orchestrator.isPlaying}
+          isPlaying={isPlaying}
           isSaving={orchestrator.isSaving}
           isDirty={orchestrator.isDirty}
           error={orchestrator.strudelError || orchestrator.saveError}
@@ -102,11 +110,11 @@ const HomePage = () => {
         />
       }
       versionPanel={{
-        versions: orchestrator.currentProject.versions,
+        versions: currentProject.versions,
         isLoading: orchestrator.isLoadingVersions,
         isRestoring: orchestrator.isRestoringVersion,
         error: orchestrator.versionError,
-        onRefresh: () => void orchestrator.loadVersions(orchestrator.currentProject!.id),
+        onRefresh: () => void orchestrator.loadVersions(currentProject.id),
         onRestore: (version) => void orchestrator.onRestoreVersion(version),
       }}
       overlay={<ShortcutsOverlay open={orchestrator.showShortcuts} onOpenChange={orchestrator.setShowShortcuts} />}
