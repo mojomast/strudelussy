@@ -97,9 +97,9 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   onJuxRev,
 }, editorContainerRef) => {
   return (
-    <Card className="min-h-0 flex-1 border-zinc-900 bg-black/55 text-white shadow-none">
-      <CardContent className="grid h-full gap-3 overflow-auto p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="flex flex-col gap-3 overflow-auto pr-1 pb-4">
+    <Card className="border-zinc-900 bg-black/55 text-white shadow-none">
+      <CardContent className="grid gap-3 p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="flex flex-col gap-3 pr-1 pb-6">
           <div
             ref={editorContainerRef}
             className="h-[48vh] min-h-[400px] overflow-hidden rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4 xl:h-[52vh] xl:min-h-[480px]"
@@ -167,7 +167,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
                       <p className="text-sm font-semibold">Track Mixer</p>
                       <p className="text-xs text-zinc-500">Per-track volume and pan. Edits gain() and pan() live in the code.</p>
                     </div>
-                    <div className="space-y-2">
+                    <div className="space-y-2 pr-1">
                       {trackGains.length === 0 ? (
                         <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No tracks detected yet.</p>
                       ) : (
@@ -219,7 +219,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
           </div>
         </div>
 
-        <div className="hidden 2xl:flex flex-col gap-3 overflow-auto">
+        <div className="hidden 2xl:flex flex-col gap-3">
           <div className="h-[200px] overflow-hidden rounded-2xl border border-zinc-900 3xl:h-[260px]">
             <HalVisualization isPlaying={isPlaying} isListening={false} />
           </div>
