@@ -111,6 +111,27 @@ const ProjectTopbar = ({
         </div>
 
         <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
+          <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">
+            <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
+            <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center gap-2 2xl:justify-end">
+            <input
+              value={customApiEndpoint}
+              onChange={(event) => onCustomApiEndpointChange(event.target.value)}
+              placeholder="Custom API endpoint"
+              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            />
+            <input
+              type="password"
+              value={customApiKey}
+              onChange={(event) => onCustomApiKeyChange(event.target.value)}
+              placeholder="Custom API key"
+              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            />
+          </div>
+
           <div className="flex flex-wrap items-center gap-2">
             <select
               value={selectedModel}
@@ -183,26 +204,6 @@ const ProjectTopbar = ({
             </label>
           </div>
 
-          <div className="flex w-full flex-wrap items-center gap-2 2xl:justify-end">
-            <input
-              value={customApiEndpoint}
-              onChange={(event) => onCustomApiEndpointChange(event.target.value)}
-              placeholder="Custom API endpoint"
-              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            />
-            <input
-              type="password"
-              value={customApiKey}
-              onChange={(event) => onCustomApiKeyChange(event.target.value)}
-              placeholder="Custom API key"
-              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            />
-          </div>
-
-          <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">
-            <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
-            <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
-          </div>
         </div>
       </div>
     </header>
