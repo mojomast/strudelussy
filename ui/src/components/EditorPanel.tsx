@@ -13,6 +13,7 @@ export interface EditorBridge {
   undo: () => void
   redo: () => void
   setCode: (code: string) => void
+  setMasterVolume: (volume: number) => void
   getCode: () => string
   getCycleInfo: () => CycleInfo | null
   jumpToLine: (line: number) => void
@@ -64,6 +65,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
           onGetCurrentCode={(getCode) => onEditorReady({ getCode })}
           onEvaluateReady={(evaluate) => onEditorReady({ evaluate })}
           onSetCodeReady={(setCode) => onEditorReady({ setCode })}
+          onMasterVolumeReady={(setMasterVolume) => onEditorReady({ setMasterVolume })}
           onCycleInfoReady={(getCycleInfo) => onEditorReady({ getCycleInfo })}
           onJumpToLineReady={(jumpToLine) => onEditorReady({ jumpToLine })}
           onPlayStateChange={onPlayStateChange}

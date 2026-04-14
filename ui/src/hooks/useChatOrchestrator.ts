@@ -94,6 +94,7 @@ interface UseChatOrchestratorArgs {
 
 export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOrchestratorArgs) => {
   const [isSending, setIsSending] = useState(false)
+  const [masterVolume, setMasterVolume] = useState(0.85)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null)
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
@@ -109,6 +110,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const pendingSendContentsRef = useRef(new Set<string>())
 
   const editorBridgeRef = useRef<Partial<EditorBridge>>({})
+  const masterVolumeRef = useRef(0.85)
   const autoSaveTimerRef = useRef<number | null>(null)
   const paramEvaluateTimerRef = useRef<number | null>(null)
   const previewSnapshotRef = useRef<string | null>(null)
@@ -135,6 +137,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   const registerEditor = useCallback((bridge: Partial<EditorBridge>) => {
     editorBridgeRef.current = { ...editorBridgeRef.current, ...bridge }
+    if (bridge.setMasterVolume) {
+      bridge.setMasterVolume(masterVolumeRef.current)
+    }
   }, [])
 
   const getCurrentCode = useCallback(() => editorBridgeRef.current.getCode?.() ?? currentProject?.strudel_code ?? '', [currentProject?.strudel_code])
@@ -736,6 +741,12 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   const onProjectNameChange = useCallback((name: string) => actions.setProjectName(name), [actions])
   const onProjectKeyChange = useCallback((key: string) => actions.setProjectKey(key), [actions])
+  const onMasterVolumeChange = useCallback((volume: number) => {
+    const nextVolume = Math.min(1, Math.max(0, volume))
+    masterVolumeRef.current = nextVolume
+    setMasterVolume(nextVolume)
+    editorBridgeRef.current.setMasterVolume?.(nextVolume)
+  }, [])
   const onEditorCodeChange = useCallback((code: string) => actions.setCode(code), [actions])
   const onEditorPlayStateChange = useCallback((playing: boolean) => actions.setPlaying(playing), [actions])
   const onEditorStrudelError = useCallback((error: string | null) => actions.setStrudelError(error), [actions])
@@ -767,6 +778,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     isArrangePanelCollapsed,
     isFxRackCollapsed,
     isSending,
+    masterVolume,
     editorContainerRef,
     registerEditor,
     onSend,
@@ -800,6 +812,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onJuxRev,
     onProjectNameChange,
     onProjectKeyChange,
+    onMasterVolumeChange,
     onEditorCodeChange,
     loadVersions,
     onEditorPlayStateChange,

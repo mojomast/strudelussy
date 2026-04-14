@@ -14,7 +14,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a fixed Gemini 2.5 Flash chat model
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and a fixed Gemini 2.5 Flash chat model
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -38,9 +38,9 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - always-visible right-side DAW utility panel
 - section strip parsed from `// [section]` comments
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a fixed Gemini 2.5 Flash chat model
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and a fixed Gemini 2.5 Flash chat model
 - version history panel with refresh and restore
-- topbar actions for starting a blank project or reloading the demo template
+- topbar actions for starting a blank project or reloading the demo template, plus a global master volume control
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`

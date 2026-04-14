@@ -27,9 +27,11 @@ const HomePage = () => {
           projectName={orchestrator.currentProject.name}
           bpm={orchestrator.currentProject.bpm}
           musicalKey={orchestrator.currentProject.key}
+          masterVolume={orchestrator.masterVolume}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onBpmChange={orchestrator.onBpmChange}
           onKeyChange={orchestrator.onProjectKeyChange}
+          onMasterVolumeChange={orchestrator.onMasterVolumeChange}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
           onExportTxt={orchestrator.onExportTxt}

@@ -35,13 +35,14 @@ interface StrudelEditorProps {
   onJumpToLineReady?: (jumpToLineFn: (line: number) => void) => void
   onEvaluateReady?: (evaluateFn: () => void) => void
   onSetCodeReady?: (setCodeFn: (code: string) => void) => void
+  onMasterVolumeReady?: (setMasterVolumeFn: (volume: number) => void) => void
 }
 
 export interface StrudelEditorHandle {
   jumpToLine: (line: number) => void
 }
 
-const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady }, ref) => {
+const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady, onMasterVolumeReady }, ref) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
@@ -69,6 +70,8 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
   } | null>(null)
   const initializationRef = useRef(false) // Prevent double initialization
   const analyserRef = useRef<AnalyserNode | null>(null)
+  const masterGainRef = useRef<GainNode | null>(null)
+  const originalConnectRef = useRef<typeof AudioNode.prototype.connect | null>(null)
   const strudelLogListenerRef = useRef<((e: Event) => void) | null>(null)
   const playStartTimeRef = useRef<number>(0) // Track when playback started - fallback only
   const cpsRef = useRef<number>(0.5) // Default CPS - fallback when scheduler not accessible
@@ -128,31 +131,42 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           await new Promise(resolve => setTimeout(resolve, 50))
           
           const context = getAudioContext()
-          
+
+          const masterGain = context.createGain()
+          masterGain.gain.value = 0.85
+          masterGain.connect(context.destination)
+          masterGainRef.current = masterGain
+
           // Create analyser for visualization
           const analyser = context.createAnalyser()
           analyser.fftSize = 1024
           analyser.smoothingTimeConstant = 0.7
           analyserRef.current = analyser
-          
+          masterGain.connect(analyser)
+
           // CRITICAL: Monkey-patch AudioNode.prototype.connect to intercept all audio
           // This allows us to tap into Strudel's audio without modifying its code
-          const originalConnect = AudioNode.prototype.connect;
-          
-          (AudioNode.prototype.connect as any) = function(this: AudioNode, ...args: any[]) {
-            const result = (originalConnect as any).apply(this, args)
-            
-            // If any node connects to destination, also connect to our analyser
-            if (args[0] === context.destination && analyser) {
-              try {
-                (originalConnect as any).call(this, analyser)
-              } catch (err) {
-                // Silently ignore if connection fails
-              }
-            }
-            
-            return result
+          const originalConnect = AudioNode.prototype.connect
+          originalConnectRef.current = originalConnect
+
+          const connectNode = (node: AudioNode, destinationNode: AudioNode, output?: number, input?: number) =>
+            Reflect.apply(originalConnect as unknown as (...args: unknown[]) => unknown, node, [destinationNode, output, input]) as AudioNode
+
+          const connectParam = (node: AudioNode, destinationParam: AudioParam, output?: number) => {
+            Reflect.apply(originalConnect as unknown as (...args: unknown[]) => unknown, node, [destinationParam, output])
           }
+
+          AudioNode.prototype.connect = (function(this: AudioNode, destination: AudioNode | AudioParam, output?: number, input?: number) {
+            if (destination instanceof AudioNode) {
+              if (destination === context.destination && masterGainRef.current) {
+                return connectNode(this, masterGainRef.current, output, input)
+              }
+              return connectNode(this, destination, output, input)
+            }
+
+            connectParam(this, destination, output)
+            return this
+          }) as typeof AudioNode.prototype.connect
           
           console.log('[AUDIO] Analyser ready')
           
@@ -346,6 +360,13 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
               }
             })
           }
+
+          if (onMasterVolumeReady) {
+            onMasterVolumeReady((volume: number) => {
+              if (!masterGainRef.current) return
+              masterGainRef.current.gain.value = Math.min(1, Math.max(0, volume))
+            })
+          }
           
           // Expose stop function to parent
           if (onStopReady) {
@@ -507,6 +528,14 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
         } catch (err) {
           console.warn('Error during cleanup:', err)
         }
+      }
+      if (originalConnectRef.current) {
+        AudioNode.prototype.connect = originalConnectRef.current
+        originalConnectRef.current = null
+      }
+      if (masterGainRef.current) {
+        masterGainRef.current.disconnect()
+        masterGainRef.current = null
       }
       // Clean up strudel.log event listener
       if (strudelLogListenerRef.current) {

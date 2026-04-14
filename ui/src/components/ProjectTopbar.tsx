@@ -6,9 +6,11 @@ interface ProjectTopbarProps {
   projectName: string
   bpm?: number
   musicalKey?: string
+  masterVolume: number
   onProjectNameChange: (name: string) => void
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
+  onMasterVolumeChange: (volume: number) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -21,9 +23,11 @@ const ProjectTopbar = ({
   projectName,
   bpm,
   musicalKey,
+  masterVolume,
   onProjectNameChange,
   onBpmChange,
   onKeyChange,
+  onMasterVolumeChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -109,6 +113,19 @@ const ProjectTopbar = ({
               placeholder="Key / scale"
               className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
+            <label className="flex min-w-[180px] items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-400">
+              <span>Master</span>
+              <input
+                type="range"
+                min={0}
+                max={1}
+                step={0.01}
+                value={masterVolume}
+                onChange={(event) => onMasterVolumeChange(Number(event.target.value))}
+                className="w-24 accent-purple-500"
+              />
+              <span className="w-10 text-right text-xs text-zinc-300">{Math.round(masterVolume * 100)}%</span>
+            </label>
           </div>
         </div>
       </div>
