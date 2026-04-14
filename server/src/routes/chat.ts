@@ -18,6 +18,10 @@ interface AIResponse {
   has_code_change: boolean
 }
 
+const unsupportedPatterns = [
+  /\.bend\s*\(/g,
+]
+
 export const chatRoute = new Hono<{ Bindings: Env }>()
 
 const buildSystemPrompt = (payload: ChatPayload) => `You are a music production AI assistant working inside a Strudel live coding environment.
@@ -45,11 +49,26 @@ Rules:
 - Never truncate or omit code.
 - Never use placeholder comments.
 - Prefer incremental changes.
+- Do not use unsupported methods such as .bend().
+- Favor conservative, commonly supported Strudel functions like s, note, n, sound, gain, room, delay, slow, fast, stack, cat, mini, color, scale.
 - If no code change is needed, omit the code field and set has_code_change to false.
 - Return JSON only.
 
 Condensed Strudel reference:
 ${STRUDEL_DOCS}`
+
+const fallbackJsonResponse = (content: string): AIResponse => ({
+  message: content || 'The model returned a non-JSON response.',
+  has_code_change: false,
+})
+
+const sanitizeCode = (code: string): string => {
+  let nextCode = code
+  for (const pattern of unsupportedPatterns) {
+    nextCode = nextCode.replace(pattern, '(')
+  }
+  return nextCode
+}
 
 const parseJsonResponse = (content: string): AIResponse => {
   const cleaned = content
@@ -57,12 +76,23 @@ const parseJsonResponse = (content: string): AIResponse => {
     .replace(/```\n?/g, '')
     .trim()
 
-  const parsed = JSON.parse(cleaned) as AIResponse
+  if (!cleaned.startsWith('{')) {
+    return fallbackJsonResponse(cleaned)
+  }
+
+  let parsed: AIResponse
+  try {
+    parsed = JSON.parse(cleaned) as AIResponse
+  } catch {
+    return fallbackJsonResponse(cleaned)
+  }
+
+  const sanitizedCode = parsed.code ? sanitizeCode(parsed.code) : undefined
   return {
     message: parsed.message || 'Updated the project.',
-    code: parsed.code,
+    code: sanitizedCode,
     diff_summary: parsed.diff_summary,
-    has_code_change: Boolean(parsed.has_code_change && parsed.code),
+    has_code_change: Boolean(parsed.has_code_change && sanitizedCode),
   }
 }
 

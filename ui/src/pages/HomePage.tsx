@@ -16,6 +16,7 @@ import { parseBpmFromCode, parseKeyFromCode, updateDetectedParamInCode, upsertSe
 import { getLastProjectId, getOrCreateGuestUserId, loadLocalProject, saveLocalProject } from '@/lib/projectStorage'
 import { useProjectStore } from '@/stores/projectStore'
 import type { ChatMessage, CodeVersion, ExtractedParam, Project } from '@/types/project'
+import { createId } from '@/lib/utils'
 
 const DEFAULT_CODE = `setcps(0.5)
 
@@ -41,25 +42,35 @@ $: note("<c4 eb4 g4 bb4>")
   .gain(0.65)
   .color("orange")`
 
-const createDefaultProject = (userId: string): Project => {
+const EMPTY_CODE = `setcps(0.5)
+
+// [idea]
+$: s("bd ~ sd ~")
+  .gain(0.8)`
+
+const createProjectTemplate = (userId: string, template: 'empty' | 'demo' = 'demo'): Project => {
+  const strudelCode = template === 'demo' ? DEFAULT_CODE : EMPTY_CODE
   const now = new Date().toISOString()
   return {
-    id: crypto.randomUUID(),
+    id: createId(),
     user_id: userId,
-    name: 'New Strudelussy Session',
-    strudel_code: DEFAULT_CODE,
+    name: template === 'demo' ? 'Demo Strudelussy Session' : 'Untitled Project',
+    strudel_code: strudelCode,
     chat_history: [
       {
-        id: crypto.randomUUID(),
+        id: createId(),
         role: 'system',
-        content: 'Project initialized. Ask the AI to evolve the groove, add sections, or fix code before it reaches the editor.',
+        content:
+          template === 'demo'
+            ? 'Demo project loaded. Ask the AI to evolve the groove, add sections, or fix code before it reaches the editor.'
+            : 'Blank project initialized. Start from scratch or ask the AI to scaffold a groove.',
         timestamp: now,
       },
     ],
     versions: [],
-    bpm: parseBpmFromCode(DEFAULT_CODE),
-    key: parseKeyFromCode(DEFAULT_CODE),
-    tags: ['guest'],
+    bpm: parseBpmFromCode(strudelCode),
+    key: parseKeyFromCode(strudelCode),
+    tags: template === 'demo' ? ['guest', 'demo'] : ['guest', 'empty'],
     created_at: now,
     updated_at: now,
   }
@@ -90,6 +101,7 @@ const HomePage = () => {
   const editorPlayRef = useRef<(() => void) | null>(null)
   const editorStopRef = useRef<(() => void) | null>(null)
   const editorEvaluateRef = useRef<(() => void) | null>(null)
+  const editorSetCodeRef = useRef<((code: string) => void) | null>(null)
   const editorUndoRef = useRef<(() => void) | null>(null)
   const editorRedoRef = useRef<(() => void) | null>(null)
   const getCurrentCodeRef = useRef<(() => string) | null>(null)
@@ -151,14 +163,23 @@ const HomePage = () => {
   const loadProject = useCallback(async (projectId?: string | null) => {
     setIsLoadingProject(true)
 
-    const nextProjectId = projectId || searchParams.get('project') || getLastProjectId()
-
-    if (!nextProjectId) {
-      const project = createDefaultProject(userId)
+    const requestedTemplate = searchParams.get('template')
+    if (requestedTemplate === 'empty' || requestedTemplate === 'demo') {
+      const project = createProjectTemplate(userId, requestedTemplate)
       actions.setProject(project)
       saveLocalProject(project)
       setSearchParams({ project: project.id })
-      void loadVersions(project.id)
+      setIsLoadingProject(false)
+      return
+    }
+
+    const nextProjectId = projectId || searchParams.get('project') || getLastProjectId()
+
+    if (!nextProjectId) {
+      const project = createProjectTemplate(userId, 'demo')
+      actions.setProject(project)
+      saveLocalProject(project)
+      setSearchParams({ project: project.id })
       setIsLoadingProject(false)
       return
     }
@@ -167,7 +188,6 @@ const HomePage = () => {
     if (localProject) {
       actions.setProject(localProject)
       setSearchParams({ project: localProject.id })
-      void loadVersions(localProject.id)
       setIsLoadingProject(false)
       return
     }
@@ -179,11 +199,10 @@ const HomePage = () => {
       setSearchParams({ project: remoteProject.id })
       await loadVersions(remoteProject.id)
     } catch {
-      const fallbackProject = createDefaultProject(userId)
+      const fallbackProject = createProjectTemplate(userId, 'demo')
       actions.setProject(fallbackProject)
       saveLocalProject(fallbackProject)
       setSearchParams({ project: fallbackProject.id })
-      void loadVersions(fallbackProject.id)
     } finally {
       setIsLoadingProject(false)
     }
@@ -193,8 +212,8 @@ const HomePage = () => {
     const shareId = searchParams.get('share')
     if (shareId) {
       api.loadSharedCode(shareId).then((data) => {
-        const project = createDefaultProject(userId)
-        project.id = crypto.randomUUID()
+        const project = createProjectTemplate(userId, 'demo')
+        project.id = createId()
         project.name = 'Shared Session Copy'
         project.strudel_code = data.code
         project.bpm = parseBpmFromCode(data.code)
@@ -202,7 +221,6 @@ const HomePage = () => {
         actions.setProject(project)
         saveLocalProject(project)
         setSearchParams({ project: project.id })
-        void loadVersions(project.id)
         setIsLoadingProject(false)
       }).catch(() => {
         void loadProject(null)
@@ -326,11 +344,11 @@ const HomePage = () => {
     if (!currentProject) return
 
     setIsSending(true)
-    const userMessage: ChatMessage = {
-      id: crypto.randomUUID(),
-      role: 'user',
-      content,
-      timestamp: new Date().toISOString(),
+      const userMessage: ChatMessage = {
+        id: createId(),
+        role: 'user',
+        content,
+        timestamp: new Date().toISOString(),
     }
 
     actions.appendMessage(userMessage)
@@ -349,7 +367,7 @@ const HomePage = () => {
       }, userId)
 
       const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
+        id: createId(),
         role: 'assistant',
         content: response.message,
         timestamp: new Date().toISOString(),
@@ -368,7 +386,7 @@ const HomePage = () => {
       }
     } catch (error) {
       actions.appendMessage({
-        id: crypto.randomUUID(),
+        id: createId(),
         role: 'assistant',
         content: error instanceof Error ? error.message : 'Chat request failed.',
         timestamp: new Date().toISOString(),
@@ -381,8 +399,17 @@ const HomePage = () => {
   const handleApplyDiff = useCallback(() => {
     const applied = actions.applyDiff()
     if (!applied || !currentProject) return
+
+    editorSetCodeRef.current?.(applied.after)
+
+    if (isPlaying) {
+      window.setTimeout(() => {
+        editorEvaluateRef.current?.()
+      }, 60)
+    }
+
     void saveVersionSnapshot(currentProject, applied.after, 'Applied AI patch', 'ai')
-  }, [actions, currentProject, saveVersionSnapshot])
+  }, [actions, currentProject, isPlaying, saveVersionSnapshot])
 
   const handleRejectDiff = useCallback(() => {
     actions.rejectDiff()
@@ -391,6 +418,7 @@ const HomePage = () => {
   const handleParamChange = useCallback((param: ExtractedParam, nextValue: number) => {
     const sourceCode = getCurrentCodeRef.current?.() ?? currentProject?.strudel_code ?? ''
     const nextCode = updateDetectedParamInCode(sourceCode, param, nextValue)
+    editorSetCodeRef.current?.(nextCode)
     actions.setCode(nextCode)
 
     if (isPlaying) {
@@ -418,6 +446,7 @@ const HomePage = () => {
       const currentCode = getCurrentCodeRef.current?.() ?? currentProject.strudel_code
       await saveVersionSnapshot(currentProject, currentCode, 'Before restore', 'user')
 
+      editorSetCodeRef.current?.(version.code)
       actions.setCode(version.code)
 
       await persistProject({
@@ -447,9 +476,24 @@ const HomePage = () => {
     return <main className="flex min-h-screen items-center justify-center bg-[#050505] text-zinc-400">Loading project...</main>
   }
 
+  const loadTemplateProject = (template: 'empty' | 'demo') => {
+    if (isPlaying) {
+      editorStopRef.current?.()
+    }
+
+    actions.rejectDiff()
+    const project = createProjectTemplate(userId, template)
+    editorSetCodeRef.current?.(project.strudel_code)
+    actions.setProject(project)
+    saveLocalProject(project)
+    setSearchParams({ project: project.id })
+    setShareUrl(null)
+    setVersionError(null)
+  }
+
   return (
-    <main className="min-h-screen bg-[#050505] px-3 py-3 text-white sm:px-4 lg:px-6">
-      <div className="mx-auto flex min-h-[calc(100vh-24px)] max-w-[1800px] flex-col gap-3">
+    <main className="h-screen overflow-hidden bg-[#050505] px-3 py-3 text-white sm:px-4 lg:px-6">
+      <div className="mx-auto flex h-full min-h-0 max-w-[1800px] flex-col gap-3 overflow-hidden">
         <ProjectTopbar
           projectName={currentProject.name}
           bpm={currentProject.bpm}
@@ -468,6 +512,8 @@ const HomePage = () => {
           }}
           onUndo={() => editorUndoRef.current?.()}
           onRedo={() => editorRedoRef.current?.()}
+          onNewProject={() => loadTemplateProject('empty')}
+          onLoadDemo={() => loadTemplateProject('demo')}
           onExportTxt={() => downloadFile(`${currentProject.name}.txt`, currentProject.strudel_code, 'text/plain')}
           onExportProject={() => downloadFile(`${currentProject.name}.strudel`, JSON.stringify(currentProject, null, 2), 'application/json')}
           onShare={() => {
@@ -475,7 +521,7 @@ const HomePage = () => {
           }}
         />
 
-        <div className="grid flex-1 gap-3 xl:grid-cols-[minmax(360px,0.36fr)_minmax(0,0.64fr)]">
+        <div className="grid min-h-0 flex-1 gap-3 overflow-hidden xl:grid-cols-[minmax(320px,0.34fr)_minmax(0,0.66fr)]">
           <ChatPanel
             messages={chatMessages}
             isSending={isSending}
@@ -484,10 +530,10 @@ const HomePage = () => {
             onRejectDiff={handleRejectDiff}
           />
 
-          <section className="flex min-h-[420px] flex-col gap-3">
-            <Card className="flex-1 overflow-hidden border-zinc-900 bg-black/55 text-white shadow-none">
-              <CardContent className="grid h-full gap-3 p-3 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="overflow-auto rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-4">
+          <section className="flex min-h-0 flex-col gap-3 overflow-hidden">
+            <Card className="min-h-0 flex-1 overflow-hidden border-zinc-900 bg-black/55 text-white shadow-none">
+              <CardContent className="grid h-full min-h-0 gap-3 overflow-hidden p-3 lg:grid-cols-[minmax(0,1fr)_300px]">
+                <div className="min-h-0 overflow-auto rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-4">
                   <StrudelEditor
                     initialCode={currentProject.strudel_code}
                     onCodeChange={actions.setCode}
@@ -509,6 +555,9 @@ const HomePage = () => {
                     onEvaluateReady={(evaluateFn) => {
                       editorEvaluateRef.current = evaluateFn
                     }}
+                    onSetCodeReady={(setCode) => {
+                      editorSetCodeRef.current = setCode
+                    }}
                     onCycleInfoReady={(getCycleInfo) => {
                       getCycleInfoRef.current = getCycleInfo
                     }}
@@ -525,12 +574,12 @@ const HomePage = () => {
                   />
                 </div>
 
-                <div className="flex flex-col gap-3">
+                <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
                   <div className="h-[260px] overflow-hidden rounded-2xl border border-zinc-900">
                     <HalVisualization isPlaying={isPlaying} isListening={false} />
                   </div>
 
-                  <Card className="border-zinc-900 bg-zinc-950/80 text-white shadow-none">
+                  <Card className="min-h-0 flex-1 border-zinc-900 bg-zinc-950/80 text-white shadow-none">
                     <CardContent className="space-y-3 p-4">
                       <div>
                         <p className="text-sm font-semibold">Project telemetry</p>
@@ -570,8 +619,8 @@ const HomePage = () => {
               </CardContent>
             </Card>
 
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_360px_360px]">
-              <Card className="border-zinc-900 bg-black/55 text-white shadow-none">
+            <div className="grid min-h-0 gap-3 overflow-hidden lg:grid-cols-[minmax(0,1fr)_320px_320px]">
+              <Card className="min-h-0 border-zinc-900 bg-black/55 text-white shadow-none">
                 <CardContent className="space-y-4 p-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -604,13 +653,13 @@ const HomePage = () => {
                 </CardContent>
               </Card>
 
-              <Card className="border-zinc-900 bg-black/55 text-white shadow-none">
-                <CardContent className="space-y-3 p-4">
+              <Card className="min-h-0 border-zinc-900 bg-black/55 text-white shadow-none">
+                <CardContent className="flex h-full min-h-0 flex-col space-y-3 p-4">
                   <div>
                     <p className="text-sm font-semibold">Detected parameters</p>
                     <p className="text-xs text-zinc-500">Adjust detected values and patch the live code in-place.</p>
                   </div>
-                  <div className="space-y-2">
+                  <div className="min-h-0 flex-1 space-y-2 overflow-auto pr-1">
                     {params.length === 0 ? (
                       <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No tweakable parameters detected yet.</p>
                     ) : (

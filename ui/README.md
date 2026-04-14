@@ -11,6 +11,7 @@ Frontend for the strudelussy DAW MVP.
 - parsed BPM, key, section, and editable parameter metadata from current code
 - guest-mode local project persistence
 - version history refresh + restore panel
+- topbar actions for blank-project and demo-project bootstrapping
 
 ## Commands
 
@@ -26,7 +27,7 @@ pnpm preview
 Optional `ui/.env`:
 
 ```bash
-VITE_API_URL=http://localhost:8787
+VITE_API_URL=http://localhost:8788
 ```
 
 ## Important Files
@@ -38,8 +39,10 @@ VITE_API_URL=http://localhost:8787
 - `src/lib/codeParser.ts` - BPM/key/section/parameter parsing
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
+- `src/components/ProjectTopbar.tsx` - transport, save/export, and project template actions
 
 ## Notes
 
 - Parameter sliders patch live code in-place and trigger a debounced re-evaluation while playback is active.
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
+- Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.

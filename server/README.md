@@ -58,4 +58,6 @@ pnpm exec tsc --noEmit
 ## Notes
 
 - Auth is currently header-based (`x-user-id`) to support guest mode and unblock MVP persistence.
+- The chat route now degrades safely when the upstream model returns non-JSON text instead of the requested structured payload.
+- The prompt also explicitly discourages unsupported Strudel methods like `.bend()` to reduce invalid patch suggestions.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.

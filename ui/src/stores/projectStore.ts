@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { ChatMessage, CodeDiff, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import { extractParams, parseBpmFromCode, parseKeyFromCode, parseSections } from '@/lib/codeParser'
+import { createId } from '@/lib/utils'
 
 interface PendingDiffState {
   messageId: string
@@ -69,10 +70,13 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set({
         currentProject: nextProject,
         chatMessages: nextProject.chat_history,
+        pendingDiff: null,
+        activeSection: null,
         sections: parseSections(nextProject.strudel_code),
         params: extractParams(nextProject.strudel_code),
         isDirty: false,
         saveError: null,
+        strudelError: null,
       })
     },
 
@@ -169,7 +173,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
       set((state) => {
         if (!state.currentProject) return state
         const version = {
-          id: crypto.randomUUID(),
+          id: createId(),
           code,
           label,
           created_at: new Date().toISOString(),

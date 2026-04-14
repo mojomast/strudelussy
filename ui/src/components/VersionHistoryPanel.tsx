@@ -13,8 +13,8 @@ interface VersionHistoryPanelProps {
 
 const VersionHistoryPanel = ({ versions, isLoading, isRestoring, error, onRefresh, onRestore }: VersionHistoryPanelProps) => {
   return (
-    <Card className="border-zinc-900 bg-black/55 text-white shadow-none">
-      <CardContent className="space-y-3 p-4">
+    <Card className="flex min-h-0 flex-col border-zinc-900 bg-black/55 text-white shadow-none">
+      <CardContent className="flex min-h-0 flex-1 flex-col space-y-3 p-4">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-sm font-semibold">Version history</p>
@@ -28,7 +28,7 @@ const VersionHistoryPanel = ({ versions, isLoading, isRestoring, error, onRefres
         {error ? <p className="rounded-xl border border-red-900 bg-red-950/40 px-3 py-2 text-xs text-red-200">{error}</p> : null}
         {isLoading ? <p className="text-sm text-zinc-500">Loading versions...</p> : null}
 
-        <div className="max-h-[360px] space-y-2 overflow-auto">
+        <div className="min-h-0 flex-1 space-y-2 overflow-auto">
           {versions.length === 0 && !isLoading ? (
             <p className="rounded-xl border border-dashed border-zinc-800 px-3 py-3 text-sm text-zinc-500">No saved snapshots yet.</p>
           ) : null}

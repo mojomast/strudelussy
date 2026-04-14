@@ -17,6 +17,8 @@ interface ProjectTopbarProps {
   onSave: () => void
   onUndo: () => void
   onRedo: () => void
+  onNewProject: () => void
+  onLoadDemo: () => void
   onExportTxt: () => void
   onExportProject: () => void
   onShare: () => void
@@ -38,6 +40,8 @@ const ProjectTopbar = ({
   onSave,
   onUndo,
   onRedo,
+  onNewProject,
+  onLoadDemo,
   onExportTxt,
   onExportProject,
   onShare,
@@ -78,6 +82,12 @@ const ProjectTopbar = ({
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onSave}>
               {isDirty ? <Save className="h-4 w-4" /> : <Check className="h-4 w-4 text-emerald-400" />}
               {isSaving ? 'Saving...' : isDirty ? 'Save Version' : 'Saved'}
+            </Button>
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onNewProject}>
+              New Project
+            </Button>
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDemo}>
+              Load Demo
             </Button>
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportTxt}>
               Export .txt

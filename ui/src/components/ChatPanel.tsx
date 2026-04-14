@@ -33,7 +33,7 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff }: C
   }
 
   return (
-    <section className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-2xl border border-zinc-900 bg-black/50">
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-900 bg-black/50">
       <div className="border-b border-zinc-900 px-5 py-4">
         <p className="text-sm font-semibold text-white">Session Chat</p>
         <p className="text-xs text-zinc-500">Prompt the bot, review patches, then decide what lands in the editor.</p>

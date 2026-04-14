@@ -10,6 +10,8 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - parsed BPM, key, sections, and editable parameter controls from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
+- explicit `New Project` and `Load Demo` flows
+- public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
 
@@ -32,6 +34,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - section strip parsed from `// [section]` comments
 - editable parameter panel that patches numeric literals in-place
 - version history panel with refresh and restore
+- topbar actions for starting a blank project or reloading the demo template
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available
@@ -39,6 +42,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 ### Backend
 
 - `POST /api/chat` returns structured AI responses for the diff-review flow
+- chat parsing is hardened so non-JSON model responses degrade into normal assistant messages instead of 500s
 - `GET/POST/PUT/DELETE /api/projects` provide KV-backed project persistence
 - `GET/POST /api/projects/:id/versions` provide lightweight snapshot history
 - existing `/api/share` remains available for share links
@@ -87,12 +91,17 @@ pnpm dev
 
 Open `http://localhost:5173`.
 
+Public runtime on the maintainer machine currently uses:
+
+- `https://strudel.ussyco.de` for the app
+- a local path-aware proxy that serves the built SPA and forwards `/api/*` to the worker on `:8788`
+
 ## Environment
 
 Frontend `ui/.env`:
 
 ```bash
-VITE_API_URL=http://localhost:8787
+VITE_API_URL=http://localhost:8788
 ```
 
 Backend `server/.dev.vars`:

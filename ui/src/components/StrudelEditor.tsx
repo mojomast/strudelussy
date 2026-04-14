@@ -34,9 +34,10 @@ interface StrudelEditorProps {
   onCycleInfoReady?: (getCycleInfoFn: () => CycleInfo | null) => void
   onJumpToLineReady?: (jumpToLineFn: (line: number) => void) => void
   onEvaluateReady?: (evaluateFn: () => void) => void
+  onSetCodeReady?: (setCodeFn: (code: string) => void) => void
 }
 
-const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady }: StrudelEditorProps) => {
+const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady }: StrudelEditorProps) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
@@ -308,6 +309,14 @@ const StrudelEditor = ({ initialCode, onCodeChange, onPlayReady, onStopReady, on
             onEvaluateReady(() => {
               if (strudelMirrorRef.current) {
                 strudelMirrorRef.current.evaluate()
+              }
+            })
+          }
+
+          if (onSetCodeReady) {
+            onSetCodeReady((code: string) => {
+              if (strudelMirrorRef.current) {
+                strudelMirrorRef.current.setCode(code)
               }
             })
           }

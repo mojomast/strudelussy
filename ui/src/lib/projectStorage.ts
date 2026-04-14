@@ -1,4 +1,5 @@
 import type { Project } from '@/types/project'
+import { createId } from '@/lib/utils'
 
 const PROJECTS_KEY = 'strudelussy.projects'
 const LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
@@ -31,7 +32,7 @@ export const getOrCreateGuestUserId = (): string => {
   const existing = window.localStorage.getItem(USER_KEY)
   if (existing) return existing
 
-  const created = `guest-${crypto.randomUUID()}`
+  const created = createId('guest')
   window.localStorage.setItem(USER_KEY, created)
   return created
 }

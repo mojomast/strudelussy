@@ -75,6 +75,7 @@ wrangler.toml
 .turbo
 
 _toaster_upstream/
-scripts/
+scripts/*
+!scripts/public_proxy.py
 server/src/lib/strudel-samples/*
 server/wrangler.toml

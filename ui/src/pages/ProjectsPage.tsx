@@ -51,9 +51,14 @@ const ProjectsPage = () => {
             <p className="text-xs uppercase tracking-[0.28em] text-zinc-500">Projects</p>
             <h1 className="mt-2 text-3xl font-semibold">Your strudelussy sessions</h1>
           </div>
-          <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={() => navigate('/')}>
-            New Project
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => navigate('/?template=demo')}>
+              Load Demo
+            </Button>
+            <Button className="bg-purple-600 text-white hover:bg-purple-500" onClick={() => navigate('/?template=empty')}>
+              New Project
+            </Button>
+          </div>
         </div>
 
         <div className="flex items-center gap-3 rounded-2xl border border-zinc-900 bg-black/50 px-4 py-3">

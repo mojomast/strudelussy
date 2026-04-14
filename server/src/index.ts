@@ -33,8 +33,8 @@ app.use('*', async (c, next) => {
 // CORS middleware
 app.use('/*', cors({
   origin: (origin) => {
-    // In development, allow all localhost origins (any port)
-    if (isDevelopment() && origin && origin.startsWith('http://localhost:')) {
+    // In development, reflect the incoming origin so local/Tailscale testing works.
+    if (isDevelopment() && origin) {
       return origin;
     }
     // In production, only allow specific production origins
@@ -45,7 +45,7 @@ app.use('/*', cors({
       return allowedOrigins.includes(origin || '') ? origin : undefined;
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'x-user-id'],
   exposeHeaders: ['Content-Length'],
   maxAge: 600,
   credentials: true,
