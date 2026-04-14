@@ -9,6 +9,7 @@ const ALLOWED_MODELS = [
   'google/gemini-2.5-flash',
   'google/gemini-3.1-flash-lite-preview',
   'google/gemini-3-flash-preview',
+  'openai/gpt-5.4-mini',
 ] as const
 
 const MAX_CHAT_HISTORY = 20

@@ -2,6 +2,7 @@ export const CHAT_MODELS = [
   'google/gemini-2.5-flash',
   'google/gemini-3.1-flash-lite-preview',
   'google/gemini-3-flash-preview',
+  'openai/gpt-5.4-mini',
 ] as const
 
 export type ChatModel = (typeof CHAT_MODELS)[number]

@@ -15,7 +15,7 @@ Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](h
 - guest-mode local project persistence
 - version history refresh + restore panel
 - preview/apply/reject AI patch flow with multiple pending diffs keyed per assistant message
-- topbar actions for blank-project and demo-project bootstrapping, plus a Gemini-only model selector
+- topbar actions for blank-project and demo-project bootstrapping, plus a restricted model selector
 - rhythm generator with per-voice gain, arrange panel, FX rack with explicit on/off filter states, mutate toolbar, shortcut overlay, and BPM tap tempo
 - viewport-first responsive shell that keeps the main workspace visible without browser zoom on typical laptop/tablet sizes
 
@@ -67,4 +67,4 @@ VITE_API_URL=http://localhost:8788
 - `pnpm preview` is only the local Vite production preview, not the production hosting path.
 - Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.
 - The DAW shell is intentionally designed around panel-local scrolling rather than document-level page scrolling.
-- The chat model selector is currently restricted to `google/gemini-2.5-flash`, `google/gemini-3.1-flash-lite-preview`, and `google/gemini-3-flash-preview`.
+- The chat model selector is currently restricted to `google/gemini-2.5-flash`, `google/gemini-3.1-flash-lite-preview`, `google/gemini-3-flash-preview`, and `openai/gpt-5.4-mini`.
