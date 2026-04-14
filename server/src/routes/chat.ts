@@ -20,7 +20,17 @@ interface ChatPayload {
   messages: { role: string; content: string }[]
   current_code: string
   model?: string
+  provider?: ChatProviderOverride
   project_meta?: { bpm?: number; key?: string; tags?: string[] }
+}
+
+interface ChatProviderOverride {
+  endpoint: string
+  apiKey: string
+}
+
+interface ModelsPayload {
+  provider?: ChatProviderOverride
 }
 
 interface AIResponse {
@@ -43,6 +53,79 @@ const unsupportedPatterns: RegExp[] = [
 const unsupportedSoundNames = ['chirp', 'bongo', 'conga', 'timbale', 'cowbell', 'tambourine', 'clap2']
 
 export const chatRoute = new Hono<{ Bindings: Env }>()
+
+const normalizeProviderEndpoint = (endpoint: string) =>
+  endpoint.trim()
+    .replace(/\/(chat\/completions|models)\/?$/i, '')
+    .replace(/\/+$/g, '')
+
+const getClientOptions = (env: Env, provider?: ChatProviderOverride) => {
+  if (provider?.endpoint && provider.apiKey) {
+    return {
+      baseURL: normalizeProviderEndpoint(provider.endpoint),
+      apiKey: provider.apiKey.trim(),
+      defaultHeaders: undefined,
+    }
+  }
+
+  return {
+    baseURL: 'https://openrouter.ai/api/v1',
+    apiKey: env.OPENROUTER_API_KEY,
+    defaultHeaders: {
+      'HTTP-Referer': env.APP_URL || 'http://localhost:5173',
+      'X-Title': 'strudelussy chat',
+    },
+  }
+}
+
+const getSelectedModel = (env: Env, payload: ChatPayload): string => {
+  if (payload.provider?.endpoint && payload.provider.apiKey) {
+    if (!payload.model) {
+      throw new Error('A model is required when using a custom API endpoint')
+    }
+    return payload.model
+  }
+
+  return (ALLOWED_MODELS.includes((payload.model || '') as (typeof ALLOWED_MODELS)[number])
+    ? payload.model
+    : env.OPENROUTER_MODEL || 'google/gemini-2.5-flash') as (typeof ALLOWED_MODELS)[number] | string
+}
+
+chatRoute.post('/models', async (c) => {
+  try {
+    const payload = await c.req.json<ModelsPayload>()
+    const provider = payload.provider
+
+    if (!provider?.endpoint || !provider.apiKey) {
+      return c.json({ error: 'Custom endpoint and API key are required to load models' }, 400)
+    }
+
+    const endpoint = normalizeProviderEndpoint(provider.endpoint)
+    const response = await fetch(`${endpoint}/models`, {
+      headers: {
+        Authorization: `Bearer ${provider.apiKey.trim()}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      const errorBody = await response.text()
+      return c.json({ error: `Failed to load models: ${errorBody || response.statusText}` }, response.status)
+    }
+
+    const data = await response.json() as { data?: Array<{ id?: string }> }
+    const models = (data.data || [])
+      .map((entry) => entry.id)
+      .filter((id): id is string => Boolean(id))
+
+    return c.json({ models })
+  } catch (error) {
+    return c.json({
+      error: 'Failed to load models',
+      message: error instanceof Error ? error.message : 'Unknown error',
+    }, 500)
+  }
+})
 
 const buildSystemPrompt = (payload: ChatPayload) => `You are a music production AI assistant working inside a Strudel live coding environment.
 
@@ -188,18 +271,9 @@ chatRoute.post('/', async (c) => {
       return c.json({ error: 'messages and current_code are required' }, 400)
     }
 
-    const openai = new OpenAI({
-      baseURL: 'https://openrouter.ai/api/v1',
-      apiKey: c.env.OPENROUTER_API_KEY,
-      defaultHeaders: {
-        'HTTP-Referer': c.env.APP_URL || 'http://localhost:5173',
-        'X-Title': 'strudelussy chat',
-      },
-    })
+    const openai = new OpenAI(getClientOptions(c.env, payload.provider))
 
-    const selectedModel = (ALLOWED_MODELS.includes((payload.model || '') as (typeof ALLOWED_MODELS)[number])
-      ? payload.model
-      : c.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash') as (typeof ALLOWED_MODELS)[number] | string
+    const selectedModel = getSelectedModel(c.env, payload)
 
     const recentMessages = payload.messages.filter((message) => message.role !== 'system').slice(-MAX_CHAT_HISTORY)
 

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useProjectStore, trimChatHistoryForApi } from '@/stores/projectStore'
 import { api } from '@/lib/api'
 import { buildCodeDiff } from '@/lib/diffUtils'
-import { getLastProjectId, getOrCreateGuestUserId, loadLocalProject, saveLocalProject } from '@/lib/projectStorage'
+import { getLastProjectId, getOrCreateGuestUserId, loadChatProviderConfig, loadLocalProject, saveChatProviderConfig, saveLocalProject } from '@/lib/projectStorage'
 import {
   addJuxRevToRandomMelodicTrack,
   addRandomReverbToTracks,
@@ -16,9 +16,12 @@ import {
 } from '@/lib/codeParser'
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
+import { DEFAULT_CHAT_MODEL } from '@/types/project'
 import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
+
+const normalizeProviderEndpoint = (endpoint: string) => endpoint.trim().replace(/\/+$/g, '')
 
 const DEFAULT_CODE = `setcps(0.5)
 
@@ -95,6 +98,11 @@ interface UseChatOrchestratorArgs {
 export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOrchestratorArgs) => {
   const [isSending, setIsSending] = useState(false)
   const [masterVolume, setMasterVolume] = useState(0.85)
+  const [customApiEndpoint, setCustomApiEndpoint] = useState('')
+  const [customApiKey, setCustomApiKey] = useState('')
+  const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_CHAT_MODEL])
+  const [isLoadingModels, setIsLoadingModels] = useState(false)
+  const [modelLoadError, setModelLoadError] = useState<string | null>(null)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
   const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null)
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
@@ -134,6 +142,64 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   } = useProjectStore()
 
   const userId = getOrCreateGuestUserId()
+  const customProvider = customApiEndpoint && customApiKey
+    ? { endpoint: normalizeProviderEndpoint(customApiEndpoint), apiKey: customApiKey }
+    : null
+
+  useEffect(() => {
+    const savedConfig = loadChatProviderConfig()
+    if (!savedConfig) return
+
+    setCustomApiEndpoint(savedConfig.endpoint)
+    setCustomApiKey(savedConfig.apiKey)
+    setAvailableModels(savedConfig.selectedModel ? [savedConfig.selectedModel] : [DEFAULT_CHAT_MODEL])
+    actions.setSelectedModel(savedConfig.selectedModel || DEFAULT_CHAT_MODEL)
+  }, [actions])
+
+  useEffect(() => {
+    if (!customProvider) {
+      setAvailableModels([DEFAULT_CHAT_MODEL])
+      setModelLoadError(null)
+      actions.setSelectedModel(DEFAULT_CHAT_MODEL)
+      saveChatProviderConfig(null)
+      return
+    }
+
+    let cancelled = false
+    setIsLoadingModels(true)
+    setModelLoadError(null)
+
+    void api.getChatModels(customProvider, userId)
+      .then((response) => {
+        if (cancelled) return
+
+        const models = response.models.length > 0 ? response.models : [DEFAULT_CHAT_MODEL]
+        setAvailableModels(models)
+
+        const nextModel = models.includes(selectedModel) ? selectedModel : models[0]
+        actions.setSelectedModel(nextModel)
+        saveChatProviderConfig({
+          endpoint: customProvider.endpoint,
+          apiKey: customProvider.apiKey,
+          selectedModel: nextModel,
+        })
+      })
+      .catch((error) => {
+        if (cancelled) return
+        setAvailableModels([DEFAULT_CHAT_MODEL])
+        setModelLoadError(error instanceof Error ? error.message : 'Failed to load models')
+        actions.setSelectedModel(DEFAULT_CHAT_MODEL)
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setIsLoadingModels(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [actions, customProvider, selectedModel, userId])
 
   const registerEditor = useCallback((bridge: Partial<EditorBridge>) => {
     editorBridgeRef.current = { ...editorBridgeRef.current, ...bridge }
@@ -420,6 +486,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         messages: trimChatHistoryForApi([...useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)]),
         current_code: currentCode,
         model: selectedModel,
+        provider: customProvider ?? undefined,
         project_meta: {
           bpm: currentProject.bpm,
           key: currentProject.key,
@@ -468,7 +535,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
       setIsSending(false)
       pendingSendContentsRef.current.delete(trimmedContent)
     }
-  }, [actions, currentProject, getCurrentCode, selectedModel, userId])
+  }, [actions, currentProject, customProvider, getCurrentCode, selectedModel, userId])
 
   const onPreviewDiff = useCallback((messageId: string, diff: CodeDiff) => {
     previewSnapshotRef.current = getCurrentCode()
@@ -741,6 +808,22 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   const onProjectNameChange = useCallback((name: string) => actions.setProjectName(name), [actions])
   const onProjectKeyChange = useCallback((key: string) => actions.setProjectKey(key), [actions])
+  const onCustomApiEndpointChange = useCallback((endpoint: string) => {
+    setCustomApiEndpoint(endpoint)
+  }, [])
+  const onCustomApiKeyChange = useCallback((apiKey: string) => {
+    setCustomApiKey(apiKey)
+  }, [])
+  const onModelChange = useCallback((model: string) => {
+    actions.setSelectedModel(model)
+    if (customProvider) {
+      saveChatProviderConfig({
+        endpoint: customProvider.endpoint,
+        apiKey: customProvider.apiKey,
+        selectedModel: model,
+      })
+    }
+  }, [actions, customProvider])
   const onMasterVolumeChange = useCallback((volume: number) => {
     const nextVolume = Math.min(1, Math.max(0, volume))
     masterVolumeRef.current = nextVolume
@@ -779,6 +862,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     isFxRackCollapsed,
     isSending,
     masterVolume,
+    customApiEndpoint,
+    customApiKey,
+    availableModels,
+    isLoadingModels,
+    modelLoadError,
     editorContainerRef,
     registerEditor,
     onSend,
@@ -812,6 +900,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onJuxRev,
     onProjectNameChange,
     onProjectKeyChange,
+    onCustomApiEndpointChange,
+    onCustomApiKeyChange,
+    onModelChange,
     onMasterVolumeChange,
     onEditorCodeChange,
     loadVersions,

@@ -28,10 +28,19 @@ const HomePage = () => {
           bpm={orchestrator.currentProject.bpm}
           musicalKey={orchestrator.currentProject.key}
           masterVolume={orchestrator.masterVolume}
+          customApiEndpoint={orchestrator.customApiEndpoint}
+          customApiKey={orchestrator.customApiKey}
+          selectedModel={orchestrator.selectedModel}
+          availableModels={orchestrator.availableModels}
+          isLoadingModels={orchestrator.isLoadingModels}
+          modelLoadError={orchestrator.modelLoadError}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onBpmChange={orchestrator.onBpmChange}
           onKeyChange={orchestrator.onProjectKeyChange}
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}
+          onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
+          onCustomApiKeyChange={orchestrator.onCustomApiKeyChange}
+          onModelChange={orchestrator.onModelChange}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
           onExportTxt={orchestrator.onExportTxt}

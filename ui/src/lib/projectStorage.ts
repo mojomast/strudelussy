@@ -4,6 +4,7 @@ import { createId } from '@/lib/utils'
 const PROJECTS_KEY = 'strudelussy.projects'
 const LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
 const USER_KEY = 'strudelussy.userId'
+const CHAT_PROVIDER_KEY = 'strudelussy.chatProvider'
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 
@@ -64,4 +65,32 @@ export const deleteLocalProject = (projectId: string) => {
 export const getLastProjectId = (): string | null => {
   if (!canUseStorage()) return null
   return window.localStorage.getItem(LAST_PROJECT_KEY)
+}
+
+export interface StoredChatProviderConfig {
+  endpoint: string
+  apiKey: string
+  selectedModel: string
+}
+
+export const loadChatProviderConfig = (): StoredChatProviderConfig | null => {
+  if (!canUseStorage()) return null
+  const raw = window.localStorage.getItem(CHAT_PROVIDER_KEY)
+  if (!raw) return null
+
+  try {
+    return JSON.parse(raw) as StoredChatProviderConfig
+  } catch {
+    return null
+  }
+}
+
+export const saveChatProviderConfig = (config: StoredChatProviderConfig | null) => {
+  if (!canUseStorage()) return
+  if (!config) {
+    window.localStorage.removeItem(CHAT_PROVIDER_KEY)
+    return
+  }
+
+  window.localStorage.setItem(CHAT_PROVIDER_KEY, JSON.stringify(config))
 }

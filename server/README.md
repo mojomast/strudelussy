@@ -65,7 +65,8 @@ pnpm exec tsc --noEmit
 - The chat route streams incremental chunks and then ends with the existing structured `AIResponse` payload.
 - The chat route now degrades safely when the upstream model returns non-JSON text instead of the requested structured payload.
 - The server currently uses `OPENROUTER_MODEL` or falls back to `google/gemini-2.5-flash`.
-- The chat route is now effectively fixed to `google/gemini-2.5-flash` because the UI no longer exposes a model chooser.
+- The chat route defaults to `google/gemini-2.5-flash`, but it also proxies custom endpoint + API key overrides from the UI.
+- `POST /api/chat/models` loads available model ids from a custom provider's `/models` endpoint so the UI can populate its selector dynamically.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
 - The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.

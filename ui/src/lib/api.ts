@@ -4,11 +4,17 @@ const API_URL = import.meta.env.VITE_API_URL || ''
 
 type ProjectUpdate = Partial<Project> & Pick<Project, 'id'>
 
+export interface ChatProviderOverride {
+  endpoint: string
+  apiKey: string
+}
+
 export interface ChatPayload {
   project_id?: string
   messages: Pick<ChatMessage, 'role' | 'content'>[]
   current_code: string
   model?: ChatModel
+  provider?: ChatProviderOverride
   project_meta: { bpm?: number; key?: string; tags?: string[] }
 }
 
@@ -64,6 +70,12 @@ export const api = {
     }, userId),
 
   getVersions: (projectId: string, userId: string) => request<CodeVersion[]>(`/api/projects/${projectId}/versions`, {}, userId),
+
+  getChatModels: (provider: ChatProviderOverride, userId: string) =>
+    request<{ models: string[] }>('/api/chat/models', {
+      method: 'POST',
+      body: JSON.stringify({ provider }),
+    }, userId),
 
   chat: (payload: ChatPayload, userId: string) =>
     request<AIResponse>('/api/chat', {

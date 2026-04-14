@@ -7,10 +7,19 @@ interface ProjectTopbarProps {
   bpm?: number
   musicalKey?: string
   masterVolume: number
+  customApiEndpoint: string
+  customApiKey: string
+  selectedModel: string
+  availableModels: string[]
+  isLoadingModels: boolean
+  modelLoadError: string | null
   onProjectNameChange: (name: string) => void
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
   onMasterVolumeChange: (volume: number) => void
+  onCustomApiEndpointChange: (endpoint: string) => void
+  onCustomApiKeyChange: (apiKey: string) => void
+  onModelChange: (model: string) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -24,10 +33,19 @@ const ProjectTopbar = ({
   bpm,
   musicalKey,
   masterVolume,
+  customApiEndpoint,
+  customApiKey,
+  selectedModel,
+  availableModels,
+  isLoadingModels,
+  modelLoadError,
   onProjectNameChange,
   onBpmChange,
   onKeyChange,
   onMasterVolumeChange,
+  onCustomApiEndpointChange,
+  onCustomApiKeyChange,
+  onModelChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -126,6 +144,36 @@ const ProjectTopbar = ({
               />
               <span className="w-10 text-right text-xs text-zinc-300">{Math.round(masterVolume * 100)}%</span>
             </label>
+          </div>
+
+          <div className="flex w-full flex-wrap items-center gap-2 2xl:justify-end">
+            <input
+              value={customApiEndpoint}
+              onChange={(event) => onCustomApiEndpointChange(event.target.value)}
+              placeholder="Custom API endpoint"
+              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            />
+            <input
+              type="password"
+              value={customApiKey}
+              onChange={(event) => onCustomApiKeyChange(event.target.value)}
+              placeholder="Custom API key"
+              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            />
+            <select
+              value={selectedModel}
+              onChange={(event) => onModelChange(event.target.value)}
+              className="min-w-[220px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            >
+              {availableModels.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">
+            <span>{customApiEndpoint && customApiKey ? 'Using custom provider override' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
+            <span>{isLoadingModels ? 'Loading models...' : modelLoadError ?? 'Model list ready'}</span>
           </div>
         </div>
       </div>

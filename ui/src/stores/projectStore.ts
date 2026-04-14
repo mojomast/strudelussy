@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, Project, SectionMarker } from '@/types/project'
+import { DEFAULT_CHAT_MODEL } from '@/types/project'
 import { extractParams, parseBpmFromCode, parseKeyFromCode, parseSections } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 
@@ -78,7 +79,7 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
   activeSection: null,
   params: [],
   sections: [],
-  selectedModel: 'google/gemini-2.5-flash',
+  selectedModel: DEFAULT_CHAT_MODEL,
   isDirty: false,
   isSaving: false,
   saveError: null,
