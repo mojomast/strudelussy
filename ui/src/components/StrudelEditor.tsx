@@ -566,11 +566,11 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
       )}
 
       {/* Editor Area - No container, no canvas, directly on background */}
-      <div className="relative w-full">
+      <div className="relative h-full min-h-[520px] w-full overflow-hidden">
         {/* StrudelMirror editor container with white text styling */}
         <div
           ref={editorRef}
-          className="relative min-h-[450px] text-white font-mono"
+          className="relative h-full min-h-[520px] w-full text-white font-mono"
           style={{
             background: 'transparent',
           }}

@@ -1,39 +1,52 @@
+import { useCallback, useRef } from 'react'
 import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { CHAT_MODELS, type ChatModel } from '@/types/project'
 
 interface ProjectTopbarProps {
   projectName: string
   bpm?: number
   musicalKey?: string
-  selectedModel: ChatModel
   onProjectNameChange: (name: string) => void
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
-  onModelChange: (model: ChatModel) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
   onExportProject: () => void
   onShare: () => void
+  onToggleShortcuts: () => void
 }
 
 const ProjectTopbar = ({
   projectName,
   bpm,
   musicalKey,
-  selectedModel,
   onProjectNameChange,
   onBpmChange,
   onKeyChange,
-  onModelChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
   onExportProject,
   onShare,
+  onToggleShortcuts,
 }: ProjectTopbarProps) => {
+  const tapTimesRef = useRef<number[]>([])
+
+  const handleTapTempo = useCallback(() => {
+    const now = Date.now()
+    const recent = tapTimesRef.current.filter((timestamp) => now - timestamp <= 3000)
+    const next = [...recent, now]
+    tapTimesRef.current = next
+
+    if (next.length < 3) return
+
+    const intervals = next.slice(1).map((timestamp, index) => timestamp - next[index])
+    const averageInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
+    const bpm = Math.round(60000 / averageInterval)
+    onBpmChange(Math.min(240, Math.max(40, bpm)))
+  }, [onBpmChange])
+
   return (
     <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-3 backdrop-blur-xl sm:px-4 sm:py-4">
       <div className="flex min-w-0 flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
@@ -72,6 +85,9 @@ const ProjectTopbar = ({
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
               Share
             </Button>
+            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
+              Shortcuts
+            </Button>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
@@ -84,24 +100,15 @@ const ProjectTopbar = ({
                 className="w-20 bg-transparent text-right text-white outline-none"
               />
             </label>
+            <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={handleTapTempo}>
+              Tap
+            </Button>
             <input
               value={musicalKey ?? ''}
               onChange={(event) => onKeyChange(event.target.value)}
               placeholder="Key / scale"
               className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
             />
-            <Select value={selectedModel} onValueChange={(value) => onModelChange(value as ChatModel)}>
-              <SelectTrigger className="min-w-[220px]">
-                <SelectValue placeholder="Select model" />
-              </SelectTrigger>
-              <SelectContent>
-                {CHAT_MODELS.map((model) => (
-                  <SelectItem key={model} value={model}>
-                    {model}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </div>
       </div>

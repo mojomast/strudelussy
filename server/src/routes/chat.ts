@@ -37,6 +37,9 @@ const unsupportedPatterns = [
   /\.stutter\s*\([^)]*\)/g,
   /\.bounce\s*\([^)]*\)/g,
   /\.pingpong\s*\([^)]*\)/g,
+  /\.trancegate\s*\([^)]*\)/g,
+  /\.rlpf\s*\([^)]*\)/g,
+  /\.acidenv\s*\([^)]*\)/g,
 ]
 
 const unsupportedSoundNames = ['chirp']
@@ -72,6 +75,13 @@ Rules:
 - Favor conservative, commonly supported Strudel functions like s, note, n, sound, gain, room, delay, slow, fast, stack, cat, mini, color, scale.
 - Do not invent unsupported sound names like chirp unless you have explicitly loaded a compatible sample pack and know the sound exists.
 - For built-in drums prefer bd, sd, hh, cp, rim, lt, mt, ht, perc. For melodic instruments prefer working gm_ instruments already present in the code.
+- Use Euclidean rhythms for drums: s("bd(3,16)").bank("RolandTR808") is always preferred over manual sequencing.
+- Use .mask("<0!N 1!M>") to arrange when the user asks for song structure or sections to appear or disappear over time.
+- Use arrange([cycles, pattern], ...) when the user asks to schedule different patterns to play in sequence.
+- Use .jux(rev) for subtle stereo interest on melodic patterns.
+- Use .off(1/16, x=>x.add(4)) for harmonic echo effects.
+- Use .every(4, x=>x.rev()) for periodic variation.
+- Named tracks: use named $ operators like drums$: or bass$: when generating multi-track code so sections are identifiable.
 - If no code change is needed, omit the code field and set has_code_change to false.
 - Return JSON only.
 

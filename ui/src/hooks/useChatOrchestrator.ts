@@ -3,7 +3,16 @@ import { useProjectStore, trimChatHistoryForApi } from '@/stores/projectStore'
 import { api } from '@/lib/api'
 import { buildCodeDiff } from '@/lib/diffUtils'
 import { getLastProjectId, getOrCreateGuestUserId, loadLocalProject, saveLocalProject } from '@/lib/projectStorage'
-import { parseBpmFromCode, parseKeyFromCode, updateDetectedParamInCode, upsertSetcpsFromBpm } from '@/lib/codeParser'
+import {
+  addJuxRevToRandomMelodicTrack,
+  addRandomReverbToTracks,
+  addVariationToRandomTrack,
+  mutateDrumTracks,
+  parseBpmFromCode,
+  parseKeyFromCode,
+  updateDetectedParamInCode,
+  upsertSetcpsFromBpm,
+} from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 import type { ChatMessage, ChatModel, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
@@ -91,6 +100,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [isLoadingVersions, setIsLoadingVersions] = useState(false)
   const [isRestoringVersion, setIsRestoringVersion] = useState(false)
   const [versionError, setVersionError] = useState<string | null>(null)
+  const [showShortcuts, setShowShortcuts] = useState(false)
+  const [isRhythmGeneratorCollapsed, setIsRhythmGeneratorCollapsed] = useState(true)
+  const [isArrangePanelCollapsed, setIsArrangePanelCollapsed] = useState(true)
+  const [isFxRackCollapsed, setIsFxRackCollapsed] = useState(true)
   const pendingSendContentsRef = useRef(new Set<string>())
 
   const editorBridgeRef = useRef<Partial<EditorBridge>>({})
@@ -294,6 +307,22 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     }
   }, [currentProject, isDirty, persistProject])
 
+  const stopPreview = useCallback((messageId?: string) => {
+    const currentMessageId = messageId ?? previewMessageIdRef.current
+    if (!currentMessageId) return
+
+    const snapshot = previewSnapshotRef.current
+    if (snapshot !== null) {
+      editorBridgeRef.current.setCode?.(snapshot)
+      actions.setCode(snapshot)
+    }
+
+    editorBridgeRef.current.stop?.()
+    actions.setDiffPreviewing(currentMessageId, false)
+    previewSnapshotRef.current = null
+    previewMessageIdRef.current = null
+  }, [actions])
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const modifierKey = navigator.platform.includes('Mac') ? event.metaKey : event.ctrlKey
@@ -311,6 +340,24 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         }
       }
 
+      if (event.key === '?' && !(document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT')) {
+        event.preventDefault()
+        setShowShortcuts((current) => !current)
+      }
+
+      if (event.key === 'Escape') {
+        if (previewMessageIdRef.current) {
+          event.preventDefault()
+          stopPreview(previewMessageIdRef.current)
+          return
+        }
+
+        if (showShortcuts) {
+          event.preventDefault()
+          setShowShortcuts(false)
+        }
+      }
+
       if (modifierKey && event.key.toLowerCase() === 's') {
         event.preventDefault()
         if (!currentProject) return
@@ -320,7 +367,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [currentProject, getCurrentCode, isPlaying, saveVersionSnapshot])
+  }, [currentProject, getCurrentCode, isPlaying, saveVersionSnapshot, showShortcuts, stopPreview])
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -334,22 +381,6 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
       window.clearTimeout(paramEvaluateTimerRef.current)
     }
   }, [])
-
-  const stopPreview = useCallback((messageId?: string) => {
-    const currentMessageId = messageId ?? previewMessageIdRef.current
-    if (!currentMessageId) return
-
-    const snapshot = previewSnapshotRef.current
-    if (snapshot !== null) {
-      editorBridgeRef.current.setCode?.(snapshot)
-      actions.setCode(snapshot)
-    }
-
-    editorBridgeRef.current.stop?.()
-    actions.setDiffPreviewing(currentMessageId, false)
-    previewSnapshotRef.current = null
-    previewMessageIdRef.current = null
-  }, [actions])
 
   const onSend = useCallback(async (content: string) => {
     if (!currentProject) return
@@ -595,6 +626,40 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     actions.setCode(nextCode)
   }, [actions, getCurrentCode])
 
+  const syncEditorCode = useCallback((code: string, evaluate = false) => {
+    editorBridgeRef.current.setCode?.(code)
+    actions.setCode(code)
+    if (evaluate && isPlaying) {
+      window.setTimeout(() => editorBridgeRef.current.evaluate?.(), 60)
+    }
+  }, [actions, isPlaying])
+
+  const onInjectCode = useCallback((snippet: string) => {
+    const currentCode = getCurrentCode().trimEnd()
+    const nextCode = `${currentCode}\n\n${snippet.trim()}\n`
+    syncEditorCode(nextCode, true)
+  }, [getCurrentCode, syncEditorCode])
+
+  const onApplyGeneratedCode = useCallback((code: string) => {
+    syncEditorCode(code, true)
+  }, [syncEditorCode])
+
+  const onShuffleRhythm = useCallback(() => {
+    syncEditorCode(mutateDrumTracks(getCurrentCode()), true)
+  }, [getCurrentCode, syncEditorCode])
+
+  const onAddVariation = useCallback(() => {
+    syncEditorCode(addVariationToRandomTrack(getCurrentCode()), true)
+  }, [getCurrentCode, syncEditorCode])
+
+  const onRandomReverb = useCallback(() => {
+    syncEditorCode(addRandomReverbToTracks(getCurrentCode()), true)
+  }, [getCurrentCode, syncEditorCode])
+
+  const onJuxRev = useCallback(() => {
+    syncEditorCode(addJuxRevToRandomMelodicTrack(getCurrentCode()), true)
+  }, [getCurrentCode, syncEditorCode])
+
   const onProjectNameChange = useCallback((name: string) => actions.setProjectName(name), [actions])
   const onProjectKeyChange = useCallback((key: string) => actions.setProjectKey(key), [actions])
   const onModelChange = useCallback((model: ChatModel) => actions.setSelectedModel(model), [actions])
@@ -624,6 +689,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     isLoadingVersions,
     isRestoringVersion,
     versionError,
+    showShortcuts,
+    isRhythmGeneratorCollapsed,
+    isArrangePanelCollapsed,
+    isFxRackCollapsed,
     isSending,
     editorContainerRef,
     registerEditor,
@@ -646,6 +715,12 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onManualSave,
     onSelectSection,
     onBpmChange,
+    onInjectCode,
+    onApplyGeneratedCode,
+    onShuffleRhythm,
+    onAddVariation,
+    onRandomReverb,
+    onJuxRev,
     onProjectNameChange,
     onProjectKeyChange,
     onModelChange,
@@ -654,6 +729,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onEditorPlayStateChange,
     onEditorStrudelError,
     onEditorCodeEvaluated,
+    setShowShortcuts,
+    toggleRhythmGenerator: () => setIsRhythmGeneratorCollapsed((current) => !current),
+    toggleArrangePanel: () => setIsArrangePanelCollapsed((current) => !current),
+    toggleFxRack: () => setIsFxRackCollapsed((current) => !current),
     setEditorInitState: (initialized: boolean, initializing: boolean) => {
       setIsEditorInitialized(initialized)
       setIsEditorInitializing(initializing)

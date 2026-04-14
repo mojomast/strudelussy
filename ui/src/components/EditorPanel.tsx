@@ -1,8 +1,11 @@
 import { forwardRef } from 'react'
 import { Link } from 'react-router-dom'
-import { FolderKanban } from 'lucide-react'
+import { FolderKanban, Shuffle, Sparkles, Waves, Wand2 } from 'lucide-react'
 import StrudelEditor, { type CycleInfo } from '@/components/StrudelEditor'
+import ArrangePanel from '@/components/ArrangePanel'
+import FxRack from '@/components/FxRack'
 import HalVisualization from '@/components/HalVisualization'
+import RhythmGenerator from '@/components/RhythmGenerator'
 import SectionStrip from '@/components/SectionStrip'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -31,6 +34,12 @@ interface EditorPanelProps {
   cycleInfo: CycleInfo | null
   shareUrl: string | null
   pendingPatchCount: number
+  rhythmCollapsed: boolean
+  arrangeCollapsed: boolean
+  fxCollapsed: boolean
+  onToggleRhythm: () => void
+  onToggleArrange: () => void
+  onToggleFx: () => void
   onEditorReady: (bridge: Partial<EditorBridge>) => void
   onCodeChange: (code: string) => void
   onPlayStateChange: (isPlaying: boolean) => void
@@ -40,6 +49,12 @@ interface EditorPanelProps {
   onSelectSection: (section: SectionMarker) => void
   onParamChange: (param: ExtractedParam, nextValue: number) => void
   onParamCommit: (param: ExtractedParam, nextValue: number) => void
+  onInjectCode: (snippet: string) => void
+  onApplyCode: (code: string) => void
+  onShuffleRhythm: () => void
+  onAddVariation: () => void
+  onRandomReverb: () => void
+  onJuxRev: () => void
 }
 
 const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
@@ -53,6 +68,12 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   cycleInfo,
   shareUrl,
   pendingPatchCount,
+  rhythmCollapsed,
+  arrangeCollapsed,
+  fxCollapsed,
+  onToggleRhythm,
+  onToggleArrange,
+  onToggleFx,
   onEditorReady,
   onCodeChange,
   onPlayStateChange,
@@ -62,12 +83,21 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   onSelectSection,
   onParamChange,
   onParamCommit,
+  onInjectCode,
+  onApplyCode,
+  onShuffleRhythm,
+  onAddVariation,
+  onRandomReverb,
+  onJuxRev,
 }, editorContainerRef) => {
   return (
-    <Card className="min-h-0 flex-1 overflow-hidden border-zinc-900 bg-black/55 text-white shadow-none">
+    <Card className="min-h-0 flex-1 border-zinc-900 bg-black/55 text-white shadow-none">
       <CardContent className="grid h-full min-h-0 gap-3 overflow-hidden p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="flex min-h-0 flex-col gap-3 overflow-hidden">
-          <div ref={editorContainerRef} className="min-h-0 flex-1 overflow-auto rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4">
+        <div className="flex min-h-0 flex-col gap-3 overflow-auto pr-1">
+          <div
+            ref={editorContainerRef}
+            className="h-[56vh] min-h-[540px] overflow-hidden rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4 xl:h-[60vh] xl:min-h-[620px]"
+          >
             <StrudelEditor
               initialCode={project.strudel_code}
               onCodeChange={onCodeChange}
@@ -88,20 +118,39 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
           </div>
 
           <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)]">
-            <Card className="border-zinc-900 bg-black/40 shadow-none">
-              <CardContent className="space-y-3 p-3 sm:p-4">
-                <div>
-                  <p className="text-sm font-semibold">Section strip</p>
-                  <p className="text-xs text-zinc-500">Comment markers map to clickable DAW regions and editor jumps.</p>
-                </div>
-                <SectionStrip
-                  sections={sections}
-                  activeSection={activeSection}
-                  code={project.strudel_code}
-                  onSelect={onSelectSection}
-                />
-              </CardContent>
-            </Card>
+            <div className="space-y-3">
+              <Card className="border-zinc-900 bg-black/40 shadow-none">
+                <CardContent className="space-y-3 p-3 sm:p-4">
+                  <div>
+                    <p className="text-sm font-semibold">Section strip</p>
+                    <p className="text-xs text-zinc-500">Comment markers map to clickable DAW regions and editor jumps.</p>
+                  </div>
+                  <SectionStrip sections={sections} activeSection={activeSection} code={project.strudel_code} onSelect={onSelectSection} />
+                  <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShuffleRhythm}>
+                      <Shuffle className="mr-2 h-4 w-4" />
+                      Shuffle Rhythm
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onAddVariation}>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Add Variation
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onRandomReverb}>
+                      <Waves className="mr-2 h-4 w-4" />
+                      Random Reverb
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onJuxRev}>
+                      <Wand2 className="mr-2 h-4 w-4" />
+                      Jux Rev
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <RhythmGenerator collapsed={rhythmCollapsed} onToggle={onToggleRhythm} onInjectCode={onInjectCode} />
+              <ArrangePanel code={project.strudel_code} collapsed={arrangeCollapsed} onToggle={onToggleArrange} onApplyCode={onApplyCode} />
+              <FxRack code={project.strudel_code} collapsed={fxCollapsed} onToggle={onToggleFx} onApplyCode={onApplyCode} />
+            </div>
 
             <Card className="min-h-0 border-zinc-900 bg-black/40 shadow-none">
               <CardContent className="flex h-full min-h-0 flex-col space-y-3 p-3 sm:p-4">

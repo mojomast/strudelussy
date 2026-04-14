@@ -135,11 +135,21 @@ body {
   border: none !important;
   outline: none !important;
   font-size: 18px !important;
+  height: 100% !important;
 }
 
 .cm-content {
   color: white !important;
   font-size: 18px !important;
+}
+
+.cm-scroller {
+  overflow: auto !important;
+  max-height: 100% !important;
+}
+
+.cm-editor .cm-scroller {
+  font-family: inherit !important;
 }
 
 /* Gutters - semi-transparent for visibility */

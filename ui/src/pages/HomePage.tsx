@@ -3,6 +3,7 @@ import ChatPanel from '@/components/ChatPanel'
 import DAWShell from '@/components/DAWShell'
 import EditorPanel from '@/components/EditorPanel'
 import ProjectTopbar from '@/components/ProjectTopbar'
+import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
 
@@ -21,16 +22,15 @@ const HomePage = () => {
           projectName={orchestrator.currentProject.name}
           bpm={orchestrator.currentProject.bpm}
           musicalKey={orchestrator.currentProject.key}
-          selectedModel={orchestrator.selectedModel}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onBpmChange={orchestrator.onBpmChange}
           onKeyChange={orchestrator.onProjectKeyChange}
-          onModelChange={orchestrator.onModelChange}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
           onExportTxt={orchestrator.onExportTxt}
           onExportProject={orchestrator.onExportProject}
           onShare={() => void orchestrator.onShare()}
+          onToggleShortcuts={() => orchestrator.setShowShortcuts(!orchestrator.showShortcuts)}
         />
       }
       chatPanel={
@@ -57,6 +57,12 @@ const HomePage = () => {
           cycleInfo={orchestrator.cycleInfo}
           shareUrl={orchestrator.shareUrl}
           pendingPatchCount={orchestrator.pendingDiffs.size}
+          rhythmCollapsed={orchestrator.isRhythmGeneratorCollapsed}
+          arrangeCollapsed={orchestrator.isArrangePanelCollapsed}
+          fxCollapsed={orchestrator.isFxRackCollapsed}
+          onToggleRhythm={orchestrator.toggleRhythmGenerator}
+          onToggleArrange={orchestrator.toggleArrangePanel}
+          onToggleFx={orchestrator.toggleFxRack}
           onEditorReady={orchestrator.registerEditor}
           onCodeChange={orchestrator.onEditorCodeChange}
           onPlayStateChange={orchestrator.onEditorPlayStateChange}
@@ -66,6 +72,12 @@ const HomePage = () => {
           onSelectSection={orchestrator.onSelectSection}
           onParamChange={orchestrator.onParamChange}
           onParamCommit={orchestrator.onParamCommit}
+          onInjectCode={orchestrator.onInjectCode}
+          onApplyCode={orchestrator.onApplyGeneratedCode}
+          onShuffleRhythm={orchestrator.onShuffleRhythm}
+          onAddVariation={orchestrator.onAddVariation}
+          onRandomReverb={orchestrator.onRandomReverb}
+          onJuxRev={orchestrator.onJuxRev}
         />
       }
       transportBar={
@@ -91,6 +103,7 @@ const HomePage = () => {
         onRefresh: () => void orchestrator.loadVersions(orchestrator.currentProject!.id),
         onRestore: (version) => void orchestrator.onRestoreVersion(version),
       }}
+      overlay={<ShortcutsOverlay open={orchestrator.showShortcuts} onOpenChange={orchestrator.setShowShortcuts} />}
     />
   )
 }
