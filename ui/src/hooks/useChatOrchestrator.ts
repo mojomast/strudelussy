@@ -23,6 +23,14 @@ import type { EditorBridge } from '@/components/EditorPanel'
 
 const normalizeProviderEndpoint = (endpoint: string) => endpoint.trim().replace(/\/+$/g, '')
 
+const formatProviderConfig = (endpoint: string, apiKey: string) => {
+  const normalizedEndpoint = normalizeProviderEndpoint(endpoint)
+  const trimmedApiKey = apiKey.trim()
+  return normalizedEndpoint && trimmedApiKey
+    ? { endpoint: normalizedEndpoint, apiKey: trimmedApiKey }
+    : null
+}
+
 const DEFAULT_CODE = `setcps(0.5)
 
 // [intro]
@@ -142,9 +150,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   } = useProjectStore()
 
   const userId = getOrCreateGuestUserId()
-  const customProvider = customApiEndpoint && customApiKey
-    ? { endpoint: normalizeProviderEndpoint(customApiEndpoint), apiKey: customApiKey }
-    : null
+  const activeProviderRef = useRef<ReturnType<typeof formatProviderConfig>>(null)
+  const customProvider = activeProviderRef.current
 
   useEffect(() => {
     const savedConfig = loadChatProviderConfig()
@@ -152,54 +159,32 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     setCustomApiEndpoint(savedConfig.endpoint)
     setCustomApiKey(savedConfig.apiKey)
+    activeProviderRef.current = formatProviderConfig(savedConfig.endpoint, savedConfig.apiKey)
     setAvailableModels(savedConfig.selectedModel ? [savedConfig.selectedModel] : [DEFAULT_CHAT_MODEL])
     actions.setSelectedModel(savedConfig.selectedModel || DEFAULT_CHAT_MODEL)
   }, [actions])
 
   useEffect(() => {
-    if (!customProvider) {
+    if (!customApiEndpoint && !customApiKey) {
+      activeProviderRef.current = null
       setAvailableModels([DEFAULT_CHAT_MODEL])
       setModelLoadError(null)
       actions.setSelectedModel(DEFAULT_CHAT_MODEL)
       saveChatProviderConfig(null)
-      return
-    }
+    } else if (activeProviderRef.current) {
+      const currentConfig = formatProviderConfig(customApiEndpoint, customApiKey)
+      const isStale = !currentConfig
+        || currentConfig.endpoint !== activeProviderRef.current.endpoint
+        || currentConfig.apiKey !== activeProviderRef.current.apiKey
 
-    let cancelled = false
-    setIsLoadingModels(true)
-    setModelLoadError(null)
-
-    void api.getChatModels(customProvider, userId)
-      .then((response) => {
-        if (cancelled) return
-
-        const models = response.models.length > 0 ? response.models : [DEFAULT_CHAT_MODEL]
-        setAvailableModels(models)
-
-        const nextModel = models.includes(selectedModel) ? selectedModel : models[0]
-        actions.setSelectedModel(nextModel)
-        saveChatProviderConfig({
-          endpoint: customProvider.endpoint,
-          apiKey: customProvider.apiKey,
-          selectedModel: nextModel,
-        })
-      })
-      .catch((error) => {
-        if (cancelled) return
+      if (isStale) {
+        activeProviderRef.current = null
         setAvailableModels([DEFAULT_CHAT_MODEL])
-        setModelLoadError(error instanceof Error ? error.message : 'Failed to load models')
+        setModelLoadError('Provider settings changed. Click Load Models to refresh the model list.')
         actions.setSelectedModel(DEFAULT_CHAT_MODEL)
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoadingModels(false)
-        }
-      })
-
-    return () => {
-      cancelled = true
+      }
     }
-  }, [actions, customProvider, selectedModel, userId])
+  }, [actions, customApiEndpoint, customApiKey])
 
   const registerEditor = useCallback((bridge: Partial<EditorBridge>) => {
     editorBridgeRef.current = { ...editorBridgeRef.current, ...bridge }
@@ -824,6 +809,42 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
       })
     }
   }, [actions, customProvider])
+  const onLoadModels = useCallback(async () => {
+    const nextProvider = formatProviderConfig(customApiEndpoint, customApiKey)
+    if (!nextProvider) {
+      activeProviderRef.current = null
+      setAvailableModels([DEFAULT_CHAT_MODEL])
+      setModelLoadError('Enter both a custom endpoint and API key before loading models.')
+      actions.setSelectedModel(DEFAULT_CHAT_MODEL)
+      saveChatProviderConfig(null)
+      return
+    }
+
+    setIsLoadingModels(true)
+    setModelLoadError(null)
+
+    try {
+      const response = await api.getChatModels(nextProvider, userId)
+      const models = response.models.length > 0 ? response.models : [DEFAULT_CHAT_MODEL]
+      activeProviderRef.current = nextProvider
+      setAvailableModels(models)
+
+      const nextModel = models.includes(selectedModel) ? selectedModel : models[0]
+      actions.setSelectedModel(nextModel)
+      saveChatProviderConfig({
+        endpoint: nextProvider.endpoint,
+        apiKey: nextProvider.apiKey,
+        selectedModel: nextModel,
+      })
+    } catch (error) {
+      activeProviderRef.current = null
+      setAvailableModels([DEFAULT_CHAT_MODEL])
+      setModelLoadError(error instanceof Error ? error.message : 'Failed to load models')
+      actions.setSelectedModel(DEFAULT_CHAT_MODEL)
+    } finally {
+      setIsLoadingModels(false)
+    }
+  }, [actions, customApiEndpoint, customApiKey, selectedModel, userId])
   const onMasterVolumeChange = useCallback((volume: number) => {
     const nextVolume = Math.min(1, Math.max(0, volume))
     masterVolumeRef.current = nextVolume
@@ -903,6 +924,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onCustomApiEndpointChange,
     onCustomApiKeyChange,
     onModelChange,
+    onLoadModels,
     onMasterVolumeChange,
     onEditorCodeChange,
     loadVersions,

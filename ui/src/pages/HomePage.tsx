@@ -41,6 +41,7 @@ const HomePage = () => {
           onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
           onCustomApiKeyChange={orchestrator.onCustomApiKeyChange}
           onModelChange={orchestrator.onModelChange}
+          onLoadModels={() => void orchestrator.onLoadModels()}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
           onExportTxt={orchestrator.onExportTxt}

@@ -1,5 +1,5 @@
 import { useCallback, useRef } from 'react'
-import { Disc3 } from 'lucide-react'
+import { Disc3, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ProjectTopbarProps {
@@ -20,6 +20,7 @@ interface ProjectTopbarProps {
   onCustomApiEndpointChange: (endpoint: string) => void
   onCustomApiKeyChange: (apiKey: string) => void
   onModelChange: (model: string) => void
+  onLoadModels: () => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -46,6 +47,7 @@ const ProjectTopbar = ({
   onCustomApiEndpointChange,
   onCustomApiKeyChange,
   onModelChange,
+  onLoadModels,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -107,6 +109,24 @@ const ProjectTopbar = ({
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
               Share
             </Button>
+            <a
+              href="https://github.com/mojomast/strudelussy"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-4 text-sm text-zinc-200 transition hover:bg-zinc-900"
+            >
+              strudelussy
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href="https://github.com/VoloBuilds/toaster"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-4 text-sm text-zinc-200 transition hover:bg-zinc-900"
+            >
+              toaster
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
               Shortcuts
             </Button>
@@ -169,11 +189,19 @@ const ProjectTopbar = ({
                 <option key={model} value={model}>{model}</option>
               ))}
             </select>
+            <Button
+              variant="outline"
+              className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={onLoadModels}
+              disabled={isLoadingModels}
+            >
+              {isLoadingModels ? 'Loading...' : 'Load Models'}
+            </Button>
           </div>
 
           <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">
-            <span>{customApiEndpoint && customApiKey ? 'Using custom provider override' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
-            <span>{isLoadingModels ? 'Loading models...' : modelLoadError ?? 'Model list ready'}</span>
+            <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
+            <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
           </div>
         </div>
       </div>

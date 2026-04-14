@@ -40,7 +40,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
 - rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and optional custom chat provider override
 - version history panel with refresh and restore
-- topbar actions for starting a blank project or reloading the demo template, plus a global master volume control and custom chat provider settings
+- topbar actions for starting a blank project or reloading the demo template, plus a global master volume control, GitHub links, and custom chat provider settings
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
@@ -52,7 +52,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - chat parsing is hardened so non-JSON model responses degrade into normal assistant messages instead of 500s
 - chat SSE parsing is hardened so malformed chunks and delayed `[DONE]` boundaries do not drop pending AI patches
 - chat requests default to `google/gemini-2.5-flash`, but users can override the endpoint and API key in the topbar
-- custom-provider model lists are loaded dynamically from `/models` so the picker reflects the connected API
+- custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
 - invalid drum bank+voice combinations are remapped to verified sample combos before code reaches the editor
 - chat history sent to the LLM is capped to the last 20 non-system messages
 - oversized generated code is rejected with a structured assistant message instead of reaching the editor
