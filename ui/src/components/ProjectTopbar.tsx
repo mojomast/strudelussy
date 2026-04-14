@@ -75,7 +75,7 @@ const ProjectTopbar = ({
     <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-3 backdrop-blur-xl sm:px-4 sm:py-4">
       <div className="flex min-w-0 flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
         <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 text-black shadow-[0_0_30px_rgba(139,92,246,0.25)]">
               <Disc3 className="h-5 w-5" />
             </div>
@@ -83,6 +83,24 @@ const ProjectTopbar = ({
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">strudelussy</p>
               <p className="text-sm text-zinc-300">AI-powered Strudel DAW workspace</p>
             </div>
+            <a
+              href="https://github.com/mojomast/strudelussy"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-3 text-sm text-zinc-200 transition hover:bg-zinc-900"
+            >
+              strudelussy source
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
+            <a
+              href="https://github.com/VoloBuilds/toaster"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-3 text-sm text-zinc-200 transition hover:bg-zinc-900"
+            >
+              original toaster upstream
+              <ExternalLink className="h-3.5 w-3.5" />
+            </a>
           </div>
 
           <input
@@ -94,6 +112,23 @@ const ProjectTopbar = ({
 
         <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
           <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={selectedModel}
+              onChange={(event) => onModelChange(event.target.value)}
+              className="min-w-[220px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+            >
+              {availableModels.map((model) => (
+                <option key={model} value={model}>{model}</option>
+              ))}
+            </select>
+            <Button
+              variant="outline"
+              className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              onClick={onLoadModels}
+              disabled={isLoadingModels}
+            >
+              {isLoadingModels ? 'Loading...' : 'Load Models'}
+            </Button>
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onNewProject}>
               New Project
             </Button>
@@ -109,24 +144,6 @@ const ProjectTopbar = ({
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
               Share
             </Button>
-            <a
-              href="https://github.com/mojomast/strudelussy"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-4 text-sm text-zinc-200 transition hover:bg-zinc-900"
-            >
-              strudelussy
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href="https://github.com/VoloBuilds/toaster"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-4 text-sm text-zinc-200 transition hover:bg-zinc-900"
-            >
-              toaster
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
               Shortcuts
             </Button>
@@ -180,23 +197,6 @@ const ProjectTopbar = ({
               placeholder="Custom API key"
               className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
             />
-            <select
-              value={selectedModel}
-              onChange={(event) => onModelChange(event.target.value)}
-              className="min-w-[220px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            >
-              {availableModels.map((model) => (
-                <option key={model} value={model}>{model}</option>
-              ))}
-            </select>
-            <Button
-              variant="outline"
-              className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
-              onClick={onLoadModels}
-              disabled={isLoadingModels}
-            >
-              {isLoadingModels ? 'Loading...' : 'Load Models'}
-            </Button>
           </div>
 
           <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">

@@ -40,7 +40,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
 - rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and optional custom chat provider override
 - version history panel with refresh and restore
-- topbar actions for starting a blank project or reloading the demo template, plus a global master volume control, GitHub links, and custom chat provider settings
+- topbar actions for starting a blank project or reloading the demo template, a compact model/load control row, a global master volume control, GitHub links beside the project identity, and custom chat provider settings
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`

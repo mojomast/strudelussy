@@ -46,7 +46,7 @@ VITE_API_URL=http://localhost:8788
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - project metadata, BPM tap tempo, master volume, GitHub links, custom provider config, export/share, shortcuts, and template actions
+- `src/components/ProjectTopbar.tsx` - project metadata, GitHub links beside the project identity, compact model controls, BPM tap tempo, master volume, custom provider config, export/share, shortcuts, and template actions
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
 - `src/components/EditorPanel.tsx` - Strudel editor wrapper, section strip, and mutate toolbar
 - `src/components/DawPanel.tsx` - right-side DAW utilities for telemetry, mixer, rhythm, arrange, and FX
