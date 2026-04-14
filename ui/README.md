@@ -11,12 +11,12 @@ Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](h
 - diff-aware AI chat review flow
 - streaming assistant responses with a live typing bubble
 - Strudel editor + playback using the existing upstream editor/runtime
-- parsed BPM, key, section, and per-track gain metadata from current code
+- parsed BPM, key, section, and per-track gain/pan metadata from current code
 - guest-mode local project persistence
 - version history refresh + restore panel
 - preview/apply/reject AI patch flow with multiple pending diffs keyed per assistant message
-- topbar actions for blank-project and demo-project bootstrapping
-- rhythm generator, arrange panel, FX rack, mutate toolbar, shortcut overlay, and BPM tap tempo
+- topbar actions for blank-project and demo-project bootstrapping, plus a visible model selector
+- rhythm generator with per-voice gain, arrange panel, FX rack with explicit on/off filter states, mutate toolbar, shortcut overlay, and BPM tap tempo
 - viewport-first responsive shell that keeps the main workspace visible without browser zoom on typical laptop/tablet sizes
 
 ## Commands
@@ -46,17 +46,17 @@ VITE_API_URL=http://localhost:8788
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - project metadata, BPM tap tempo, export/share, shortcuts, and template actions
+- `src/components/ProjectTopbar.tsx` - project metadata, BPM tap tempo, model selector, export/share, shortcuts, and template actions
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
-- `src/components/EditorPanel.tsx` - Strudel editor wrapper, telemetry, section strip, DAW helper panels, mutate toolbar, and track mixer
-- `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper
-- `src/components/ArrangePanel.tsx` - per-track mask scheduling helper
-- `src/components/FxRack.tsx` - global track FX application helper
+- `src/components/EditorPanel.tsx` - Strudel editor wrapper, telemetry, section strip, DAW helper panels, mutate toolbar, and track gain/pan mixer
+- `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper with per-voice gain control
+- `src/components/ArrangePanel.tsx` - per-track mask scheduling helper with a fixed 16-step grid
+- `src/components/FxRack.tsx` - global track FX application helper with explicit filter enable/disable toggles
 - `src/components/ShortcutsOverlay.tsx` - keyboard shortcut reference modal
 
 ## Notes
 
-- Track mixer sliders patch per-track `gain()` calls live in the code and trigger a debounced re-evaluation while playback is active.
+- Track mixer sliders patch per-track `gain()` and `pan()` calls live in the code and trigger a debounced re-evaluation while playback is active.
 - Slider commits create version snapshots on pointer/key release when the code actually changed.
 - AI previews can audition a proposed patch in the editor before Apply; Reject or Stop Preview restores the pre-preview snapshot.
 - DAW helper panels live below the editor and require the editor column itself to scroll; the shell is intentionally tuned around internal panel scrolling so Rhythm Generator, Arrange, FX Rack, and Track Mixer remain reachable.

@@ -59,7 +59,7 @@ const RhythmGenerator = ({ collapsed, onToggle, onInjectCode }: RhythmGeneratorP
                   <span className="text-sm font-medium text-zinc-100">{config.label}</span>
                   <span className="text-xs uppercase tracking-[0.16em] text-zinc-500">{config.voice}</span>
                 </div>
-                <div className="grid gap-2 sm:grid-cols-4">
+                <div className="grid gap-2 sm:grid-cols-5">
                   <label className="text-xs text-zinc-400">
                     Steps
                     <input
@@ -118,6 +118,21 @@ const RhythmGenerator = ({ collapsed, onToggle, onInjectCode }: RhythmGeneratorP
                       <option value="RolandTR909">RolandTR909</option>
                       <option value="RolandTR707">RolandTR707</option>
                     </select>
+                  </label>
+                  <label className="text-xs text-zinc-400">
+                    Gain
+                    <input
+                      type="range"
+                      min={0}
+                      max={1.5}
+                      step={0.01}
+                      value={config.gain}
+                      onChange={(e) => setConfigs((current) =>
+                        current.map((item, i) => i === index ? { ...item, gain: Number(e.target.value) } : item)
+                      )}
+                      className="mt-1 w-full accent-purple-500"
+                    />
+                    <span className="text-zinc-500">{config.gain.toFixed(2)}</span>
                   </label>
                 </div>
               </div>

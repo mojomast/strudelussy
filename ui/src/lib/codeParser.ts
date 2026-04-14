@@ -298,20 +298,33 @@ export interface TrackGain {
   gainStart: number
   gainEnd: number
   hasGain: boolean
+  pan: number
+  panStart: number
+  panEnd: number
+  hasPan: boolean
 }
 
 export const parseTrackGains = (code: string): TrackGain[] => {
   const tracks = parseTracks(code)
   return tracks.map((track) => {
     const gainMatch = track.source.match(/\.gain\(\s*([\d.]+)\s*\)/)
+    const panMatch = track.source.match(/\.pan\(\s*(-?[\d.]+)\s*\)/)
     const gain = gainMatch ? parseFloat(gainMatch[1]) : 0.8
+    const pan = panMatch ? parseFloat(panMatch[1]) : 0
     const globalOffset = track.start
     let gainStart = -1
     let gainEnd = -1
+    let panStart = -1
+    let panEnd = -1
     if (gainMatch && gainMatch.index !== undefined) {
       const innerStart = gainMatch.index + gainMatch[0].indexOf(gainMatch[1])
       gainStart = globalOffset + innerStart
       gainEnd = gainStart + gainMatch[1].length
+    }
+    if (panMatch && panMatch.index !== undefined) {
+      const innerStart = panMatch.index + panMatch[0].indexOf(panMatch[1])
+      panStart = globalOffset + innerStart
+      panEnd = panStart + panMatch[1].length
     }
     return {
       trackId: track.id,
@@ -321,6 +334,10 @@ export const parseTrackGains = (code: string): TrackGain[] => {
       gainStart,
       gainEnd,
       hasGain: gainMatch !== null,
+      pan,
+      panStart,
+      panEnd,
+      hasPan: panMatch !== null,
     }
   })
 }

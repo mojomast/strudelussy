@@ -18,8 +18,8 @@ Current repo status after the first build pass:
 - section strip from `// [section]` comments
 - transport/visualization status area
 - projects gallery route
-- per-track gain mixer backed by live code patching, with the editor column fixed to allow scrolling through the lower DAW helper panels
-- rhythm generator, arrange mask panel, FX rack, mutate toolbar, keyboard shortcut overlay, and BPM tap tempo
+- per-track gain/pan mixer backed by live code patching, with the editor column fixed to allow scrolling through the lower DAW helper panels
+- rhythm generator with per-voice gain, arrange mask panel with a fixed 16-step grid, FX rack with explicit filter on/off states, mutate toolbar, keyboard shortcut overlay, BPM tap tempo, and a visible model selector
 - version history refresh and restore UI
 - explicit blank-project and demo-project loading actions
 - viewport-first responsive layout tuning so the dashboard stacks earlier and fits common screens without browser zoom

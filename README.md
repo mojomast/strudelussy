@@ -10,11 +10,11 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - diff-aware AI chat flow with Apply/Reject review
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
-- parsed BPM, key, sections, and a per-track gain mixer from live code
+- parsed BPM, key, sections, and a per-track gain/pan mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
-- rhythm generator, arrange mask, FX rack, mutate toolbar, keyboard shortcuts overlay, and BPM tap tempo
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a visible model selector
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -36,8 +36,8 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - Strudel editor panel
 - visualization/transport strip
 - section strip parsed from `// [section]` comments
-- per-track mixer panel that edits `gain()` live in the code
-- rhythm generator, arrange mask, FX rack, mutate toolbar, keyboard shortcuts overlay, and BPM tap tempo
+- per-track mixer panel that edits `gain()` and `pan()` live in the code
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, and a visible model selector
 - version history panel with refresh and restore
 - topbar actions for starting a blank project or reloading the demo template
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable

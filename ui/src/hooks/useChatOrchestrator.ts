@@ -567,6 +567,44 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     void saveVersionSnapshot(currentProject, nextCode, 'track gain edit', 'user')
   }, [currentProject, getCurrentCode, saveVersionSnapshot])
 
+  const onTrackPanChange = useCallback((trackGain: TrackGain, value: number) => {
+    const clampedValue = Math.min(1, Math.max(-1, value))
+    const code = getCurrentCode()
+    let nextCode: string
+    if (trackGain.hasPan && trackGain.panStart >= 0) {
+      nextCode = `${code.slice(0, trackGain.panStart)}${clampedValue.toFixed(2)}${code.slice(trackGain.panEnd)}`
+    } else {
+      const tracks = parseTracks(code)
+      const track = tracks.find(t => t.id === trackGain.trackId)
+      if (!track) return
+      const updated = `${track.source.trimEnd()}\n  .pan(${clampedValue.toFixed(2)})\n`
+      nextCode = `${code.slice(0, track.start)}${updated}${code.slice(track.end)}`
+    }
+    editorBridgeRef.current.setCode?.(nextCode)
+    actions.setCode(nextCode)
+    if (isPlaying) {
+      if (paramEvaluateTimerRef.current) window.clearTimeout(paramEvaluateTimerRef.current)
+      paramEvaluateTimerRef.current = window.setTimeout(() => editorBridgeRef.current.evaluate?.(), 120)
+    }
+  }, [actions, getCurrentCode, isPlaying])
+
+  const onTrackPanCommit = useCallback((trackGain: TrackGain, value: number) => {
+    if (!currentProject) return
+    const clampedValue = Math.min(1, Math.max(-1, value))
+    const code = getCurrentCode()
+    let nextCode: string
+    if (trackGain.hasPan && trackGain.panStart >= 0) {
+      nextCode = `${code.slice(0, trackGain.panStart)}${clampedValue.toFixed(2)}${code.slice(trackGain.panEnd)}`
+    } else {
+      const tracks = parseTracks(code)
+      const track = tracks.find(t => t.id === trackGain.trackId)
+      if (!track) return
+      const updated = `${track.source.trimEnd()}\n  .pan(${clampedValue.toFixed(2)})\n`
+      nextCode = `${code.slice(0, track.start)}${updated}${code.slice(track.end)}`
+    }
+    void saveVersionSnapshot(currentProject, nextCode, 'track pan edit', 'user')
+  }, [currentProject, getCurrentCode, saveVersionSnapshot])
+
   const onRestoreVersion = useCallback(async (version: CodeVersion) => {
     if (!currentProject) return
 
@@ -743,6 +781,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onParamCommit,
     onTrackGainChange,
     onTrackGainCommit,
+    onTrackPanChange,
+    onTrackPanCommit,
     onRestoreVersion,
     onLoadTemplateProject,
     onShare,

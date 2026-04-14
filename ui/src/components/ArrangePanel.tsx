@@ -47,7 +47,7 @@ const ArrangePanel = ({ code, collapsed, onToggle, onApplyCode }: ArrangePanelPr
                   <span className="text-sm font-medium text-zinc-100">{track.name}</span>
                   <span className="font-mono text-xs text-zinc-500">{buildMaskString(masks[track.id] ?? DEFAULT_CELLS)}</span>
                 </div>
-                <div className="grid grid-cols-8 gap-2 sm:grid-cols-16">
+                <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(16, minmax(0, 1fr))' }}>
                   {(masks[track.id] ?? DEFAULT_CELLS).map((cell, index) => (
                     <button
                       key={`${track.id}-${index}`}
@@ -56,7 +56,7 @@ const ArrangePanel = ({ code, collapsed, onToggle, onApplyCode }: ArrangePanelPr
                         ...current,
                         [track.id]: (current[track.id] ?? DEFAULT_CELLS).map((value, valueIndex) => valueIndex === index ? !value : value),
                       }))}
-                      className={`h-8 rounded-lg border text-xs transition ${cell ? 'border-purple-500 bg-purple-500/25 text-white' : 'border-zinc-800 bg-black/60 text-zinc-500'}`}
+                      className={`h-7 rounded-md border text-[10px] transition ${cell ? 'border-purple-500 bg-purple-500/25 text-white' : 'border-zinc-800 bg-black/60 text-zinc-500'}`}
                     >
                       {index + 1}
                     </button>

@@ -51,6 +51,8 @@ interface EditorPanelProps {
   onSelectSection: (section: SectionMarker) => void
   onTrackGainChange: (trackGain: TrackGain, value: number) => void
   onTrackGainCommit: (trackGain: TrackGain, value: number) => void
+  onTrackPanChange: (trackGain: TrackGain, value: number) => void
+  onTrackPanCommit: (trackGain: TrackGain, value: number) => void
   onInjectCode: (snippet: string) => void
   onApplyCode: (code: string) => void
   onShuffleRhythm: () => void
@@ -85,6 +87,8 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   onSelectSection,
   onTrackGainChange,
   onTrackGainCommit,
+  onTrackPanChange,
+  onTrackPanCommit,
   onInjectCode,
   onApplyCode,
   onShuffleRhythm,
@@ -161,7 +165,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
                   <CardContent className="flex flex-col space-y-3 p-3 sm:p-4">
                     <div>
                       <p className="text-sm font-semibold">Track Mixer</p>
-                      <p className="text-xs text-zinc-500">Per-track volume. Edits gain() live in the code.</p>
+                      <p className="text-xs text-zinc-500">Per-track volume and pan. Edits gain() and pan() live in the code.</p>
                     </div>
                     <div className="space-y-2">
                       {trackGains.length === 0 ? (
@@ -193,6 +197,17 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
                               <span>gain</span>
                               <span>1.5</span>
                             </div>
+                            <div className="flex items-center justify-between text-sm text-zinc-100 mt-2">
+                              <span className="text-zinc-500 text-xs">Pan</span>
+                              <span className="text-zinc-400 text-xs">{tg.pan.toFixed(2)}</span>
+                            </div>
+                            <input
+                              type="range" min={-1} max={1} step={0.01}
+                              value={tg.pan}
+                              onChange={(e) => onTrackPanChange(tg, Number(e.target.value))}
+                              onPointerUp={(e) => onTrackPanCommit(tg, Number((e.currentTarget as HTMLInputElement).value))}
+                              className="mt-1 w-full accent-cyan-500"
+                            />
                           </div>
                         ))
                       )}
