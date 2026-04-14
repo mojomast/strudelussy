@@ -20,7 +20,7 @@ const DAWShell = ({ topbar, chatPanel, editorPanel, transportBar, versionPanel, 
           <div className="grid min-h-0 flex-1 gap-2 overflow-hidden xl:grid-cols-[minmax(300px,0.34fr)_minmax(0,0.66fr)] 2xl:grid-cols-[minmax(340px,0.33fr)_minmax(0,0.67fr)]">
             {chatPanel}
 
-            <section className="flex min-h-0 flex-col gap-3 overflow-hidden">
+            <section className="flex min-h-0 flex-col gap-3 overflow-auto">
               {editorPanel}
               <div className="grid min-h-0 gap-2 overflow-auto lg:grid-cols-[minmax(0,1fr)_minmax(260px,320px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(260px,300px)_minmax(260px,300px)]">
                 {transportBar}

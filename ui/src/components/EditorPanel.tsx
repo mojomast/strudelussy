@@ -93,10 +93,10 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>(({
   return (
     <Card className="min-h-0 flex-1 border-zinc-900 bg-black/55 text-white shadow-none">
       <CardContent className="grid h-full min-h-0 gap-3 overflow-hidden p-2 sm:p-3 2xl:grid-cols-[minmax(0,1fr)_280px]">
-        <div className="flex min-h-0 flex-col gap-3 overflow-auto pr-1">
+        <div className="flex flex-col gap-3 overflow-auto pr-1 pb-4">
           <div
             ref={editorContainerRef}
-            className="h-[56vh] min-h-[540px] overflow-hidden rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4 xl:h-[60vh] xl:min-h-[620px]"
+            className="h-[48vh] min-h-[400px] overflow-hidden rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-4 xl:h-[52vh] xl:min-h-[480px]"
           >
             <StrudelEditor
               initialCode={project.strudel_code}
