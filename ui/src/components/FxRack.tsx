@@ -44,6 +44,55 @@ const FxRack = ({ code, collapsed, onToggle, onApplyCode }: FxRackProps) => {
     gain: true,
   })
 
+  const content = (
+    <div className="space-y-3">
+      {controls.map((control) => (
+        <div key={control.effect} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
+          <div className="mb-3 flex items-center justify-between text-sm text-zinc-100">
+            <span>{control.label}</span>
+            <span className="text-zinc-400">{enabled[control.effect] ? values[control.effect] : 'Off'}</span>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <button
+              type="button"
+              onClick={() => setEnabled((current) => ({ ...current, [control.effect]: !current[control.effect] }))}
+              className={enabled[control.effect]
+                ? 'rounded-full px-2 py-0.5 text-xs bg-purple-600 text-white'
+                : 'rounded-full px-2 py-0.5 text-xs border border-zinc-700 text-zinc-500'}
+            >
+              On
+            </button>
+            <input
+              type="range"
+              min={control.min}
+              max={control.max}
+              step={control.step}
+              value={values[control.effect]}
+              onChange={(event) => setValues((current) => ({ ...current, [control.effect]: Number(event.target.value) }))}
+              disabled={!enabled[control.effect]}
+              className="w-full accent-purple-500"
+            />
+            <Button
+              variant="outline"
+              className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
+              disabled={!enabled[control.effect]}
+              onClick={() => {
+                if (!enabled[control.effect]) return
+                onApplyCode(applyEffectToAllTracks(code, control.effect, values[control.effect]))
+              }}
+            >
+              Apply to All Tracks
+            </Button>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+
+  if (!collapsed) {
+    return content
+  }
+
   return (
     <Card className="border-zinc-900 bg-black/40 shadow-none">
       <CardContent className="space-y-3 p-3 sm:p-4">
@@ -55,50 +104,7 @@ const FxRack = ({ code, collapsed, onToggle, onApplyCode }: FxRackProps) => {
           {collapsed ? <ChevronRight className="h-4 w-4 text-zinc-400" /> : <ChevronDown className="h-4 w-4 text-zinc-400" />}
         </button>
 
-        {!collapsed ? (
-          <div className="space-y-3">
-            {controls.map((control) => (
-              <div key={control.effect} className="rounded-xl border border-zinc-800 bg-zinc-950/60 p-3">
-                <div className="mb-3 flex items-center justify-between text-sm text-zinc-100">
-                  <span>{control.label}</span>
-                  <span className="text-zinc-400">{enabled[control.effect] ? values[control.effect] : 'Off'}</span>
-                </div>
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <button
-                    type="button"
-                    onClick={() => setEnabled((current) => ({ ...current, [control.effect]: !current[control.effect] }))}
-                    className={enabled[control.effect]
-                      ? 'rounded-full px-2 py-0.5 text-xs bg-purple-600 text-white'
-                      : 'rounded-full px-2 py-0.5 text-xs border border-zinc-700 text-zinc-500'}
-                  >
-                    On
-                  </button>
-                  <input
-                    type="range"
-                    min={control.min}
-                    max={control.max}
-                    step={control.step}
-                    value={values[control.effect]}
-                    onChange={(event) => setValues((current) => ({ ...current, [control.effect]: Number(event.target.value) }))}
-                    disabled={!enabled[control.effect]}
-                    className="w-full accent-purple-500"
-                  />
-                  <Button
-                    variant="outline"
-                    className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
-                    disabled={!enabled[control.effect]}
-                    onClick={() => {
-                      if (!enabled[control.effect]) return
-                      onApplyCode(applyEffectToAllTracks(code, control.effect, values[control.effect]))
-                    }}
-                  >
-                    Apply to All Tracks
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : null}
+        {!collapsed ? content : null}
       </CardContent>
     </Card>
   )
