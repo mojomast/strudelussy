@@ -1,6 +1,6 @@
 import type { SavedPromptPreset, SystemPromptMode } from '@/types/project'
 import { useCallback, useRef } from 'react'
-import { Disc3, ExternalLink } from 'lucide-react'
+import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ProjectTopbarProps {
@@ -40,6 +40,8 @@ interface ProjectTopbarProps {
   onShare: () => void
   onToggleShortcuts: () => void
 }
+
+const toolbarInputClass = 'h-8 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 text-xs text-white outline-none transition focus:border-purple-500'
 
 const ProjectTopbar = ({
   projectName,
@@ -90,118 +92,34 @@ const ProjectTopbar = ({
 
     const intervals = next.slice(1).map((timestamp, index) => timestamp - next[index])
     const averageInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
-    const bpm = Math.round(60000 / averageInterval)
-    onBpmChange(Math.min(240, Math.max(40, bpm)))
+    const nextBpm = Math.round(60000 / averageInterval)
+    onBpmChange(Math.min(240, Math.max(40, nextBpm)))
   }, [onBpmChange])
 
   return (
-    <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-3 backdrop-blur-xl sm:px-4 sm:py-4">
-      <div className="flex min-w-0 flex-col gap-3 2xl:flex-row 2xl:items-center 2xl:justify-between">
-        <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 text-black shadow-[0_0_30px_rgba(139,92,246,0.25)]">
+    <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-2 backdrop-blur-xl sm:px-4">
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-3 overflow-x-auto">
+          <div className="flex min-w-0 shrink-0 items-center gap-2 whitespace-nowrap">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-purple-500 to-cyan-500 text-black shadow-[0_0_30px_rgba(139,92,246,0.25)]">
               <Disc3 className="h-5 w-5" />
             </div>
-            <div>
+            <div className="shrink-0">
               <p className="text-xs uppercase tracking-[0.24em] text-zinc-500">strudelussy</p>
-              <p className="text-sm text-zinc-300">AI-powered Strudel DAW workspace</p>
+              <p className="text-xs text-zinc-300">AI-powered Strudel DAW workspace</p>
             </div>
-            <a
-              href="https://github.com/mojomast/strudelussy"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-3 text-sm text-zinc-200 transition hover:bg-zinc-900"
-            >
-              strudelussy source
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
-            <a
-              href="https://github.com/VoloBuilds/toaster"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-md border border-zinc-700 px-3 text-sm text-zinc-200 transition hover:bg-zinc-900"
-            >
-              original toaster upstream
-              <ExternalLink className="h-3.5 w-3.5" />
-            </a>
+            <input
+              value={projectName}
+              onChange={(event) => onProjectNameChange(event.target.value)}
+              className={`${toolbarInputClass} min-w-[220px] font-semibold`}
+            />
           </div>
 
-          <input
-            value={projectName}
-            onChange={(event) => onProjectNameChange(event.target.value)}
-            className="min-w-0 rounded-xl border border-zinc-800 bg-zinc-950/70 px-4 py-2.5 text-base font-semibold text-white outline-none transition focus:border-purple-500 xl:min-w-[280px]"
-          />
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-3 2xl:items-end">
-          <div className="flex w-full items-center justify-between text-xs text-zinc-500 2xl:justify-end 2xl:gap-4">
-            <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
-            <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
-          </div>
-
-          <div className="flex w-full flex-wrap items-start gap-2 2xl:justify-end">
-            <div className="flex min-w-[420px] flex-[1.5] flex-col gap-2">
-              <textarea
-                value={customSystemPrompt}
-                onChange={(event) => onCustomSystemPromptChange(event.target.value)}
-                placeholder="Optional system prompt override"
-                className="min-h-[76px] w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-              />
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDefaultPromptTemplate}>
-                  Load Default Prompt
-                </Button>
-                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadImprovedPromptTemplate}>
-                  Load Improved Prompt
-                </Button>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <input
-                  value={promptPresetName}
-                  onChange={(event) => onPromptPresetNameChange(event.target.value)}
-                  placeholder="Prompt preset name"
-                  className="min-w-[180px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-                />
-                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onSavePromptPreset}>
-                  Save Prompt
-                </Button>
-              </div>
-              <select
-                value=""
-                onChange={(event) => {
-                  const preset = savedPromptPresets.find((entry) => entry.id === event.target.value)
-                  if (preset) onLoadSavedPromptPreset(preset.content)
-                }}
-                className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-              >
-                <option value="">Load saved prompt preset</option>
-                {savedPromptPresets.map((preset) => (
-                  <option key={preset.id} value={preset.id}>{preset.label}</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex min-w-[300px] flex-1 flex-col gap-2">
-              <input
-                value={customApiEndpoint}
-                onChange={(event) => onCustomApiEndpointChange(event.target.value)}
-                placeholder="Custom API endpoint"
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-              />
-              <input
-                type="password"
-                value={customApiKey}
-                onChange={(event) => onCustomApiKeyChange(event.target.value)}
-                placeholder="Custom API key"
-                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
             <select
               value={systemPromptMode}
               onChange={(event) => onSystemPromptModeChange(event.target.value as SystemPromptMode)}
-              className="min-w-[190px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              className={`${toolbarInputClass} min-w-[170px]`}
             >
               <option value="legacy-toaster">Legacy toaster prompt</option>
               <option value="strudelussy">Strudelussy prompt</option>
@@ -209,60 +127,16 @@ const ProjectTopbar = ({
             <select
               value={selectedModel}
               onChange={(event) => onModelChange(event.target.value)}
-              className="min-w-[220px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              className={`${toolbarInputClass} min-w-[200px]`}
             >
               {availableModels.map((model) => (
                 <option key={model} value={model}>{model}</option>
               ))}
             </select>
-            <Button
-              variant="outline"
-              className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900"
-              onClick={onLoadModels}
-              disabled={isLoadingModels}
-            >
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadModels} disabled={isLoadingModels}>
               {isLoadingModels ? 'Loading...' : 'Load Models'}
             </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onNewProject}>
-              New Project
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDemo}>
-              Load Demo
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportTxt}>
-              Export .txt
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportProject}>
-              Export .strudel
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
-              Share
-            </Button>
-            <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
-              Shortcuts
-            </Button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-400">
-              BPM
-              <input
-                type="number"
-                value={bpm ?? ''}
-                onChange={(event) => onBpmChange(Number(event.target.value) || 120)}
-                className="w-20 bg-transparent text-right text-white outline-none"
-              />
-            </label>
-            <Button variant="outline" size="sm" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={handleTapTempo}>
-              Tap
-            </Button>
-            <input
-              value={musicalKey ?? ''}
-              onChange={(event) => onKeyChange(event.target.value)}
-              placeholder="Key / scale"
-              className="min-w-[128px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-500"
-            />
-            <label className="flex min-w-[180px] items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-zinc-400">
+            <label className="flex h-8 min-w-[154px] shrink-0 items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 text-xs text-zinc-400">
               <span>Master</span>
               <input
                 type="range"
@@ -271,12 +145,121 @@ const ProjectTopbar = ({
                 step={0.01}
                 value={masterVolume}
                 onChange={(event) => onMasterVolumeChange(Number(event.target.value))}
-                className="w-24 accent-purple-500"
+                className="w-20 accent-purple-500"
               />
-              <span className="w-10 text-right text-xs text-zinc-300">{Math.round(masterVolume * 100)}%</span>
+              <span className="w-9 text-right text-[11px] text-zinc-300">{Math.round(masterVolume * 100)}%</span>
             </label>
           </div>
 
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onNewProject}>
+              New Project
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDemo}>
+              Load Demo
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportTxt}>
+              Export .txt
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportProject}>
+              Export .strudel
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
+              Share
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
+              Shortcuts
+            </Button>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 overflow-x-auto">
+          <div className="flex shrink-0 items-start gap-2 whitespace-nowrap">
+            <textarea
+              value={customSystemPrompt}
+              onChange={(event) => onCustomSystemPromptChange(event.target.value)}
+              placeholder="Optional system prompt override"
+              className="h-16 min-w-[300px] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-white outline-none transition focus:border-purple-500"
+            />
+            <div className="flex shrink-0 flex-col gap-2">
+              <div className="flex gap-2">
+                <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDefaultPromptTemplate}>
+                  Load Default
+                </Button>
+                <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadImprovedPromptTemplate}>
+                  Load Improved
+                </Button>
+              </div>
+              <div className="flex gap-2">
+                <select
+                  value=""
+                  onChange={(event) => {
+                    const preset = savedPromptPresets.find((entry) => entry.id === event.target.value)
+                    if (preset) onLoadSavedPromptPreset(preset.content)
+                  }}
+                  className={`${toolbarInputClass} min-w-[170px]`}
+                >
+                  <option value="">Load saved prompt</option>
+                  {savedPromptPresets.map((preset) => (
+                    <option key={preset.id} value={preset.id}>{preset.label}</option>
+                  ))}
+                </select>
+                <input
+                  value={promptPresetName}
+                  onChange={(event) => onPromptPresetNameChange(event.target.value)}
+                  placeholder="Prompt preset name"
+                  className={`${toolbarInputClass} min-w-[170px]`}
+                />
+                <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onSavePromptPreset}>
+                  Save Prompt
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <input
+              value={customApiEndpoint}
+              onChange={(event) => onCustomApiEndpointChange(event.target.value)}
+              placeholder="Custom API endpoint"
+              className={`${toolbarInputClass} min-w-[220px]`}
+            />
+            <input
+              type="password"
+              value={customApiKey}
+              onChange={(event) => onCustomApiKeyChange(event.target.value)}
+              placeholder="Custom API key"
+              className={`${toolbarInputClass} min-w-[190px]`}
+            />
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
+            <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
+            <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between gap-3 overflow-x-auto">
+          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
+            <label className="flex h-8 items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 text-xs text-zinc-400">
+              BPM
+              <input
+                type="number"
+                value={bpm ?? ''}
+                onChange={(event) => onBpmChange(Number(event.target.value) || 120)}
+                className="w-16 bg-transparent text-right text-white outline-none"
+              />
+            </label>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={handleTapTempo}>
+              Tap
+            </Button>
+            <input
+              value={musicalKey ?? ''}
+              onChange={(event) => onKeyChange(event.target.value)}
+              placeholder="Key / scale"
+              className={`${toolbarInputClass} min-w-[120px] focus:border-cyan-500`}
+            />
+          </div>
         </div>
       </div>
     </header>

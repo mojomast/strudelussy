@@ -46,7 +46,7 @@ VITE_API_URL=http://localhost:8788
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - project metadata, GitHub links beside the project identity, prompt/model controls, editable prompt override, local prompt preset testing controls, BPM tap tempo, master volume, custom provider config, export/share, shortcuts, and template actions
+- `src/components/ProjectTopbar.tsx` - compact horizontal toolbar for project metadata, grouped prompt/model controls, local prompt preset testing controls, BPM/key utilities, master volume, custom provider config, export/share, shortcuts, and repo links
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
 - `src/components/EditorPanel.tsx` - Strudel editor wrapper, section strip, and mutate toolbar
 - `src/components/DawPanel.tsx` - right-side DAW utilities for telemetry, mixer, rhythm, arrange, and FX
@@ -73,5 +73,6 @@ VITE_API_URL=http://localhost:8788
 - The topbar also lets users append their own custom system prompt instructions without replacing the selected base prompt entirely.
 - The custom prompt area starts with the baseline prompt template loaded, can swap to the improved template, and lets users save named prompt presets to localStorage for repeatable testing.
 - Prompt editing controls are intentionally placed to the left of the custom provider fields so the topbar stays flatter horizontally.
+- The top bar is organized as grouped horizontal toolbar rows with compact controls and overflow scrolling before wrapping, so it stays close to two short rows on desktop.
 - The streaming chat client keeps the pending assistant message visible on stream failures and malformed SSE chunks instead of losing the patch preview.
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.
