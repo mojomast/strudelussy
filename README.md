@@ -164,3 +164,15 @@ pnpm exec tsc --noEmit
 ## Docs
 
 - `docs/SPEC_TOASTER_DAW.md` - source spec
+- `docs/STRUDEL_SOURCE_DISCLOSURE.md` - AGPL/source disclosure for the live site and embedded Strudel prompt docs
+- `server/src/lib/strudel-docs/` - checked-in Strudel reference sections used by the chat system prompt
+
+## Source And License Notice
+
+The public `strudel.ussyco.de` deployment is served from this repository's `main` branch via `scripts/live_sync.sh`.
+
+- Corresponding source: `https://github.com/mojomast/strudelussy`
+- License: `LICENSE`
+- Embedded Strudel prompt reference: `server/src/lib/strudel-docs/`
+
+The `10-full-song-examples.ts` file exists in the repo as a disabled placeholder and is not currently included in the combined `STRUDEL_DOCS` prompt bundle.

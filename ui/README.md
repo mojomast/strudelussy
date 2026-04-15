@@ -58,6 +58,8 @@ VITE_API_URL=http://localhost:8788
 
 ## Notes
 
+- The live UI should always expose a prominent `Source` link and `License` link because the deployed app includes AGPL-licensed Strudel-derived components.
+- The repo-level disclosure note lives at `../docs/STRUDEL_SOURCE_DISCLOSURE.md`.
 - Track mixer sliders patch per-track `gain()` and `pan()` calls live in the code and trigger a debounced re-evaluation while playback is active.
 - Slider commits create version snapshots on pointer/key release when the code actually changed.
 - AI previews can audition a proposed patch in the editor before Apply; Reject or Stop Preview restores the pre-preview snapshot.

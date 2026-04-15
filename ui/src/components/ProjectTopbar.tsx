@@ -2,6 +2,10 @@ import type { SavedPromptPreset, SystemPromptMode } from '@/types/project'
 import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
+const SOURCE_REPO_URL = 'https://github.com/mojomast/strudelussy'
+const LICENSE_URL = 'https://github.com/mojomast/strudelussy/blob/main/LICENSE'
+const DISCLOSURE_URL = 'https://github.com/mojomast/strudelussy/blob/main/docs/STRUDEL_SOURCE_DISCLOSURE.md'
+
 interface ProjectTopbarProps {
   projectName: string
   masterVolume: number
@@ -225,6 +229,38 @@ const ProjectTopbar = ({
             <span className={approxTokenUsage >= 12000 ? 'text-amber-400' : approxTokenUsage >= 8000 ? 'text-yellow-300' : 'text-zinc-500'}>
               ≈ {Math.round(approxTokenUsage / 100) / 10}k tokens in context
             </span>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-900/80 pt-2 text-[11px] text-zinc-500">
+          <p>
+            This live app includes AGPL-licensed Strudel components. Corresponding source is available in the public repository.
+          </p>
+          <div className="flex items-center gap-3 whitespace-nowrap">
+            <a
+              href={SOURCE_REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-200"
+            >
+              Source
+            </a>
+            <a
+              href={LICENSE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-200"
+            >
+              License
+            </a>
+            <a
+              href={DISCLOSURE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-200"
+            >
+              Prompt Docs Note
+            </a>
           </div>
         </div>
 

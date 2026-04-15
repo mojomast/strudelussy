@@ -70,8 +70,11 @@ pnpm exec tsc --noEmit
 - `POST /api/chat/models` loads available model ids from a custom provider's `/models` endpoint so the UI can populate its selector dynamically.
 - The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `strudelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
 - The chat route can also append a user-authored custom system prompt override on top of the selected base prompt.
+- The embedded Strudel reference that feeds the chat prompt is checked into `src/lib/strudel-docs/` and combined by `src/lib/strudel-docs/index.ts`.
+- `src/lib/strudel-docs/10-full-song-examples.ts` is currently a placeholder and is intentionally not imported into the combined `STRUDEL_DOCS` export.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
 - The shared AI contract helper now parses balanced JSON more defensively, rejects unsupported methods and one-argument `.sometimesBy()` usage, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, auto-repairs known broken rare-event sample patterns into explicit `~`-based mini-notation, rejects unsupported banks, rejects oversized generated code, and prevents false-positive `has_code_change` responses when the code is unchanged.
 - `POST /api/generate` now shares the same Strudel validator, unwraps accidental JSON envelopes or markdown fences, rejects unchanged fix attempts, and uses `OPENROUTER_MODEL` instead of a deprecated hardcoded preview model.
 - The chat SSE route emits keepalive comments so long-running generations are less likely to stall behind intermediate proxies.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.
+- For live-hosting disclosure, the public source and license notice are documented in `../docs/STRUDEL_SOURCE_DISCLOSURE.md` and linked from the UI.
