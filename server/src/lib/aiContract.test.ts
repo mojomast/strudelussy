@@ -73,12 +73,40 @@ describe('parseChatJsonResponse', () => {
     expect(result.has_code_change).toBe(false)
     expect(result.code).toBe('')
   })
+
+  it('repairs invalid rare-event speech patterns into explicit mini notation', () => {
+    const result = parseChatJsonResponse(
+      JSON.stringify({
+        message: 'Made the speech rare.',
+        code: 'samples("shabda/speech:blong_is_a_kitty_cat")\nsetcps(0.5)\n$: s("").sometimesBy(0.1, x => s("blong_is_a_kitty_cat"))',
+        diff_summary: 'Adjusted speech rarity',
+        has_code_change: true,
+      }),
+      'samples("shabda/speech:blong_is_a_kitty_cat")\nsetcps(0.5)',
+    )
+
+    expect(result.has_code_change).toBe(true)
+    expect(result.code).toContain('s("blong_is_a_kitty_cat ~ ~ ~ ~ ~ ~ ~ ~ ~")')
+    expect(result.message).toMatch(/repaired invalid rare-event pattern/i)
+  })
 })
 
 describe('sanitizeStrudelCode', () => {
   it('blocks one-argument sometimesBy usage', () => {
     const sanitized = sanitizeStrudelCode('setcps(0.5)\n$: s("bd sd").sometimesBy(0.3)')
     expect(sanitized.blockingIssue).toMatch(/sometimesBy/i)
+  })
+
+  it('blocks no-op sometimesBy transforms', () => {
+    const sanitized = sanitizeStrudelCode('setcps(0.5)\n$: s("blong_is_a_kitty_cat").sometimesBy(0.1, x => x)')
+    expect(sanitized.blockingIssue).toBeNull()
+    expect(sanitized.code).toContain('s("blong_is_a_kitty_cat ~ ~ ~ ~ ~ ~ ~ ~ ~")')
+  })
+
+  it('blocks empty mini notation patterns', () => {
+    const sanitized = sanitizeStrudelCode('setcps(0.5)\n$: s("").sometimesBy(0.1, x => s("blong_is_a_kitty_cat"))')
+    expect(sanitized.blockingIssue).toBeNull()
+    expect(sanitized.code).toContain('s("blong_is_a_kitty_cat ~ ~ ~ ~ ~ ~ ~ ~ ~")')
   })
 })
 

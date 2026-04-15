@@ -11,6 +11,7 @@ export const MAX_CODE_LINES = 240
 const UNSUPPORTED_METHOD_NAMES = ['bend', 'stutter', 'bounce', 'pingpong', 'trancegate', 'rlpf', 'acidenv'] as const
 const UNSUPPORTED_METHOD_PATTERN = new RegExp(`\\.(${UNSUPPORTED_METHOD_NAMES.join('|')})\\s*\\(`, 'g')
 const SOMETIMES_BY_SINGLE_ARG_PATTERN = /\.sometimesBy\s*\(\s*[^,()]+\s*\)/g
+const EMPTY_PATTERN_CALL_PATTERN = /\b(?:s|n|note|sound|mini)\(\s*(["'])\s*\1\s*\)/g
 
 export const unsupportedSoundNames = ['chirp', 'bongo', 'conga', 'timbale', 'cowbell', 'tambourine', 'clap2']
 
@@ -94,6 +95,52 @@ export const extractFirstJsonObject = (value: string): string | null => {
 
 const dedupe = (items: string[]) => Array.from(new Set(items))
 
+const findNoOpSometimesByCalls = (code: string): string[] => {
+  const matches: string[] = []
+  const pattern = /\.sometimesBy\s*\(\s*[^,]+,\s*(?:\(\s*([A-Za-z_$][\w$]*)\s*\)|([A-Za-z_$][\w$]*))\s*=>\s*([A-Za-z_$][\w$]*)\s*\)/g
+
+  for (const match of code.matchAll(pattern)) {
+    const parameter = match[1] || match[2]
+    const returned = match[3]
+    if (parameter && parameter === returned) {
+      matches.push(match[0])
+    }
+  }
+
+  return dedupe(matches)
+}
+
+const buildRareMiniPattern = (token: string, slots = 10) => [token, ...Array.from({ length: Math.max(1, slots - 1) }, () => '~')].join(' ')
+
+const repairRareEventPatterns = (input: string): { code: string; substitutions: string[] } => {
+  let code = input
+  const substitutions: string[] = []
+
+  code = code.replace(
+    /s\(\s*""\s*\)\.sometimesBy\(\s*(0?\.\d+)\s*,\s*[A-Za-z_$][\w$]*\s*=>\s*s\(\s*"([^"\n]+)"\s*\)\s*\)/g,
+    (_match, probabilityText: string, token: string) => {
+      const probability = Number.parseFloat(probabilityText)
+      const slots = Number.isFinite(probability) && probability > 0 ? Math.max(2, Math.round(1 / probability)) : 10
+      substitutions.push(`Repaired invalid rare-event pattern into explicit mini-notation for \`${token}\`.`)
+      return `s("${buildRareMiniPattern(token, slots)}")`
+    },
+  )
+
+  code = code.replace(
+    /s\(\s*"([^"\n]+)"\s*\)\.sometimesBy\(\s*(0?\.\d+)\s*,\s*(?:\(\s*([A-Za-z_$][\w$]*)\s*\)|([A-Za-z_$][\w$]*))\s*=>\s*([A-Za-z_$][\w$]*)\s*\)/g,
+    (match, token: string, probabilityText: string, leftA: string | undefined, leftB: string | undefined, returned: string) => {
+      const parameter = leftA || leftB
+      if (!parameter || parameter !== returned) return match
+      const probability = Number.parseFloat(probabilityText)
+      const slots = Number.isFinite(probability) && probability > 0 ? Math.max(2, Math.round(1 / probability)) : 10
+      substitutions.push(`Repaired no-op rare-event pattern into explicit mini-notation for \`${token}\`.`)
+      return `s("${buildRareMiniPattern(token, slots)}")`
+    },
+  )
+
+  return { code, substitutions }
+}
+
 const contractFailure = (message: string): AIResponseContract => ({
   message,
   code: '',
@@ -114,6 +161,10 @@ export const sanitizeStrudelCode = (input: string): SanitizedCodeResult => {
     }
   }
 
+  const repaired = repairRareEventPatterns(code)
+  code = repaired.code
+  substitutions.push(...repaired.substitutions)
+
   const unsupportedMethods = dedupe(Array.from(code.matchAll(UNSUPPORTED_METHOD_PATTERN), (match) => `.${match[1]}()`))
   if (unsupportedMethods.length > 0) {
     blockingIssues.push(`Unsupported Strudel methods detected: ${unsupportedMethods.join(', ')}.`)
@@ -121,6 +172,15 @@ export const sanitizeStrudelCode = (input: string): SanitizedCodeResult => {
 
   if (SOMETIMES_BY_SINGLE_ARG_PATTERN.test(code)) {
     blockingIssues.push('`.sometimesBy()` must include both a probability and a transform.')
+  }
+
+  const noOpSometimesByCalls = findNoOpSometimesByCalls(code)
+  if (noOpSometimesByCalls.length > 0) {
+    blockingIssues.push('`.sometimesBy(..., x => x)` is a no-op and must not be used for rare events or muting.')
+  }
+
+  if (EMPTY_PATTERN_CALL_PATTERN.test(code)) {
+    blockingIssues.push('Empty mini-notation like `s("")` is invalid. Use `~` inside a real pattern or a supported probability transform instead.')
   }
 
   if (/\bawait\s+/.test(code)) {

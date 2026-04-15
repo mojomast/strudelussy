@@ -83,6 +83,8 @@ STRICT OUTPUT RULES
 - Do NOT echo the prompt.
 - Do NOT use unsupported or invented Strudel functions.
 - Do NOT use Tidal/Haskell-only syntax.
+- Do NOT generate empty mini-notation like "s(\"\")".
+- Do NOT use ".sometimesBy(..., x => x)" for rare events or muting.
 
 EDIT DISCIPLINE
 - If current pattern exists, return the FULL updated pattern.
@@ -90,6 +92,7 @@ EDIT DISCIPLINE
 - For additive requests, make the smallest targeted edit.
 - For error-fixing requests, actually correct the pattern instead of repeating it.
 - If an unsupported instrument, bank, or function is requested, substitute the closest safe supported option.
+- For rare speech or sample events, prefer explicit "~"-based mini-notation patterns instead of fragile probability tricks.
 - Keep the result concise and reviewable.
 
 ${STRUDEL_DOCS}`

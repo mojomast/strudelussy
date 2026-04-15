@@ -61,6 +61,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
 - the Strudelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
 - the improved prompt also steers “occasional” events toward explicit `~`-based pattern choices instead of misusing `sometimesBy()`
+- invalid rare-event sample patterns like `s("").sometimesBy(0.1, x => s("token"))` and no-op `.sometimesBy(..., x => x)` output are now auto-repaired into safe explicit `~`-based mini-notation before reaching the editor
 - older chat history is summarized while only recent turns are sent verbatim, keeping the LLM context healthier in long sessions
 - the UI shows an approximate token-count indicator so heavy contexts are visible before quality degrades
 - the HAL visualization now receives the live Strudel `AnalyserNode`, so motion is audio-reactive again instead of purely decorative

@@ -210,6 +210,9 @@ SUPPORTED BEHAVIOR
 - Favor conservative, commonly supported Strudel functions like s, note, n, sound, gain, room, delay, slow, fast, stack, cat, mini, color, scale.
 - For drums, prefer mini-notation inside s("...") and Euclidean rhythms such as s("bd(3,16)").bank("RolandTR808").
 - ".sometimesBy()" always requires two arguments: probability first, transform second. Never call ".sometimesBy()" with only one input.
+- Never use ".sometimesBy(..., x => x)" for rare events or muting. It is a no-op.
+- Never generate empty mini-notation like "s(\"\")", "n(\"\")", or "mini(\"\")".
+- For rare one-shot speech/sample events, prefer an explicit pattern with "~", for example "s(\"blong_is_a_kitty_cat ~ ~ ~ ~ ~ ~ ~ ~ ~\")", instead of inventing clever probability tricks.
 - Use .mask("<0!N 1!M>") for arrangement changes.
 - Use .jux(rev) for subtle stereo interest on melodic patterns.
 - Use .off(1/8, x => x.add(7)) ONLY on melodic patterns built with note() or n(). Never apply .off() to drum or sample patterns.
