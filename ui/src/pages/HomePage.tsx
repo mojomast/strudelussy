@@ -4,7 +4,6 @@ import ChatPanel from '@/components/ChatPanel'
 import DAWShell from '@/components/DAWShell'
 import DawPanel from '@/components/DawPanel'
 import EditorPanel from '@/components/EditorPanel'
-import HalVisualization from '@/components/HalVisualization'
 import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
@@ -79,6 +78,8 @@ const HomePage = () => {
           sections={sections}
           activeSection={orchestrator.activeSection}
           isPlaying={isPlaying}
+          showVisualization={showVisualization}
+          audioAnalyser={orchestrator.audioAnalyser}
           isEditorInitialized={orchestrator.isEditorInitialized}
           isEditorInitializing={orchestrator.isEditorInitializing}
           cycleInfo={orchestrator.cycleInfo}
@@ -97,9 +98,7 @@ const HomePage = () => {
         />
       }
       showVisualization={showVisualization}
-      vizPanel={
-        showVisualization ? <HalVisualization isPlaying={isPlaying} isListening={false} audioAnalyser={orchestrator.audioAnalyser} /> : null
-      }
+      vizPanel={null}
       dawPanel={
         <DawPanel
           project={currentProject}

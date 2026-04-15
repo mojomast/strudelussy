@@ -1,4 +1,5 @@
 import { forwardRef } from 'react'
+import HalVisualization from '@/components/HalVisualization'
 import { Shuffle, Sparkles, Waves, Wand2 } from 'lucide-react'
 import StrudelEditor, { type CycleInfo } from '@/components/StrudelEditor'
 import SectionStrip from '@/components/SectionStrip'
@@ -24,6 +25,8 @@ interface EditorPanelProps {
   sections: SectionMarker[]
   activeSection: string | null
   isPlaying: boolean
+  showVisualization: boolean
+  audioAnalyser?: AnalyserNode | null
   isEditorInitialized: boolean
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null
@@ -43,7 +46,7 @@ interface EditorPanelProps {
 
 const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
   {
-    project, sections, activeSection,
+    project, sections, activeSection, isPlaying, showVisualization, audioAnalyser,
     onEditorReady, onAnalyserReady, onCodeChange, onPlayStateChange, onInitStateChange,
     onStrudelError, onCodeEvaluated, onSelectSection,
     onShuffleRhythm, onAddVariation, onRandomReverb, onJuxRev,
@@ -56,25 +59,37 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
         ref={editorContainerRef}
         className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/35 p-2 backdrop-blur-sm sm:p-3"
       >
-        <StrudelEditor
-          initialCode={project.strudel_code}
-          onCodeChange={onCodeChange}
-          onPlayReady={(play) => onEditorReady({ play })}
-          onStopReady={(stop) => onEditorReady({ stop })}
-          onUndoReady={(undo) => onEditorReady({ undo })}
-          onRedoReady={(redo) => onEditorReady({ redo })}
-          onGetCurrentCode={(getCode) => onEditorReady({ getCode })}
-          onEvaluateReady={(evaluate) => onEditorReady({ evaluate })}
-          onSetCodeReady={(setCode) => onEditorReady({ setCode })}
-          onMasterVolumeReady={(setMasterVolume) => onEditorReady({ setMasterVolume })}
-          onCycleInfoReady={(getCycleInfo) => onEditorReady({ getCycleInfo })}
-          onJumpToLineReady={(jumpToLine) => onEditorReady({ jumpToLine })}
-          onAnalyserReady={onAnalyserReady}
-          onPlayStateChange={onPlayStateChange}
-          onInitStateChange={onInitStateChange}
-          onStrudelError={(error) => onStrudelError(error)}
-          onCodeEvaluated={onCodeEvaluated}
-        />
+        {showVisualization && audioAnalyser ? (
+          <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
+            <HalVisualization
+              isPlaying={isPlaying}
+              isListening={false}
+              audioAnalyser={audioAnalyser}
+            />
+          </div>
+        ) : null}
+
+        <div className="relative z-10 h-full">
+          <StrudelEditor
+            initialCode={project.strudel_code}
+            onCodeChange={onCodeChange}
+            onPlayReady={(play) => onEditorReady({ play })}
+            onStopReady={(stop) => onEditorReady({ stop })}
+            onUndoReady={(undo) => onEditorReady({ undo })}
+            onRedoReady={(redo) => onEditorReady({ redo })}
+            onGetCurrentCode={(getCode) => onEditorReady({ getCode })}
+            onEvaluateReady={(evaluate) => onEditorReady({ evaluate })}
+            onSetCodeReady={(setCode) => onEditorReady({ setCode })}
+            onMasterVolumeReady={(setMasterVolume) => onEditorReady({ setMasterVolume })}
+            onCycleInfoReady={(getCycleInfo) => onEditorReady({ getCycleInfo })}
+            onJumpToLineReady={(jumpToLine) => onEditorReady({ jumpToLine })}
+            onAnalyserReady={onAnalyserReady}
+            onPlayStateChange={onPlayStateChange}
+            onInitStateChange={onInitStateChange}
+            onStrudelError={(error) => onStrudelError(error)}
+            onCodeEvaluated={onCodeEvaluated}
+          />
+        </div>
       </div>
       <Card className="shrink-0 border-zinc-900 bg-black/40 shadow-none">
         <CardContent className="space-y-2 p-3">

@@ -5,7 +5,7 @@ interface DAWShellProps {
   topbar: ReactNode
   chatPanel: ReactNode
   editorPanel: ReactNode
-  vizPanel: ReactNode
+  vizPanel: ReactNode | null
   showVisualization?: boolean
   dawPanel: ReactNode
   transportBar: ReactNode
@@ -28,7 +28,7 @@ const DAWShell = ({ topbar, chatPanel, editorPanel, vizPanel, showVisualization 
                 <div className="min-h-0 flex-1 overflow-hidden">
                   {editorPanel}
                 </div>
-                {showVisualization ? (
+                {showVisualization && vizPanel ? (
                   <div className="h-64 shrink-0 overflow-hidden rounded-2xl border border-zinc-900 bg-black/40">
                     {vizPanel}
                   </div>

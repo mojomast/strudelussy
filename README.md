@@ -33,15 +33,15 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - project topbar
 - AI chat panel
 - diff preview cards
-- center editor column with HAL visualization beneath the editor
-- transport/version strip below the editor/viz stack
+- center editor column with HAL layered beneath the code inside the editor surface
+- transport/version strip below the editor surface
 - always-visible right-side DAW utility panel
 - section strip parsed from `// [section]` comments
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
 - rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and optional custom chat provider override
 - version history panel with refresh and restore
 - topbar actions are now arranged as a compact horizontal toolbar: project identity on the left, prompt/model/audio controls in the middle, action buttons on the right, with a slim secondary row for smaller utility controls when needed
-- the topbar includes a `Viz On` / `Viz Off` toggle for the middle-column HAL panel
+- the topbar includes a `Viz On` / `Viz Off` toggle for the HAL background under the editor
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
