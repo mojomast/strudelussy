@@ -71,6 +71,7 @@ VITE_API_URL=http://localhost:8788
 - When a custom provider is configured, clicking `Load Models` populates the model selector from that provider's `/models` API.
 - The topbar also switches between a legacy toaster prompt and a stricter Strudelussy prompt tuned for full-code JSON responses and safer Strudel edits.
 - The topbar also lets users append their own custom system prompt instructions without replacing the selected base prompt entirely.
-- The custom prompt area can preload a baseline or improved prompt template, and users can save named prompt presets to localStorage for repeatable testing.
+- The custom prompt area starts with the baseline prompt template loaded, can swap to the improved template, and lets users save named prompt presets to localStorage for repeatable testing.
+- Prompt editing controls are intentionally placed to the left of the custom provider fields so the topbar stays flatter horizontally.
 - The streaming chat client keeps the pending assistant message visible on stream failures and malformed SSE chunks instead of losing the patch preview.
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.

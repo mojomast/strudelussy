@@ -139,27 +139,14 @@ const ProjectTopbar = ({
             <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
           </div>
 
-          <div className="flex w-full flex-wrap items-center gap-2 2xl:justify-end">
-            <input
-              value={customApiEndpoint}
-              onChange={(event) => onCustomApiEndpointChange(event.target.value)}
-              placeholder="Custom API endpoint"
-              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            />
-            <input
-              type="password"
-              value={customApiKey}
-              onChange={(event) => onCustomApiKeyChange(event.target.value)}
-              placeholder="Custom API key"
-              className="min-w-[220px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            />
-            <textarea
-              value={customSystemPrompt}
-              onChange={(event) => onCustomSystemPromptChange(event.target.value)}
-              placeholder="Optional system prompt override"
-              className="min-h-[76px] min-w-[260px] flex-[1.4] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
-            />
-            <div className="flex min-w-[260px] flex-1 flex-col gap-2">
+          <div className="flex w-full flex-wrap items-start gap-2 2xl:justify-end">
+            <div className="flex min-w-[420px] flex-[1.5] flex-col gap-2">
+              <textarea
+                value={customSystemPrompt}
+                onChange={(event) => onCustomSystemPromptChange(event.target.value)}
+                placeholder="Optional system prompt override"
+                className="min-h-[76px] w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              />
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDefaultPromptTemplate}>
                   Load Default Prompt
@@ -192,6 +179,21 @@ const ProjectTopbar = ({
                   <option key={preset.id} value={preset.id}>{preset.label}</option>
                 ))}
               </select>
+            </div>
+            <div className="flex min-w-[300px] flex-1 flex-col gap-2">
+              <input
+                value={customApiEndpoint}
+                onChange={(event) => onCustomApiEndpointChange(event.target.value)}
+                placeholder="Custom API endpoint"
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              />
+              <input
+                type="password"
+                value={customApiKey}
+                onChange={(event) => onCustomApiKeyChange(event.target.value)}
+                placeholder="Custom API key"
+                className="w-full rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              />
             </div>
           </div>
 

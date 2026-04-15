@@ -136,7 +136,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [masterVolume, setMasterVolume] = useState(0.85)
   const [customApiEndpoint, setCustomApiEndpoint] = useState('')
   const [customApiKey, setCustomApiKey] = useState('')
-  const [customSystemPrompt, setCustomSystemPrompt] = useState('')
+  const [customSystemPrompt, setCustomSystemPrompt] = useState(DEFAULT_CUSTOM_PROMPT_TEMPLATE)
   const [savedPromptPresets, setSavedPromptPresets] = useState<SavedPromptPreset[]>([])
   const [promptPresetName, setPromptPresetName] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_CHAT_MODEL])
@@ -192,7 +192,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     setCustomApiEndpoint(savedConfig.endpoint)
     setCustomApiKey(savedConfig.apiKey)
-    setCustomSystemPrompt(savedConfig.customSystemPrompt || '')
+    setCustomSystemPrompt(savedConfig.customSystemPrompt || DEFAULT_CUSTOM_PROMPT_TEMPLATE)
     activeProviderRef.current = formatProviderConfig(savedConfig.endpoint, savedConfig.apiKey)
     setAvailableModels(savedConfig.selectedModel ? [savedConfig.selectedModel] : [DEFAULT_CHAT_MODEL])
     actions.setSelectedModel(savedConfig.selectedModel || DEFAULT_CHAT_MODEL)
