@@ -72,6 +72,24 @@ const EMPTY_RESPONSE_PATTERNS = [
   'llm returned an empty response',
 ]
 
+const estimateTokens = (text: string) => Math.ceil(text.length / 4)
+
+const getModelMessageCap = (model: string) => {
+  const normalized = model.toLowerCase()
+  if (normalized.includes('gpt-5') || normalized.includes('3.1') || normalized.includes('2.5')) {
+    return 16
+  }
+  return 12
+}
+
+const summarizeMessages = (messages: ChatMessage[]) => {
+  if (messages.length === 0) return null
+  const summary = messages
+    .map((message) => `${message.role}: ${message.content.replace(/\s+/g, ' ').trim().slice(0, 140)}`)
+    .join(' | ')
+  return `Conversation so far: ${summary}`
+}
+
 const isRetryableEmptyResponseError = (error: unknown) => {
   const message = error instanceof Error ? error.message.toLowerCase() : ''
   return EMPTY_RESPONSE_PATTERNS.some((pattern) => message.includes(pattern))
@@ -166,6 +184,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [shareError, setShareError] = useState<string | null>(null)
   const [isSharing, setIsSharing] = useState(false)
   const [lastSharedAt, setLastSharedAt] = useState<string | null>(null)
+  const [chatSummary, setChatSummary] = useState<string | null>(null)
+  const [approxTokenUsage, setApproxTokenUsage] = useState(0)
   const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null)
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
   const [isEditorInitializing, setIsEditorInitializing] = useState(false)
@@ -178,6 +198,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [isArrangePanelCollapsed, setIsArrangePanelCollapsed] = useState(true)
   const [isFxRackCollapsed, setIsFxRackCollapsed] = useState(true)
   const pendingSendContentsRef = useRef(new Set<string>())
+  const lastStreamUpdateRef = useRef(0)
+  const bufferedStreamContentRef = useRef('')
+  const flushStreamFrameRef = useRef<number | null>(null)
 
   const editorBridgeRef = useRef<Partial<EditorBridge>>({})
   const masterVolumeRef = useRef(0.85)
@@ -496,6 +519,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     if (paramEvaluateTimerRef.current) {
       window.clearTimeout(paramEvaluateTimerRef.current)
     }
+    if (flushStreamFrameRef.current) {
+      window.cancelAnimationFrame(flushStreamFrameRef.current)
+    }
   }, [])
 
   const onPreviewDiff = useCallback((messageId: string, diff: CodeDiff) => {
@@ -552,9 +578,23 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     actions.setChatMessages(nextMessages)
 
     const currentCode = getCurrentCode()
+    const existingMessages = useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)
+    const modelMessageCap = getModelMessageCap(selectedModel)
+    const trimmedMessages = trimChatHistoryForApi(existingMessages).slice(-modelMessageCap)
+    const summarySource = existingMessages.filter((message) => message.role !== 'system').slice(0, Math.max(0, existingMessages.length - modelMessageCap))
+    const nextSummary = summarizeMessages(summarySource)
+    setChatSummary(nextSummary)
+    const messagesForApi = nextSummary
+      ? [{ role: 'system' as const, content: nextSummary }, ...trimmedMessages]
+      : trimmedMessages
+    const nextApproxTokenUsage = estimateTokens(currentCode)
+      + estimateTokens(customSystemPrompt)
+      + (nextSummary ? estimateTokens(nextSummary) : 0)
+      + messagesForApi.reduce((sum, message) => sum + estimateTokens(message.content), 0)
+    setApproxTokenUsage(nextApproxTokenUsage)
     const payload = {
       project_id: currentProject.id,
-      messages: trimChatHistoryForApi([...useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)]),
+      messages: messagesForApi,
       current_code: currentCode,
       model: selectedModel,
       system_prompt_mode: systemPromptMode,
@@ -569,10 +609,31 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     const runChatOnce = async () => api.chatStream(payload, userId, {
       onChunk: (chunk) => {
-        const messages = useProjectStore.getState().chatMessages.map((message) =>
-          message.id === streamingAssistantId ? { ...message, content: `${message.content}${chunk}` } : message,
-        )
-        actions.setChatMessages(messages)
+        bufferedStreamContentRef.current += chunk
+        const now = performance.now()
+
+        const flushBufferedChunk = () => {
+          if (!bufferedStreamContentRef.current) return
+          const bufferedChunk = bufferedStreamContentRef.current
+          bufferedStreamContentRef.current = ''
+          lastStreamUpdateRef.current = performance.now()
+          const messages = useProjectStore.getState().chatMessages.map((message) =>
+            message.id === streamingAssistantId ? { ...message, content: `${message.content}${bufferedChunk}` } : message,
+          )
+          actions.setChatMessages(messages)
+        }
+
+        if (now - lastStreamUpdateRef.current < 50) {
+          if (!flushStreamFrameRef.current) {
+            flushStreamFrameRef.current = window.requestAnimationFrame(() => {
+              flushStreamFrameRef.current = null
+              flushBufferedChunk()
+            })
+          }
+          return
+        }
+
+        flushBufferedChunk()
       },
       onDone: (finalResponse) => {
         const assistantMessage: ChatMessage = {
@@ -605,6 +666,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
         try {
+          bufferedStreamContentRef.current = ''
+          if (flushStreamFrameRef.current) {
+            window.cancelAnimationFrame(flushStreamFrameRef.current)
+            flushStreamFrameRef.current = null
+          }
           await runChatOnce()
           break
         } catch (error) {
@@ -1053,6 +1119,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     shareError,
     isSharing,
     lastSharedAt,
+    chatSummary,
+    approxTokenUsage,
     editorContainerRef,
     registerEditor,
     onSend,

@@ -73,6 +73,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
   const masterGainRef = useRef<GainNode | null>(null)
   const originalConnectRef = useRef<typeof AudioNode.prototype.connect | null>(null)
   const strudelLogListenerRef = useRef<((e: Event) => void) | null>(null)
+  const lastForwardedStrudelErrorRef = useRef<string | null>(null)
   const playStartTimeRef = useRef<number>(0) // Track when playback started - fallback only
   const cpsRef = useRef<number>(0.5) // Default CPS - fallback when scheduler not accessible
 
@@ -500,7 +501,8 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
                 .replace(/^\[warn\]:\s*/i, '')
                 .replace(/^\[\w+\]\s*error:\s*/i, '') // Matches [eval] error:, [setTrigger] error:, etc.
                 .trim()
-              if (cleanMessage) {
+              if (cleanMessage && cleanMessage !== lastForwardedStrudelErrorRef.current) {
+                lastForwardedStrudelErrorRef.current = cleanMessage
                 onStrudelError(cleanMessage)
               }
             }
@@ -543,6 +545,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
         document.removeEventListener('strudel.log', strudelLogListenerRef.current)
         strudelLogListenerRef.current = null
       }
+      lastForwardedStrudelErrorRef.current = null
       // Don't reset initializationRef to prevent StrictMode double-init
     }
   }, [])
@@ -579,6 +582,12 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
       onPlayStateChange(isPlaying)
     }
   }, [isPlaying, onPlayStateChange])
+
+  useEffect(() => {
+    if (!error) {
+      lastForwardedStrudelErrorRef.current = null
+    }
+  }, [error])
 
   // Notify parent when init state changes
   useEffect(() => {

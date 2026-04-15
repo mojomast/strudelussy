@@ -60,6 +60,8 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
 - the Strudelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
 - the improved prompt also steers “occasional” events toward explicit `~`-based pattern choices instead of misusing `sometimesBy()`
+- older chat history is summarized while only recent turns are sent verbatim, keeping the LLM context healthier in long sessions
+- the UI shows an approximate token-count indicator so heavy contexts are visible before quality degrades
 - the HAL visualization now receives the live Strudel `AnalyserNode`, so motion is audio-reactive again instead of purely decorative
 - invalid drum bank+voice combinations are remapped to verified sample combos before code reaches the editor
 - chat history sent to the LLM is capped to the last 20 non-system messages

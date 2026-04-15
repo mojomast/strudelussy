@@ -38,6 +38,7 @@ const HomePage = () => {
           isLoadingModels={orchestrator.isLoadingModels}
           modelLoadError={orchestrator.modelLoadError}
           isSharing={orchestrator.isSharing}
+          approxTokenUsage={orchestrator.approxTokenUsage}
           showVisualization={showVisualization}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}

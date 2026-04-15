@@ -16,6 +16,7 @@ interface ProjectTopbarProps {
   isLoadingModels: boolean
   modelLoadError: string | null
   isSharing: boolean
+  approxTokenUsage: number
   showVisualization: boolean
   onProjectNameChange: (name: string) => void
   onMasterVolumeChange: (volume: number) => void
@@ -55,6 +56,7 @@ const ProjectTopbar = ({
   isLoadingModels,
   modelLoadError,
   isSharing,
+  approxTokenUsage,
   showVisualization,
   onProjectNameChange,
   onMasterVolumeChange,
@@ -220,6 +222,9 @@ const ProjectTopbar = ({
           <div className="flex shrink-0 items-center gap-2 whitespace-nowrap text-xs text-zinc-500">
             <span>{customApiEndpoint && customApiKey ? 'Custom provider fields are populated' : 'Using built-in OpenRouter Gemini 2.5 Flash'}</span>
             <span>{modelLoadError ?? (isLoadingModels ? 'Loading models...' : 'Model list ready')}</span>
+            <span className={approxTokenUsage >= 12000 ? 'text-amber-400' : approxTokenUsage >= 8000 ? 'text-yellow-300' : 'text-zinc-500'}>
+              ≈ {Math.round(approxTokenUsage / 100) / 10}k tokens in context
+            </span>
           </div>
         </div>
 

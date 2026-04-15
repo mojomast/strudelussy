@@ -63,6 +63,7 @@ VITE_API_URL=http://localhost:8788
 - AI previews can audition a proposed patch in the editor before Apply; Reject or Stop Preview restores the pre-preview snapshot.
 - Empty or truncated streamed chat responses are retried once automatically before an error message is shown.
 - The chat footer includes `Retry last` plus a `YOLO: auto-apply patches` toggle for immediate AI patch application.
+- Older chat turns are summarized while recent ones stay verbatim, and the topbar shows an approximate token count for the current context window.
 - The shell uses a fixed three-column layout: chat on the left, the editor surface in the center, and DAW utilities on the right.
 - HAL now renders inside the editor panel as a background layer beneath the code rather than as a separate panel.
 - The topbar viz toggle can hide that background layer entirely without affecting editor or transport behavior.
@@ -83,3 +84,4 @@ VITE_API_URL=http://localhost:8788
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.
 - The editor now passes its live `AnalyserNode` through the orchestrator into `HalVisualization`, restoring audio-reactive HAL motion closer to toaster’s feel.
 - Share success now shows the generated URL in the right-side DAW panel and offers a `Copy link` action; failures show a warning instead of the old `Share failed` placeholder.
+- Streaming chat updates are throttled/buffered and repeated identical Strudel warnings are suppressed so long responses put less pressure on the audio thread.
