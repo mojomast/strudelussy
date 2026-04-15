@@ -36,6 +36,9 @@ if [[ ${UPDATED} -eq 1 || ! -f "${REPO_ROOT}/ui/dist/index.html" ]]; then
   pkill -f "${REPO_ROOT}/scripts/run_worker.sh" || true
 fi
 
+# Do not let background child processes inherit the sync lock fd.
+exec 9>&-
+
 if ! pgrep -f "${REPO_ROOT}/scripts/run_worker.sh" >/dev/null; then
   nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/strudelussy-live-worker.log 2>&1 &
 fi
