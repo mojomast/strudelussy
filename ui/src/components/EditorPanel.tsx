@@ -1,10 +1,10 @@
 /**
  * // What changed:
  * // - Preserved the editor bridge API used for tutorial code injection and reads
- * // - No direct UI changes; tutorial integration consumes the existing setCode/getCode bridge
+ * // - Left editor wiring unchanged so tutorial integration consumes the existing bridge cleanly
  */
 
-import { forwardRef, lazy, Suspense } from 'react'
+import { forwardRef, lazy, Suspense, useEffect, useRef } from 'react'
 
 const HalVisualization = lazy(() => import('@/components/HalVisualization'))
 import { Shuffle, Sparkles, Waves, Wand2 } from 'lucide-react'
@@ -40,6 +40,7 @@ interface EditorPanelProps {
   onEditorReady: (bridge: Partial<EditorBridge>) => void
   onAnalyserReady?: (analyser: AnalyserNode) => void
   onCodeChange: (code: string) => void
+  onEditorActivity?: () => void
   onPlayStateChange: (isPlaying: boolean) => void
   onInitStateChange: (initialized: boolean, initializing: boolean) => void
   onStrudelError: (error: string) => void
@@ -54,14 +55,27 @@ interface EditorPanelProps {
 const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
   {
     project, sections, activeSection, isPlaying, showVisualization, audioAnalyser,
-    onEditorReady, onAnalyserReady, onCodeChange, onPlayStateChange, onInitStateChange,
+    onEditorReady, onAnalyserReady, onCodeChange, onEditorActivity, onPlayStateChange, onInitStateChange,
     onStrudelError, onCodeEvaluated, onSelectSection,
     onShuffleRhythm, onAddVariation, onRandomReverb, onJuxRev,
   },
   editorContainerRef,
 ) => {
+  const rootRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    const node = rootRef.current
+    if (!node || !onEditorActivity) {
+      return
+    }
+
+    const handleInput = () => onEditorActivity()
+    node.addEventListener('input', handleInput, true)
+    return () => node.removeEventListener('input', handleInput, true)
+  }, [onEditorActivity])
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2">
+    <div ref={rootRef} className="flex h-full min-h-0 flex-col gap-2">
       <div
         ref={editorContainerRef}
         className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/35 p-2 backdrop-blur-sm sm:p-3"

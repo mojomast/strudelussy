@@ -58,10 +58,10 @@ ui/src/features/tutorial/
 | Integration | How |
 |---|---|
 | **Left panel tab bar** | Add `[Chat] [Learn]` tab to `ChatPanel`'s header — `Learn` renders `<TutorialPanel />` |
-| **Inject button** | Calls existing `onInjectCode(scaffold)` prop already in `EditorPanel` |
-| **Validate button** | Reads current editor value via `editorRef.current.getValue()` (CodeMirror API) |
-| **Spotlight overlay** | Renders as a `<Portal>` in `DAWShell` root, z-index above all panels |
-| **Progress badge** | Show lesson count badge on the `[Learn]` tab button, e.g. `Learn (3/40)` |
+| **Inject button** | Calls the shared page-level `onInjectCode(scaffold)` bridge wired through `HomePage` |
+| **Validate button** | Reads the live editor value via the shared page-level `getEditorCode()` bridge |
+| **Spotlight overlay** | Renders at the page root as a fixed overlay sibling so it stays above all panels |
+| **Progress badge** | Show a lesson count badge on the `[Learn]` tab button using the remaining lesson total |
 | **AI Chat hook** | When user asks about a function, agent offers a deep-link: "Want to learn `.room()` interactively? → [Open Lesson 6.1]" |
 
 ---

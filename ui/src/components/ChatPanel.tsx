@@ -88,36 +88,41 @@ const ChatPanel = ({
 
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface)]">
-      <div className="border-b border-[var(--ussy-divider)]">
-        <div className="flex items-center gap-2 px-3 py-2.5">
-          <p className="flex-1 text-sm font-semibold text-[var(--ussy-text)]">Session Chat</p>
-          <span className="rounded-full bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
-            {messageCount} msg{messageCount !== 1 ? 's' : ''}
-          </span>
-          {onClear ? (
-            <button
-              onClick={onClear}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
-              aria-label="Clear chat history"
-              title="Clear chat"
-            >
-              <Trash2 className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
-          {onCollapse ? (
-            <button
-              onClick={onCollapse}
-              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
-              aria-label="Collapse chat panel"
-              title="Collapse"
-            >
-              <ChevronLeft className="h-3.5 w-3.5" />
-            </button>
-          ) : null}
-        </div>
+      <div className="border-b border-[var(--ussy-divider)]" role="tablist" aria-label="Chat and tutorial tabs">
+        {activeTab === 'chat' ? (
+          <div className="flex items-center gap-2 px-3 py-2.5">
+            <p className="flex-1 text-sm font-semibold text-[var(--ussy-text)]">Session Chat</p>
+            <span className="rounded-full bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
+              {messageCount} msg{messageCount !== 1 ? 's' : ''}
+            </span>
+            {onClear ? (
+              <button
+                onClick={onClear}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+                aria-label="Clear chat history"
+                title="Clear chat"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+            {onCollapse ? (
+              <button
+                onClick={onCollapse}
+                className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+                aria-label="Collapse chat panel"
+                title="Collapse"
+              >
+                <ChevronLeft className="h-3.5 w-3.5" />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className="flex border-t border-[var(--ussy-divider)] px-1">
           <button
+            role="tab"
+            aria-selected={activeTab === 'chat'}
+            aria-controls="chat-panel-tab"
             className={`px-4 py-2 text-xs font-medium ${
               activeTab === 'chat'
                 ? 'border-b-2 border-[var(--ussy-accent)] text-[var(--ussy-text)]'
@@ -128,6 +133,9 @@ const ChatPanel = ({
             Chat
           </button>
           <button
+            role="tab"
+            aria-selected={activeTab === 'learn'}
+            aria-controls="learn-panel-tab"
             className={`relative px-4 py-2 text-xs font-medium ${
               activeTab === 'learn'
                 ? 'border-b-2 border-[var(--ussy-accent)] text-[var(--ussy-text)]'
@@ -137,8 +145,8 @@ const ChatPanel = ({
           >
             Learn
             {incompleteCount > 0 ? (
-              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ussy-accent)] text-[8px] text-black">
-                {Math.min(incompleteCount, 9)}
+              <span className="absolute -right-8 top-1/2 -translate-y-1/2 rounded-full bg-[var(--ussy-accent)] px-1.5 py-0.5 text-[8px] text-[var(--ussy-bg)]">
+                {incompleteCount}/40
               </span>
             ) : null}
           </button>
@@ -146,12 +154,12 @@ const ChatPanel = ({
       </div>
 
       {activeTab === 'learn' ? (
-        <div className="min-h-0 flex-1 overflow-hidden">
+        <div id="learn-panel-tab" className="min-h-0 flex-1 overflow-hidden">
           <TutorialPanel {...tutorial} />
         </div>
       ) : (
         <>
-          <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
+          <div id="chat-panel-tab" ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
             {messages.map((message) => {
               const lessonMatch = getLessonMatch(message)
 
@@ -265,7 +273,7 @@ const ChatPanel = ({
                 </div>
               </div>
               <Button
-                className="gap-2 bg-[var(--ussy-accent)] text-black hover:bg-[var(--ussy-accent-bright)]"
+                className="gap-2 bg-[var(--ussy-accent)] text-[var(--ussy-bg)] hover:bg-[var(--ussy-accent-bright)]"
                 onClick={() => void handleSubmit()}
                 disabled={!canSend || isSending}
               >

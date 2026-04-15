@@ -138,8 +138,8 @@ const HomePage = () => {
         onPreviewDiff={orchestrator.onPreviewDiff}
         onStopPreview={(messageId) => orchestrator.onStopPreview(messageId)}
         tutorial={{
-          onInjectCode: orchestrator.onApplyGeneratedCode,
-          getEditorCode: () => orchestrator.currentProject?.strudel_code ?? '',
+          onInjectCode: orchestrator.onInjectCode,
+          getEditorCode: orchestrator.getCurrentCode,
           state: tutorial.state,
           currentLesson: tutorial.currentLesson,
           currentChapter: tutorial.currentChapter,
@@ -152,6 +152,7 @@ const HomePage = () => {
           validateLesson: tutorial.validateLesson,
           revealNextHint: tutorial.revealNextHint,
           resetActivityTimer: tutorial.resetActivityTimer,
+          resetTutorial: tutorial.resetTutorial,
           openProgressMap: tutorial.openProgressMap,
           closeProgressMap: tutorial.closeProgressMap,
           openTutorial: tutorial.openTutorial,
@@ -178,8 +179,8 @@ const HomePage = () => {
         onAnalyserReady={orchestrator.onEditorAnalyserReady}
         onCodeChange={(code) => {
           orchestrator.onEditorCodeChange(code)
-          tutorial.resetActivityTimer()
         }}
+        onEditorActivity={tutorial.resetActivityTimer}
         onPlayStateChange={orchestrator.onEditorPlayStateChange}
         onInitStateChange={orchestrator.setEditorInitState}
         onStrudelError={orchestrator.onEditorStrudelError}

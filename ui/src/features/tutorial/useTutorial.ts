@@ -1,8 +1,8 @@
 /**
  * // What changed:
- * // - Added the tutorial state hook with navigation, validation, progress, and persistence
- * // - Implemented debounced localStorage writes and resilient reads
- * // - Added inactivity-driven hint reveal behavior and chapter unlock logic
+ * // - Added the tutorial state hook with spec-aligned navigation, unlocks, persistence, and hints
+ * // - Enforced sequential chapter unlocking and chapter-safe lesson navigation
+ * // - Implemented resilient localStorage persistence with exact timer behavior
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -55,6 +55,7 @@ interface UseTutorialReturn {
   validateLesson: (lessonId: LessonId, code: string) => ValidationResult
   revealNextHint: () => void
   resetActivityTimer: () => void
+  resetTutorial: () => void
   openProgressMap: () => void
   closeProgressMap: () => void
 }
@@ -71,16 +72,12 @@ const readPersistedState = (): PersistedState | null => {
     if (!hasLessonId(saved.activeLessonId)) {
       return null
     }
-    const activeChapterId = getChapterByLessonId(saved.activeLessonId).id
+
     return {
-      activeChapterId,
+      activeChapterId: typeof saved.activeChapterId === 'number' ? saved.activeChapterId : 1,
       activeLessonId: saved.activeLessonId,
-      completedLessons: Array.isArray(saved.completedLessons)
-        ? saved.completedLessons.filter(hasLessonId)
-        : [],
-      seenOverlays: Array.isArray(saved.seenOverlays)
-        ? saved.seenOverlays.filter(hasLessonId)
-        : [],
+      completedLessons: Array.isArray(saved.completedLessons) ? saved.completedLessons.filter(hasLessonId) : [],
+      seenOverlays: Array.isArray(saved.seenOverlays) ? saved.seenOverlays.filter(hasLessonId) : [],
     }
   } catch {
     return null
@@ -90,6 +87,7 @@ const readPersistedState = (): PersistedState | null => {
 export const useTutorial = (): UseTutorialReturn => {
   const persistedRef = useRef<PersistedState | null>(readPersistedState())
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+
   const [state, setState] = useState<TutorialState>(() => ({
     isOpen: false,
     activeTab: 'chat',
@@ -104,42 +102,60 @@ export const useTutorial = (): UseTutorialReturn => {
   const currentLesson = useMemo(() => getLessonById(state.activeLessonId), [state.activeLessonId])
   const currentChapter = useMemo(() => getChapterByLessonId(state.activeLessonId), [state.activeLessonId])
 
-  const chapterProgress = useMemo(() => {
-    const completed = currentChapter.lessons.filter((entry) => state.completedLessons.has(entry.id)).length
-    return { completed, total: currentChapter.lessons.length }
-  }, [currentChapter, state.completedLessons])
-
   const isChapterUnlocked = useCallback((chapterId: ChapterId) => {
-    if (chapterId <= 1) return true
-    const previousChapter = chapters.find((entry) => entry.id === chapterId - 1)
-    if (!previousChapter) return false
-    const completed = previousChapter.lessons.filter((entry) => state.completedLessons.has(entry.id)).length
+    if (chapterId === 1) {
+      return true
+    }
+
+    const previousChapter = chapters.find((chapter) => chapter.id === chapterId - 1)
+    if (!previousChapter) {
+      return false
+    }
+
+    const completed = previousChapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
     return completed / previousChapter.lessons.length >= UNLOCK_THRESHOLD
   }, [state.completedLessons])
 
-  const incompleteCount = useMemo(() => (
-    allLessons.filter((entry) => !state.completedLessons.has(entry.id)).length
-  ), [state.completedLessons])
+  const currentChapterLessons = useMemo(() => currentChapter.lessons, [currentChapter])
+  const currentLessonIndex = useMemo(() => currentChapterLessons.findIndex((lesson) => lesson.id === state.activeLessonId), [currentChapterLessons, state.activeLessonId])
+
+  const chapterProgress = useMemo(() => {
+    const completed = currentChapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
+    return { completed, total: currentChapter.lessons.length }
+  }, [currentChapter, state.completedLessons])
+
+  const incompleteCount = useMemo(() => allLessons.filter((lesson) => !state.completedLessons.has(lesson.id)).length, [state.completedLessons])
 
   const persist = useCallback((nextState: PersistedState) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
+
     debounceRef.current = setTimeout(() => {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState))
       } catch {
-        // Storage can fail in private browsing or restricted contexts.
+        // Keep tutorial state in memory if storage is unavailable.
       }
     }, 500)
   }, [])
 
   useEffect(() => {
+    let seenOverlays = persistedRef.current?.seenOverlays ?? []
+    try {
+      const latest = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as PersistedState | null
+      if (latest && Array.isArray(latest.seenOverlays)) {
+        seenOverlays = latest.seenOverlays.filter(hasLessonId)
+      }
+    } catch {
+      // Keep the last known overlay state if storage read fails.
+    }
+
     persist({
       activeChapterId: state.activeChapterId,
       activeLessonId: state.activeLessonId,
       completedLessons: Array.from(state.completedLessons),
-      seenOverlays: persistedRef.current?.seenOverlays ?? [],
+      seenOverlays,
     })
   }, [persist, state.activeChapterId, state.activeLessonId, state.completedLessons])
 
@@ -150,50 +166,91 @@ export const useTutorial = (): UseTutorialReturn => {
   }, [])
 
   const setActiveTab = useCallback((tab: 'chat' | 'learn') => {
-    setState((current) => ({ ...current, activeTab: tab, isOpen: tab === 'learn' ? true : current.isOpen }))
+    setState((current) => ({
+      ...current,
+      activeTab: tab,
+      isOpen: tab === 'learn' ? true : current.isOpen,
+    }))
   }, [])
 
   const openTutorial = useCallback((lessonId?: LessonId) => {
     setState((current) => {
-      const nextLessonId = lessonId && hasLessonId(lessonId) ? lessonId : current.activeLessonId
-      const chapter = getChapterByLessonId(nextLessonId)
+      const requestedLessonId = lessonId && hasLessonId(lessonId) ? lessonId : current.activeLessonId
+      const requestedChapter = getChapterByLessonId(requestedLessonId)
+
+      if (!isChapterUnlocked(requestedChapter.id)) {
+        return {
+          ...current,
+          isOpen: true,
+          activeTab: 'learn',
+        }
+      }
+
       return {
         ...current,
         isOpen: true,
         activeTab: 'learn',
-        activeLessonId: nextLessonId,
-        activeChapterId: chapter.id,
+        activeChapterId: requestedChapter.id,
+        activeLessonId: requestedLessonId,
         hintLevel: 0,
       }
     })
-  }, [])
+  }, [isChapterUnlocked])
 
   const closeTutorial = useCallback(() => {
     setState((current) => ({ ...current, isOpen: false, activeTab: 'chat', showProgressMap: false }))
   }, [])
 
-  const navigateToLesson = useCallback((index: number) => {
-    const boundedIndex = Math.max(0, Math.min(index, allLessons.length - 1))
-    const nextLesson = allLessons[boundedIndex]
-    const nextChapter = getChapterByLessonId(nextLesson.id)
+  const nextLesson = useCallback(() => {
+    if (currentLessonIndex >= currentChapterLessons.length - 1) {
+      const nextChapter = chapters.find((chapter) => chapter.id === currentChapter.id + 1)
+      if (!nextChapter || !isChapterUnlocked(nextChapter.id)) {
+        return
+      }
+
+      setState((current) => ({
+        ...current,
+        activeChapterId: nextChapter.id,
+        activeLessonId: nextChapter.lessons[0].id,
+        hintLevel: 0,
+      }))
+      return
+    }
+
+    const next = currentChapterLessons[currentLessonIndex + 1]
     setState((current) => ({
       ...current,
-      activeLessonId: nextLesson.id,
-      activeChapterId: nextChapter.id,
+      activeLessonId: next.id,
+      activeChapterId: currentChapter.id,
       hintLevel: 0,
-      lastActivity: Date.now(),
     }))
-  }, [])
-
-  const nextLesson = useCallback(() => {
-    const currentIndex = allLessons.findIndex((entry) => entry.id === state.activeLessonId)
-    navigateToLesson(currentIndex + 1)
-  }, [navigateToLesson, state.activeLessonId])
+  }, [currentChapter.id, currentChapterLessons, currentLessonIndex, isChapterUnlocked])
 
   const prevLesson = useCallback(() => {
-    const currentIndex = allLessons.findIndex((entry) => entry.id === state.activeLessonId)
-    navigateToLesson(currentIndex - 1)
-  }, [navigateToLesson, state.activeLessonId])
+    if (currentLessonIndex <= 0) {
+      const previousChapter = chapters.find((chapter) => chapter.id === currentChapter.id - 1)
+      if (!previousChapter || !isChapterUnlocked(previousChapter.id)) {
+        return
+      }
+
+      const previousLesson = previousChapter.lessons[previousChapter.lessons.length - 1]
+      setState((current) => ({
+        ...current,
+        activeChapterId: previousChapter.id,
+        activeLessonId: previousLesson.id,
+        hintLevel: 0,
+      }))
+      return
+    }
+
+    const previous = currentChapterLessons[currentLessonIndex - 1]
+    setState((current) => ({
+      ...current,
+      activeLessonId: previous.id,
+      activeChapterId: currentChapter.id,
+      hintLevel: 0,
+    }))
+  }, [currentChapter.id, currentChapterLessons, currentLessonIndex, isChapterUnlocked])
 
   const completeLesson = useCallback((lessonId: LessonId) => {
     setState((current) => {
@@ -206,8 +263,7 @@ export const useTutorial = (): UseTutorialReturn => {
   const getScaffold = useCallback((lessonId: LessonId) => getLessonById(lessonId).scaffold, [])
 
   const validateLesson = useCallback((lessonId: LessonId, code: string) => {
-    const targetLesson = getLessonById(lessonId)
-    const result = targetLesson.validator(code)
+    const result = getLessonById(lessonId).validator(code)
     if (result.pass) {
       setState((current) => {
         const completedLessons = new Set(current.completedLessons)
@@ -222,7 +278,6 @@ export const useTutorial = (): UseTutorialReturn => {
     setState((current) => ({
       ...current,
       hintLevel: Math.min(current.hintLevel + 1, currentLesson.hints.length),
-      lastActivity: Date.now(),
     }))
   }, [currentLesson.hints.length])
 
@@ -238,18 +293,43 @@ export const useTutorial = (): UseTutorialReturn => {
     setState((current) => ({ ...current, showProgressMap: false }))
   }, [])
 
+  const resetTutorial = useCallback(() => {
+    try {
+      localStorage.removeItem('strudelussy:seenOverlays')
+      localStorage.removeItem('strudelussy:overlaysDisabled')
+      localStorage.removeItem('strudelussy:overlayDismissCount')
+    } catch {
+      // Ignore storage failures and still reset in-memory tutorial state.
+    }
+
+    persistedRef.current = {
+      activeChapterId: 1,
+      activeLessonId: DEFAULT_LESSON_ID,
+      completedLessons: [],
+      seenOverlays: [],
+    }
+
+    setState({
+      isOpen: true,
+      activeTab: 'learn',
+      activeChapterId: 1,
+      activeLessonId: DEFAULT_LESSON_ID,
+      completedLessons: new Set<LessonId>(),
+      showProgressMap: false,
+      hintLevel: 0,
+      lastActivity: Date.now(),
+    })
+  }, [])
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (Date.now() - state.lastActivity > 30_000 && state.hintLevel < currentLesson.hints.length) {
-        setState((current) => ({
-          ...current,
-          hintLevel: Math.min(current.hintLevel + 1, currentLesson.hints.length),
-          lastActivity: Date.now(),
-        }))
+        revealNextHint()
       }
     }, 5_000)
+
     return () => clearInterval(interval)
-  }, [currentLesson, state.hintLevel, state.lastActivity])
+  }, [currentLesson, revealNextHint, state.hintLevel, state.lastActivity])
 
   return {
     state,
@@ -268,6 +348,7 @@ export const useTutorial = (): UseTutorialReturn => {
     validateLesson,
     revealNextHint,
     resetActivityTimer,
+    resetTutorial,
     openProgressMap,
     closeProgressMap,
   }

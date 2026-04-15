@@ -123,6 +123,7 @@ interface UseTutorialReturn {
   validateLesson: (lessonId: LessonId, code: string) => ValidationResult
   revealNextHint: () => void
   resetActivityTimer: () => void       // call this from editor onChange
+  resetTutorial: () => void            // clears progress + overlay dismissal state
   openProgressMap: () => void
   closeProgressMap: () => void
 }
@@ -144,6 +145,11 @@ interface PersistedState {
 
 // Read on init — wrap in try/catch for corrupted JSON
 const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
+
+// Overlay helpers also use:
+// - localStorage['strudelussy:seenOverlays']
+// - localStorage['strudelussy:overlaysDisabled']
+// - localStorage['strudelussy:overlayDismissCount']
 
 // Write on change — debounced 500ms
 // Use a ref for the debounce timer — NOT a new setTimeout every render

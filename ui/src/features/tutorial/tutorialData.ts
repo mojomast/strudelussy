@@ -36,6 +36,95 @@ export const UNLOCK_THRESHOLD = 0.6
 
 const DRUM_NAMES = /\b(bd|sd|hh|oh|rim|lt|mt|ht)\b/
 const METHOD_PATTERN = /\.(room|delay|shape|pan|cutoff|reverb)\s*\(/g
+const NOTE_PATTERN_WITH_COMMA = /note\s*\(\s*["'`][^"'`]*,[^"'`]*["'`]/
+
+const countTopLevelArgs = (source: string): number => {
+  let depth = 0
+  let inQuote: '"' | '\'' | '`' | null = null
+  let count = 1
+
+  for (let index = 0; index < source.length; index += 1) {
+    const char = source[index]
+    const previous = source[index - 1]
+
+    if (inQuote) {
+      if (char === inQuote && previous !== '\\') {
+        inQuote = null
+      }
+      continue
+    }
+
+    if (char === '"' || char === '\'' || char === '`') {
+      inQuote = char
+      continue
+    }
+
+    if (char === '(' || char === '[' || char === '{') {
+      depth += 1
+      continue
+    }
+
+    if (char === ')' || char === ']' || char === '}') {
+      depth -= 1
+      continue
+    }
+
+    if (char === ',' && depth === 0) {
+      count += 1
+    }
+  }
+
+  return source.trim().length === 0 ? 0 : count
+}
+
+const hasThreeStackArgs = (code: string): boolean => {
+  const start = code.indexOf('stack(')
+  if (start < 0) {
+    return false
+  }
+
+  let depth = 0
+  let inQuote: '"' | '\'' | '`' | null = null
+  let body = ''
+
+  for (let index = start + 'stack('.length; index < code.length; index += 1) {
+    const char = code[index]
+    const previous = code[index - 1]
+
+    if (inQuote) {
+      body += char
+      if (char === inQuote && previous !== '\\') {
+        inQuote = null
+      }
+      continue
+    }
+
+    if (char === '"' || char === '\'' || char === '`') {
+      inQuote = char
+      body += char
+      continue
+    }
+
+    if (char === '(') {
+      depth += 1
+      body += char
+      continue
+    }
+
+    if (char === ')') {
+      if (depth === 0) {
+        return countTopLevelArgs(body) >= 3
+      }
+      depth -= 1
+      body += char
+      continue
+    }
+
+    body += char
+  }
+
+  return false
+}
 
 const pass = (): ValidationResult => ({ pass: true })
 const fail = (hint: string): ValidationResult => ({ pass: false, hint })
@@ -307,7 +396,7 @@ export const chapters: Chapter[] = [
           'Put comma-separated notes inside square brackets.',
           'Try `note("[c3,e3,g3] [a2,c3,e3]")`.',
         ],
-        validator: byRule((code) => /note\s*\(/.test(code) && /,/.test(code), 'Use `note(...)` with comma-separated notes in the pattern.'),
+        validator: byRule((code) => NOTE_PATTERN_WITH_COMMA.test(code), 'Use `note(...)` with comma-separated notes in the pattern.'),
       }),
       lesson({
         id: '3.6',
@@ -393,12 +482,7 @@ export const chapters: Chapter[] = [
           'Put three patterns inside one `stack(...)` call.',
           'Use drums, bass, and one higher layer.',
         ],
-        validator: byRule((code) => {
-          const match = code.match(/stack\s*\(([^]*)\)/)
-          if (!match) return false
-          const args = match[1].split(',').length
-          return args >= 3
-        }, 'Use `stack(...)` with at least three layers.'),
+        validator: byRule((code) => hasThreeStackArgs(code), 'Use `stack(...)` with at least three layers.'),
       }),
     ],
   },
@@ -578,7 +662,7 @@ export const chapters: Chapter[] = [
           'The lesson needs `sine` plus `.slow(...)`.',
           'Try `note("c e g").cutoff(sine.slow(4).range(200,2000))`.',
         ],
-        validator: byRule((code) => /\bsine\b/.test(code) && /\.(slow|fast)\s*\(/.test(code), 'Use `sine` with `.slow(...)` or `.fast(...)`.'),
+        validator: byRule((code) => /\bsine\b/.test(code) && /\.slow\s*\(/.test(code), 'Use `sine` with `.slow(...)`.'),
       }),
       lesson({
         id: '7.2',

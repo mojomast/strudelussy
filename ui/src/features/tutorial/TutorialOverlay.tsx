@@ -1,11 +1,10 @@
 /**
  * // What changed:
- * // - Added spotlight overlays for the first tutorial lessons
- * // - Implemented cutout highlighting, dismissal persistence, and permanent disable logic
+ * // - Added spec-aligned spotlight overlays for lessons 1.1 and 1.4 only
+ * // - Implemented resize-aware cutout positioning and dismissal persistence
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import type { Lesson } from './tutorialData'
 
@@ -16,11 +15,23 @@ interface TutorialOverlayProps {
 
 const SEEN_KEY = 'strudelussy:seenOverlays'
 const DISABLED_KEY = 'strudelussy:overlaysDisabled'
+const DISMISS_COUNT_KEY = 'strudelussy:overlayDismissCount'
+const STORAGE_KEY = 'strudelussy:tutorialProgress'
 
 const readSeenOverlays = (): string[] => {
   try {
+    const progressRaw = localStorage.getItem(STORAGE_KEY)
+    if (progressRaw) {
+      const parsed = JSON.parse(progressRaw) as { seenOverlays?: string[] }
+      if (Array.isArray(parsed.seenOverlays)) {
+        return parsed.seenOverlays
+      }
+    }
+
     const raw = localStorage.getItem(SEEN_KEY)
-    if (!raw) return []
+    if (!raw) {
+      return []
+    }
     const parsed = JSON.parse(raw) as string[]
     return Array.isArray(parsed) ? parsed : []
   } catch {
@@ -33,6 +44,14 @@ const overlaysDisabled = (): boolean => {
     return localStorage.getItem(DISABLED_KEY) === 'true'
   } catch {
     return false
+  }
+}
+
+const readDismissCount = (): number => {
+  try {
+    return Number(localStorage.getItem(DISMISS_COUNT_KEY) ?? '0') || 0
+  } catch {
+    return 0
   }
 }
 
@@ -50,7 +69,7 @@ const TutorialOverlay = ({ lesson, isOpen }: TutorialOverlayProps) => {
     }
 
     const target = document.querySelector(lesson.spotlightTarget)
-    if (!target) {
+    if (!(target instanceof Element)) {
       return
     }
 
@@ -73,10 +92,7 @@ const TutorialOverlay = ({ lesson, isOpen }: TutorialOverlayProps) => {
     if (dismissed || overlaysDisabled()) {
       return null
     }
-    const seen = readSeenOverlays()
-    if (seen.includes(lesson.id)) {
-      return null
-    }
+
     const target = document.querySelector(lesson.spotlightTarget)
     return target instanceof HTMLElement ? target.getBoundingClientRect() : null
   }, [dismissed, isOpen, lesson.id, lesson.spotlightTarget, tick])
@@ -88,17 +104,22 @@ const TutorialOverlay = ({ lesson, isOpen }: TutorialOverlayProps) => {
   const dismissOverlay = () => {
     setDismissed(true)
     try {
-      const next = Array.from(new Set([...readSeenOverlays(), lesson.id]))
-      localStorage.setItem(SEEN_KEY, JSON.stringify(next))
-      if (next.length >= 3) {
+      const nextSeen = Array.from(new Set([...readSeenOverlays(), lesson.id]))
+      const dismissCount = readDismissCount() + 1
+      const progressRaw = localStorage.getItem(STORAGE_KEY)
+      const parsed = progressRaw ? JSON.parse(progressRaw) as Record<string, unknown> : {}
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...parsed, seenOverlays: nextSeen }))
+      localStorage.setItem(SEEN_KEY, JSON.stringify(nextSeen))
+      localStorage.setItem(DISMISS_COUNT_KEY, String(dismissCount))
+      if (dismissCount >= 3) {
         localStorage.setItem(DISABLED_KEY, 'true')
       }
     } catch {
-      // Keep overlay state in memory if storage is unavailable.
+      // Ignore storage failures and continue in-memory.
     }
   }
 
-  return createPortal(
+  return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none' }}>
       <div
         style={{
@@ -120,15 +141,14 @@ const TutorialOverlay = ({ lesson, isOpen }: TutorialOverlayProps) => {
         <Button
           type="button"
           size="sm"
-          className="mt-3 bg-[var(--ussy-accent)] text-black hover:bg-[var(--ussy-accent-bright)]"
+          className="mt-3 border border-[var(--ussy-divider)] bg-[var(--ussy-accent)] text-[var(--ussy-bg)] hover:bg-[var(--ussy-accent-bright)]"
           onClick={dismissOverlay}
           aria-label="Dismiss tutorial spotlight"
         >
           Got it
         </Button>
       </div>
-    </div>,
-    document.body,
+    </div>
   )
 }
 
