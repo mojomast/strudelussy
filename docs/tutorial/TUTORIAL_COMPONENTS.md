@@ -43,7 +43,7 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 ### Key Behaviors
 
 **Inject button:**
-- Calls `onInjectCode(lesson.scaffold)` from `EditorPanel`
+- Calls shared `onInjectCode(lesson.scaffold)` passed down from `HomePage`
 - On first use, show inline confirm prompt: `"Replace current code? [Yes] [Cancel]"` — NOT a browser `confirm()` dialog
 - After injecting, show a small toast: `"Loaded into editor!"`
 
@@ -123,8 +123,9 @@ const rect = target?.getBoundingClientRect()
 ### Behaviors
 - Re-render on `ResizeObserver` window resize
 - `pointer-events: none` on dim layer, `pointer-events: auto` on tooltip + cutout only
-- Dismissal stored in `localStorage: strudelussy:seenOverlays` as a `string[]` of seen lesson IDs
-- After 3 dismissals, overlays stop appearing permanently
+- Dismissal metadata stored in `localStorage: strudelussy:seenOverlays` as a `string[]`
+- A separate total dismiss counter disables overlays permanently after 3 dismissals
+- Tutorial reset clears overlay dismissal state so spotlights can appear again later
 - Must NOT block keyboard shortcuts
 
 ---
@@ -183,8 +184,8 @@ Add tab switcher to `ChatPanel.tsx` header.
   >
     Learn
     {incompleteCount > 0 && (
-      <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-[var(--ussy-accent)] text-[8px] text-black flex items-center justify-center">
-        {Math.min(incompleteCount, 9)}
+      <span className="absolute -right-8 top-1/2 -translate-y-1/2 rounded-full bg-[var(--ussy-accent)] px-1.5 py-0.5 text-[8px] text-[var(--ussy-bg)]">
+        {incompleteCount}/40
       </span>
     )}
   </button>
@@ -192,6 +193,8 @@ Add tab switcher to `ChatPanel.tsx` header.
 ```
 
 When `activeTab === 'learn'`, render `<TutorialPanel />` in place of chat messages.
+
+When `activeTab === 'chat'`, preserve the existing chat header controls and behavior unchanged.
 
 ---
 

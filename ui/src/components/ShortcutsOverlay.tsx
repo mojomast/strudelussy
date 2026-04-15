@@ -1,14 +1,6 @@
 /**
- * ShortcutsOverlay.tsx
- *
- * Modal overlay displaying all keyboard shortcuts, grouped by category.
- * Uses Ussy design-token CSS custom properties for consistent theming.
- *
- * Sections:
- *   - Playback & Editing
- *   - Chat
- *   - UI Panels
- *   - Settings
+ * // What changed:
+ * // - Added the tutorial panel shortcut to the overlay list
  */
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -53,12 +45,13 @@ const shortcutGroups: ShortcutGroup[] = [
   },
   {
     label: 'UI Panels',
-    shortcuts: [
-      { key: '[', action: 'Collapse / expand left panel (Chat)' },
-      { key: ']', action: 'Collapse / expand right panel (DAW)' },
-      { key: 'Cmd/Ctrl+Shift+F', action: 'Toggle focus mode' },
-      { key: 'Cmd/Ctrl+Shift+L', action: 'Toggle Legacy / Ussy UI mode' },
-    ],
+      shortcuts: [
+        { key: '[', action: 'Collapse / expand left panel (Chat)' },
+        { key: ']', action: 'Collapse / expand right panel (DAW)' },
+        { key: 'Cmd/Ctrl+Shift+F', action: 'Toggle focus mode' },
+        { key: 'Cmd/Ctrl+Shift+T', action: 'Toggle Tutorial Panel' },
+        { key: 'Cmd/Ctrl+Shift+L', action: 'Toggle Legacy / Ussy UI mode' },
+      ],
   },
   {
     label: 'Settings',

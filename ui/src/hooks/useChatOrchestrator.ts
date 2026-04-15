@@ -1181,6 +1181,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     chatError,
     editorContainerRef,
     registerEditor,
+    getCurrentCode,
     onSend,
     onRetryLast,
     onApplyDiff,

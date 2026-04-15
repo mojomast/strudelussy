@@ -338,7 +338,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           })
 
           strudelMirrorRef.current = editor
-          
+
           // Enable tab indentation in the editor
           editor.reconfigureExtension('isTabIndentationEnabled', true)
           
