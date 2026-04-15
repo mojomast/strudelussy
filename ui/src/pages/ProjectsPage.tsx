@@ -7,6 +7,9 @@ import { api } from '@/lib/api'
 import { deleteLocalProject, getOrCreateGuestUserId, listLocalProjects } from '@/lib/projectStorage'
 import type { ProjectSummary } from '@/types/project'
 
+const SOURCE_REPO_URL = 'https://github.com/mojomast/strudelussy'
+const LICENSE_URL = 'https://github.com/mojomast/strudelussy/blob/main/LICENSE'
+
 const ProjectsPage = () => {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
@@ -104,6 +107,28 @@ const ProjectsPage = () => {
               </CardContent>
             </Card>
           ))}
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-900/80 pt-4 text-xs text-zinc-500">
+          <p>This hosted app includes AGPL-licensed Strudel components. Corresponding source is available publicly.</p>
+          <div className="flex items-center gap-3 whitespace-nowrap">
+            <a
+              href={SOURCE_REPO_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-200"
+            >
+              Source
+            </a>
+            <a
+              href={LICENSE_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-zinc-200"
+            >
+              License
+            </a>
+          </div>
         </div>
       </div>
     </main>
