@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -96,4 +96,4 @@ const ArrangePanel = ({ code, collapsed, onToggle, onApplyCode }: ArrangePanelPr
   )
 }
 
-export default ArrangePanel
+export default memo(ArrangePanel)

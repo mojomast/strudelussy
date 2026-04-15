@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { memo, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -110,4 +110,4 @@ const FxRack = ({ code, collapsed, onToggle, onApplyCode }: FxRackProps) => {
   )
 }
 
-export default FxRack
+export default memo(FxRack)

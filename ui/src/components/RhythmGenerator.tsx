@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { memo, useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
@@ -158,4 +158,4 @@ const RhythmGenerator = ({ collapsed, onToggle, onInjectCode }: RhythmGeneratorP
   )
 }
 
-export default RhythmGenerator
+export default memo(RhythmGenerator)

@@ -1,5 +1,6 @@
-import { forwardRef } from 'react'
-import HalVisualization from '@/components/HalVisualization'
+import { forwardRef, lazy, Suspense } from 'react'
+
+const HalVisualization = lazy(() => import('@/components/HalVisualization'))
 import { Shuffle, Sparkles, Waves, Wand2 } from 'lucide-react'
 import StrudelEditor, { type CycleInfo } from '@/components/StrudelEditor'
 import SectionStrip from '@/components/SectionStrip'
@@ -61,11 +62,13 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
       >
         {showVisualization && audioAnalyser ? (
           <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-            <HalVisualization
-              isPlaying={isPlaying}
-              isListening={false}
-              audioAnalyser={audioAnalyser}
-            />
+            <Suspense fallback={null}>
+              <HalVisualization
+                isPlaying={isPlaying}
+                isListening={false}
+                audioAnalyser={audioAnalyser}
+              />
+            </Suspense>
           </div>
         ) : null}
 

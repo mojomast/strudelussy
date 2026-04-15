@@ -6,7 +6,9 @@ Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](h
 
 ## What Is In This UI
 
-- DAW-style three-column project page at `/`
+- DAW-style three-column project page at `/` with two switchable modes:
+  - **Ussy mode** — CSS Grid layout with resizable, collapsible panels, ussy design tokens, focus mode
+  - **Legacy mode** — preserved original fixed three-column layout (toggle with `Cmd+Shift+L`)
 - projects gallery at `/projects`
 - diff-aware AI chat review flow
 - streaming assistant responses with a live typing bubble
@@ -15,9 +17,18 @@ Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](h
 - guest-mode local project persistence
 - version history refresh + restore panel
 - preview/apply/reject AI patch flow with multiple pending diffs keyed per assistant message
-- topbar actions for blank-project and demo-project bootstrapping, a master volume slider, and optional custom chat provider override
-- rhythm generator with per-voice gain, arrange panel, FX rack with explicit on/off filter states, mutate toolbar, shortcut overlay, and BPM tap tempo
-- viewport-first responsive shell that keeps the main workspace visible without browser zoom on typical laptop/tablet sizes
+- slim single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share), master volume slider, token usage pill, and optional custom chat provider override
+- collapsible accordion DAW sidebar with localStorage-persisted section state (Mixer, Rhythm Generator, Arrange, FX Rack, Version History) and Collapse All / Expand All toggle
+- rhythm generator with per-voice gain, arrange panel, FX rack with explicit on/off filter states, mutate toolbar, shortcut overlay
+- focus mode (`Cmd+Shift+F`) hides topbar and both sidebars; floating toggle always visible
+- panel toggle shortcuts (`[` for chat, `]` for DAW) with contenteditable/CodeMirror guard
+- slim 44px transport bar with phase progress indicator, play pulse animation, and error status alerts
+- resize handles on both chat and DAW panels with min/max width constraints and collapse-to-icon-rail
+- lazy-loaded HAL visualization (code-split chunk) rendered inside the editor panel as a background layer
+- ussy design system with `--ussy-*` CSS custom properties (electric teal accent, alpha-blended dividers, motion contract)
+- full ARIA accessibility: tablist/tab/tabpanel in settings drawer, aria-labels on icon-only buttons, role=progressbar on phase bar, aria-expanded on accordion headers and settings toggle
+- `ArrangePanel`, `FxRack`, `RhythmGenerator` wrapped in `React.memo` for render optimization
+- stable `useCallback` references in DawPanel to prevent unnecessary child re-renders
 
 ## Commands
 
@@ -38,23 +49,26 @@ VITE_API_URL=http://localhost:8788
 
 ## Important Files
 
-- `src/pages/HomePage.tsx` - DAW composition shell wiring chat, editor-layered HAL background, transport, and side utilities
+- `src/pages/HomePage.tsx` - DAW composition shell with `uiMode` state (`'ussy' | 'legacy'`), `Cmd+Shift+L` toggle, shared shellProps, and floating mode toggle button
 - `src/hooks/useChatOrchestrator.ts` - chat, preview, autosave, version, and editor orchestration
 - `src/pages/ProjectsPage.tsx` - gallery page
 - `src/stores/projectStore.ts` - Zustand project/session state
 - `src/lib/api.ts` - API client
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
+- `src/components/DAWShell.tsx` - Ussy mode layout shell: CSS Grid with `--chat-width`/`--daw-width` CSS vars, resize handles, collapse-to-icon-rail, focus mode (`Cmd+Shift+F`), `[`/`]` panel toggle, VersionHistoryPanel in DAW sidebar
+- `src/components/LegacyDAWShell.tsx` - preserved copy of original fixed three-column DAWShell layout
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - compact horizontal toolbar for project metadata, grouped prompt/model controls, viz toggle, local prompt preset testing controls, master volume, custom provider config, export/share, shortcuts, and repo links
-- `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
-- `src/components/EditorPanel.tsx` - Strudel editor wrapper with HAL background layering, analyser passthrough, section strip, and mutate toolbar
-- `src/components/DawPanel.tsx` - right-side DAW utilities for telemetry, mixer, rhythm, arrange, and FX
-- `src/components/HalVisualization.tsx` - HAL background layer driven by the live Strudel analyser
-- `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper with per-voice gain control
-- `src/components/ArrangePanel.tsx` - per-track mask scheduling helper with a fixed 16-step grid
-- `src/components/FxRack.tsx` - global track FX application helper with explicit filter enable/disable toggles
-- `src/components/ShortcutsOverlay.tsx` - keyboard shortcut reference modal
+- `src/components/ProjectTopbar.tsx` - slim 40px single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share), token usage pill with color coding, model selector, master volume, viz toggle, `Cmd+,` shortcut, and ARIA tab roles
+- `src/components/TransportBar.tsx` - slim 44px transport dock with play/stop, undo/redo (aria-labeled), save, error status (role=alert), phase progress bar (role=progressbar), and play pulse animation
+- `src/components/EditorPanel.tsx` - Strudel editor wrapper with lazy-loaded HAL background (React.lazy + Suspense), analyser passthrough, section strip, and mutate toolbar
+- `src/components/DawPanel.tsx` - accordion sidebar with 5 collapsible sections (Mixer, Rhythm Generator, Arrange, FX Rack, Version History), SectionHeader component with full a11y, localStorage persistence, Collapse All/Expand All, stable useCallback references, and ussy design tokens
+- `src/components/HalVisualization.tsx` - HAL background layer driven by the live Strudel analyser (lazy-loaded, code-split)
+- `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper with per-voice gain control (React.memo wrapped)
+- `src/components/ArrangePanel.tsx` - per-track mask scheduling helper with a fixed 16-step grid (React.memo wrapped)
+- `src/components/FxRack.tsx` - global track FX application helper with explicit filter enable/disable toggles (React.memo wrapped)
+- `src/components/ShortcutsOverlay.tsx` - keyboard shortcut reference modal with 10 shortcuts grouped into 4 sections
+- `src/index.css` - ussy design system: `--ussy-*` CSS custom properties (surface palette, accent color, text hierarchy, alpha-blended dividers, motion contract, panel transitions, resize handles, focus mode classes, transport pulse animation, token pill colors, accordion chevron rotation)
 
 ## Notes
 
@@ -66,24 +80,25 @@ VITE_API_URL=http://localhost:8788
 - Empty or truncated streamed chat responses are retried once automatically before an error message is shown.
 - The chat footer includes `Retry last` plus a `YOLO: auto-apply patches` toggle for immediate AI patch application.
 - Older chat turns are summarized while recent ones stay verbatim, and the topbar shows an approximate token count for the current context window.
-- The shell uses a fixed three-column layout: chat on the left, the editor surface in the center, and DAW utilities on the right.
-- HAL now renders inside the editor panel as a background layer beneath the code rather than as a separate panel.
+- The Ussy mode shell uses a CSS Grid three-column layout with resizable, collapsible sidebars. Both chat and DAW panels can be collapsed to 40px icon rails via chevron buttons or keyboard shortcuts (`[`/`]`).
+- The Legacy mode shell preserves the original fixed three-column layout for comparison. Toggle between modes with `Cmd+Shift+L`.
+- Focus mode (`Cmd+Shift+F`) hides the topbar and both sidebars, leaving only the editor and transport bar. A floating button is always visible to exit.
+- HAL now renders inside the editor panel as a lazy-loaded background layer beneath the code, code-split into its own chunk (~8 KB).
 - The topbar viz toggle can hide that background layer entirely without affecting editor or transport behavior.
-- The right-side DAW panel scrolls internally so Rhythm Generator, Arrange, FX Rack, and Track Mixer remain reachable without document scrolling.
+- The DAW sidebar uses collapsible accordion sections with animated expand/collapse and localStorage-persisted open/close state.
+- `ArrangePanel`, `FxRack`, and `RhythmGenerator` are wrapped in `React.memo`; DawPanel uses stable `useCallback` references to prevent unnecessary child re-renders.
+- The `[` and `]` shortcuts are guarded against firing in text inputs, textareas, selects, and contenteditable elements (including CodeMirror's editor).
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
 - `pnpm preview` is only the local Vite production preview, not the production hosting path.
 - Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.
 - The DAW shell is intentionally designed around panel-local scrolling rather than document-level page scrolling.
-- Chat requests default to `google/gemini-2.5-flash`, but users can provide a custom endpoint + API key override in the topbar.
+- Chat requests default to `google/gemini-2.5-flash`, but users can provide a custom endpoint + API key override in the settings drawer.
 - When a custom provider is configured, clicking `Load Models` populates the model selector from that provider's `/models` API.
-- The topbar also switches between a legacy toaster prompt and a stricter Strudelussy prompt tuned for full-code JSON responses and safer Strudel edits.
-- The topbar also lets users append their own custom system prompt instructions without replacing the selected base prompt entirely.
+- The settings drawer switches between a legacy toaster prompt and a stricter Strudelussy prompt tuned for full-code JSON responses and safer Strudel edits.
+- Users can also append their own custom system prompt instructions from the Prompts tab without replacing the selected base prompt entirely.
 - The custom prompt area starts with the baseline prompt template loaded, can swap to the improved template, and lets users save named prompt presets to localStorage for repeatable testing.
-- Prompt editing controls are intentionally placed to the left of the custom provider fields so the topbar stays flatter horizontally.
-- The top bar is organized as grouped horizontal toolbar rows with compact controls and overflow scrolling before wrapping, so it stays close to two short rows on desktop.
-- BPM and key/scale controls now live in the right-side DAW utility column above telemetry to keep the top bar shorter.
-- The streaming chat client keeps the pending assistant message visible on stream failures and malformed SSE chunks instead of losing the patch preview.
+- The settings drawer is organized as a tabbed panel (AI Settings, Prompts, API, Export & Share) with full ARIA tab roles.
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.
-- The editor now passes its live `AnalyserNode` through the orchestrator into `HalVisualization`, restoring audio-reactive HAL motion closer to toaster’s feel.
+- The editor now passes its live `AnalyserNode` through the orchestrator into `HalVisualization`, restoring audio-reactive HAL motion closer to toaster's feel.
 - Share success now shows the generated URL in the right-side DAW panel and offers a `Copy link` action; failures show a warning instead of the old `Share failed` placeholder.
 - Streaming chat updates are throttled/buffered and repeated identical Strudel warnings are suppressed so long responses put less pressure on the audio thread.

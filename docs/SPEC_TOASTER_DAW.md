@@ -13,25 +13,37 @@ Current repo status after the first build pass:
 
 - Imported the upstream toaster `ui/` and `server/` codebase into this repo as the implementation base
 - Reworked the frontend into a DAW-style project page with:
-- project topbar
-- diff-aware chat panel
-- section strip from `// [section]` comments
-- transport/visualization status area
-- projects gallery route
-- per-track gain/pan mixer backed by live code patching, with the editor column fixed to allow scrolling through the lower DAW helper panels
-- rhythm generator with per-voice gain, arrange mask panel with a fixed 16-step grid, FX rack with explicit filter on/off states, mutate toolbar, keyboard shortcut overlay, BPM tap tempo, and a visible model selector
-- version history refresh and restore UI
-- explicit blank-project and demo-project loading actions
-- viewport-first responsive layout tuning so the dashboard stacks earlier and fits common screens without browser zoom
+  - project topbar
+  - diff-aware chat panel
+  - section strip from `// [section]` comments
+  - transport/visualization status area
+  - projects gallery route
+  - per-track gain/pan mixer backed by live code patching, with the editor column fixed to allow scrolling through the lower DAW helper panels
+  - rhythm generator with per-voice gain, arrange mask panel with a fixed 16-step grid, FX rack with explicit filter on/off states, mutate toolbar, keyboard shortcut overlay, BPM tap tempo, and a visible model selector
+  - version history refresh and restore UI
+  - explicit blank-project and demo-project loading actions
+  - viewport-first responsive layout tuning so the dashboard stacks earlier and fits common screens without browser zoom
 - Added Zustand project state, code parsing utilities, guest-mode local persistence, and export/share basics
 - Added worker routes for structured `POST /api/chat` and KV-backed `projects` + `versions` persistence
 - Hardened AI chat parsing so malformed/non-JSON model responses fail soft instead of crashing the endpoint
 - Added streaming chat responses over SSE, preview-before-apply diff auditioning, multi-pending diff tracking keyed by message id, and stricter unsupported-pattern sanitizing
+- **UI refactor (Ussy mode)**: complete layout overhaul of the frontend:
+  - CSS Grid shell with resizable, collapsible chat and DAW panels (CSS variable-driven widths, drag handles, collapse-to-icon-rail)
+  - `--ussy-*` CSS custom property design system (electric teal accent, surface palette, text hierarchy, alpha-blended dividers, motion contract)
+  - Slim 40px single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share) and `Cmd+,` shortcut
+  - Collapsible accordion sections in the DAW sidebar with localStorage-persisted open/close state and Collapse All / Expand All toggle
+  - Slim 44px transport bar with phase progress indicator and play pulse animation
+  - Focus mode (`Cmd+Shift+F`) that hides topbar and both sidebars
+  - Panel toggle shortcuts (`[` for chat, `]` for DAW) with contenteditable/CodeMirror guard
+  - Lazy-loaded HAL visualization (code-split chunk) via React.lazy + Suspense
+  - `React.memo` on ArrangePanel, FxRack, RhythmGenerator; stable `useCallback` references in DawPanel
+  - Full ARIA accessibility audit: tablist/tab/tabpanel roles, aria-labels on icon-only buttons, role=progressbar, aria-expanded on accordion headers and settings toggle
+  - Original layout preserved as `LegacyDAWShell.tsx` with `Cmd+Shift+L` toggle between modes
+  - `tailwind.config.js` extended with ussy color tokens
 
 Items still intentionally deferred from the full spec:
 
 - Supabase data model and Firebase auth integration
-- resizable multi-panel layout
 - public read-only project share route
 - editor minimap and inline diff highlighting
 

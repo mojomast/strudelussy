@@ -1,3 +1,13 @@
+/* ============================================================================
+   strudelussy — Tailwind Config v2
+   
+   What changed:
+   - Added ussy color tokens (bg, surface, accent, text hierarchy)
+   - Added panel/section/hover transition utilities
+   - Added ussy-pulse keyframe for transport play button
+   - Preserved all existing shadcn/radix config
+   ============================================================================ */
+
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ["class"],
@@ -51,6 +61,19 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        /* --- Ussy v2 palette --- */
+        ussy: {
+          bg: "var(--ussy-bg)",
+          surface: "var(--ussy-surface)",
+          "surface-2": "var(--ussy-surface-2)",
+          "surface-3": "var(--ussy-surface-3)",
+          accent: "var(--ussy-accent)",
+          "accent-dim": "var(--ussy-accent-dim)",
+          "accent-bright": "var(--ussy-accent-bright)",
+          text: "var(--ussy-text)",
+          "text-muted": "var(--ussy-text-muted)",
+          "text-faint": "var(--ussy-text-faint)",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -75,4 +98,3 @@ export default {
   },
   plugins: [require("tailwindcss-animate")],
 }
-

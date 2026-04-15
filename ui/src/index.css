@@ -1,7 +1,19 @@
+/* ============================================================================
+   strudelussy — Design System v2 ("Ussy Mode")
+   
+   What changed:
+   - Refined dark theme with blue-black base (#0a0a0f) instead of pure black
+   - Electric teal accent color for a music production / live coding feel
+   - Motion contract: panel transitions, hover states, reduced-motion support
+   - New CSS custom properties for panel layout (--chat-width, --daw-width)
+   - Focus mode support via .focus-mode class
+   - Transport pulse animation for playback indicator
+   ============================================================================ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -9,63 +21,63 @@
 
     --card: 0 0% 100%;
     --card-foreground: 222.2 84% 4.9%;
- 
+
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
- 
+
     --primary: 222.2 47.4% 11.2%;
     --primary-foreground: 210 40% 98%;
- 
+
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
- 
+
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
- 
+
     --accent: 210 40% 96.1%;
     --accent-foreground: 222.2 47.4% 11.2%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
- 
+
     --radius: 0.5rem;
   }
- 
+
   .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
- 
+
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
- 
+
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
- 
+
     --primary: 210 40% 98%;
     --primary-foreground: 222.2 47.4% 11.2%;
- 
+
     --secondary: 217.2 32.6% 17.5%;
     --secondary-foreground: 210 40% 98%;
- 
+
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
- 
+
     --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
- 
+
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
- 
+
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
@@ -75,25 +87,70 @@
   }
 }
 
-/* Handle dynamic viewport height for mobile browsers (Android address bar, keyboard) */
+/* ============================================================================
+   Strudelussy v2 — Theme Tokens
+   ============================================================================ */
+
 :root {
-  /* Fallback for browsers that don't support CSS env */
+  /* --- Surface palette (blue-black) --- */
+  --ussy-bg: #0a0a0f;
+  --ussy-surface: #111118;
+  --ussy-surface-2: #18181f;
+  --ussy-surface-3: #1e1e28;
+
+  /* --- Accent: electric teal --- */
+  --ussy-accent: #2dd4bf;
+  --ussy-accent-dim: #1a9e8f;
+  --ussy-accent-glow: rgba(45, 212, 191, 0.15);
+  --ussy-accent-bright: #5eead4;
+
+  /* --- Text hierarchy --- */
+  --ussy-text: #e8e8f0;
+  --ussy-text-muted: #8888a0;
+  --ussy-text-faint: #44445a;
+
+  /* --- Dividers: alpha-blended, never solid --- */
+  --ussy-divider: rgba(136, 136, 160, 0.12);
+  --ussy-divider-strong: rgba(136, 136, 160, 0.2);
+
+  /* --- Panel layout vars (driven by JS resize handlers) --- */
+  --chat-width: 320px;
+  --daw-width: 380px;
+
+  /* --- Motion contract --- */
+  --duration-panel: 200ms;
+  --duration-section: 150ms;
+  --duration-hover: 120ms;
+  --ease-panel: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-section: ease-out;
+  --ease-hover: ease;
+
+  /* --- Existing fallbacks --- */
   --app-height: 100vh;
   --visual-viewport-height: 100vh;
 }
 
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-panel: 0ms;
+    --duration-section: 0ms;
+    --duration-hover: 0ms;
+  }
+}
+
+/* ============================================================================
+   Global resets
+   ============================================================================ */
+
 html {
-  /* Prevent body from being smaller than viewport */
   height: 100%;
-  /* Prevent scroll bounce on iOS */
   overscroll-behavior: none;
 }
 
 body {
-  /* Use CSS custom property for height */
   height: var(--app-height);
   min-height: var(--app-height);
-  /* Prevent overscroll */
   overscroll-behavior: none;
   position: fixed;
   width: 100%;
@@ -102,15 +159,133 @@ body {
 
 /* Hide scrollbars globally */
 * {
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 *::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Opera */
+  display: none;
 }
 
-/* Override CSS variables that CodeMirror uses */
+/* ============================================================================
+   Panel transitions & layout utilities
+   ============================================================================ */
+
+.ussy-panel-transition {
+  transition: grid-template-columns var(--duration-panel) var(--ease-panel);
+}
+
+.ussy-section-transition {
+  transition: height var(--duration-section) var(--ease-section),
+              opacity var(--duration-section) var(--ease-section);
+}
+
+.ussy-hover-transition {
+  transition: background-color var(--duration-hover) var(--ease-hover),
+              color var(--duration-hover) var(--ease-hover),
+              border-color var(--duration-hover) var(--ease-hover),
+              opacity var(--duration-hover) var(--ease-hover);
+}
+
+/* Resize handles */
+.ussy-resize-handle {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.ussy-resize-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 32px;
+  border-radius: 1px;
+  background: var(--ussy-divider-strong);
+  transition: background var(--duration-hover) var(--ease-hover),
+              height var(--duration-hover) var(--ease-hover);
+}
+
+.ussy-resize-handle:hover::after,
+.ussy-resize-handle:active::after {
+  background: var(--ussy-accent);
+  height: 48px;
+}
+
+/* Chevron rotation for accordion headers */
+.ussy-chevron {
+  transition: transform var(--duration-section) var(--ease-section);
+}
+
+.ussy-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Focus mode */
+.focus-mode .ussy-topbar,
+.focus-mode .ussy-sidebar-left,
+.focus-mode .ussy-sidebar-right {
+  display: none !important;
+}
+
+/* Transport play pulse */
+@keyframes ussy-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 var(--ussy-accent-glow); }
+  50% { box-shadow: 0 0 12px 4px var(--ussy-accent-glow); }
+}
+
+.ussy-playing-pulse {
+  animation: ussy-pulse 2s ease-in-out infinite;
+}
+
+/* Section strip active glow */
+.ussy-section-active {
+  box-shadow: 0 0 8px 2px var(--ussy-accent-glow);
+  border-color: var(--ussy-accent) !important;
+}
+
+/* Settings drawer animation */
+.ussy-drawer {
+  overflow: hidden;
+  transition: max-height var(--duration-panel) var(--ease-panel),
+              opacity var(--duration-panel) var(--ease-panel);
+}
+
+.ussy-drawer-closed {
+  max-height: 0;
+  opacity: 0;
+}
+
+.ussy-drawer-open {
+  max-height: 600px;
+  opacity: 1;
+}
+
+/* Token usage pill colors */
+.ussy-token-green { background-color: rgba(34, 197, 94, 0.15); color: #4ade80; }
+.ussy-token-yellow { background-color: rgba(250, 204, 21, 0.15); color: #facc15; }
+.ussy-token-amber { background-color: rgba(245, 158, 11, 0.15); color: #f59e0b; }
+.ussy-token-red { background-color: rgba(239, 68, 68, 0.15); color: #ef4444; }
+
+/* Icon rail (collapsed sidebar) */
+.ussy-icon-rail {
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+}
+
+/* ============================================================================
+   CodeMirror overrides (preserved from v1)
+   ============================================================================ */
+
 :root,
 .cm-editor,
 .cm-editor * {
@@ -119,7 +294,6 @@ body {
   --cm-gutters-background: rgba(15, 23, 42, 0.3) !important;
 }
 
-/* CodeMirror transparency overrides - FORCE COMPLETE TRANSPARENCY */
 .cm-editor,
 .cm-editor *:not(.cm-gutters):not(.cm-gutterElement):not(.cm-selectionBackground):not(.cm-selectionMatch):not(.cm-cursor):not(.cm-cursor-primary),
 .cm-content,
@@ -154,7 +328,6 @@ body {
   font-family: inherit !important;
 }
 
-/* Gutters - semi-transparent for visibility */
 .cm-gutters {
   background-color: rgba(15, 23, 42, 0.3) !important;
   background: rgba(15, 23, 42, 0.3) !important;
@@ -173,7 +346,6 @@ body {
   background-color: rgba(148, 163, 184, 0.05) !important;
 }
 
-/* Make text selection visible */
 .cm-selectionBackground {
   background: rgba(37, 99, 235, 0.55) !important;
 }
@@ -186,7 +358,6 @@ body {
   background: rgba(59, 130, 246, 0.4) !important;
 }
 
-/* Native browser selection as fallback */
 .cm-content *::selection {
   background: #3b82f6 !important;
   color: white !important;
@@ -199,12 +370,8 @@ body {
 }
 
 @keyframes blink {
-  0%, 50% {
-    opacity: 1;
-  }
-  50.01%, 100% {
-    opacity: 0;
-  }
+  0%, 50% { opacity: 1; }
+  50.01%, 100% { opacity: 0; }
 }
 
 .cm-cursor-primary {
@@ -212,17 +379,14 @@ body {
   border-left-width: 2px !important;
 }
 
-/* Ensure cursor is visible */
 .cm-cursorLayer {
   z-index: 100 !important;
 }
 
-/* Strudel visual effects - allow natural positioning */
 #strudel-canvas {
   pointer-events: none !important;
 }
 
-/* Target any canvas created by Strudel scope inside CodeMirror or editor */
 .cm-editor canvas {
   pointer-events: none !important;
   max-width: 100% !important;
@@ -232,7 +396,6 @@ body {
   margin: 0 !important;
 }
 
-/* Ensure CodeMirror lines maintain proper height on mobile */
 .cm-line {
   min-height: 1.5em !important;
   line-height: 1.5 !important;
@@ -243,14 +406,11 @@ body {
   line-height: 1.5 !important;
 }
 
-/* Mobile-specific fixes */
 @media (max-width: 768px) {
   .cm-line {
     min-height: 1.5em !important;
     line-height: 1.5 !important;
   }
-  
-  /* Prevent canvas transforms from breaking layout on mobile */
   .cm-editor canvas {
     transform: none !important;
     max-width: 100% !important;
@@ -258,21 +418,14 @@ body {
   }
 }
 
-/* Keyboard console unfold animation */
+/* ============================================================================
+   Legacy animations (preserved)
+   ============================================================================ */
+
 @keyframes unfold {
-  0% {
-    max-height: 0;
-    opacity: 0;
-    transform: scaleY(0.8);
-  }
-  50% {
-    opacity: 1;
-  }
-  100% {
-    max-height: 500px;
-    opacity: 1;
-    transform: scaleY(1);
-  }
+  0% { max-height: 0; opacity: 0; transform: scaleY(0.8); }
+  50% { opacity: 1; }
+  100% { max-height: 500px; opacity: 1; transform: scaleY(1); }
 }
 
 .animate-unfold {

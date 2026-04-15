@@ -6,7 +6,9 @@ Upstream credit: this repo extends [VoloBuilds/toaster](https://github.com/VoloB
 
 This repo now includes a working MVP built on top of the upstream toaster codebase:
 
-- DAW-style three-column single-project workspace
+- DAW-style three-column workspace with resizable, collapsible panels and CSS Grid layout
+- two UI modes: **Ussy mode** (new refactored layout) and **Legacy mode** (original layout preserved), toggled with `Cmd+Shift+L`
+- Ussy design system with `--ussy-*` CSS custom properties (electric teal accent, surface palette, motion contract)
 - diff-aware AI chat flow with Apply/Reject review
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
@@ -14,7 +16,13 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM/key utilities in the right-side DAW column, a topbar master volume slider, and optional custom chat provider override
+- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, and optional custom chat provider override
+- collapsible accordion sections in the DAW sidebar with localStorage-persisted open/close state
+- slim single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share)
+- focus mode (`Cmd+Shift+F`) that hides topbar and both sidebars for distraction-free editing
+- panel toggle shortcuts (`[` for chat, `]` for DAW) with proper CodeMirror contenteditable guard
+- slim 44px transport bar with phase progress indicator and play pulse animation
+- lazy-loaded HAL visualization with code-split chunk
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -29,20 +37,30 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 
 ### Frontend
 
-- `HomePage` is now a DAW shell with:
-- project topbar
-- AI chat panel
+- `HomePage` supports two UI modes:
+  - **Ussy mode** (`DAWShell.tsx`): CSS Grid layout with `--chat-width`/`--daw-width` CSS variables, resize handles on both sidebars, collapse-to-icon-rail, focus mode, and the ussy design system
+  - **Legacy mode** (`LegacyDAWShell.tsx`): preserved copy of the original fixed three-column layout
+  - Toggle between modes with `Cmd+Shift+L` or a floating button
+- project topbar: slim 40px single-row bar with settings drawer (4 tabs), token usage pill, and `Cmd+,` shortcut
+- AI chat panel (collapsible via `[` key or chevron button)
 - diff preview cards
-- center editor column with HAL layered beneath the code inside the editor surface
-- transport/version strip below the editor surface
-- always-visible right-side DAW utility panel
+- center editor column with lazy-loaded HAL layered beneath the code inside the editor surface
+- slim 44px transport bar with phase progress indicator and play pulse animation
+- collapsible right-side DAW utility panel (via `]` key or chevron button) with accordion sections:
+  - Mixer (per-track gain/pan)
+  - Rhythm Generator (Euclidean drum patterns)
+  - Arrange (per-track 16-step mask grid)
+  - FX Rack (room, delay, filters, gain with on/off toggles)
+  - Version History
+- accordion section state persisted in localStorage, with Collapse All / Expand All toggle
 - section strip parsed from `// [section]` comments
-- per-track mixer panel that edits `gain()` and `pan()` live in the code
-- rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and optional custom chat provider override
+- keyboard shortcuts overlay grouped into 4 sections (Playback & Editing, Chat, UI Panels, Settings)
+- focus mode (`Cmd+Shift+F`) hides topbar and both sidebars, floating toggle always visible
 - version history panel with refresh and restore
-- topbar actions are now arranged as a compact horizontal toolbar: project identity on the left, prompt/model/audio controls in the middle, action buttons on the right, with a slim secondary row for smaller utility controls when needed
+- topbar actions organized as a compact horizontal toolbar with settings drawer for secondary controls
 - the topbar includes a `Viz On` / `Viz Off` toggle for the HAL background under the editor
-- viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
+- resize handles on both chat and DAW panels with min/max constraints
+- full ARIA accessibility: tablist/tab/tabpanel roles in settings drawer, aria-labels on icon-only buttons, role=progressbar on phase bar, aria-expanded on accordion headers
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available
@@ -80,7 +98,6 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 
 - Firebase auth and Supabase-backed persistence
 - public read-only share route backed by project visibility
-- multi-panel resizing
 - minimap and inline editor diff rendering
 - authenticated multi-user gallery/workflows
 
