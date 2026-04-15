@@ -134,6 +134,7 @@ interface UseChatOrchestratorArgs {
 export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOrchestratorArgs) => {
   const [isSending, setIsSending] = useState(false)
   const [masterVolume, setMasterVolume] = useState(0.85)
+  const [audioAnalyser, setAudioAnalyser] = useState<AnalyserNode | null>(null)
   const [customApiEndpoint, setCustomApiEndpoint] = useState('')
   const [customApiKey, setCustomApiKey] = useState('')
   const [customSystemPrompt, setCustomSystemPrompt] = useState(DEFAULT_CUSTOM_PROMPT_TEMPLATE)
@@ -935,6 +936,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     setMasterVolume(nextVolume)
     editorBridgeRef.current.setMasterVolume?.(nextVolume)
   }, [])
+  const onEditorAnalyserReady = useCallback((analyser: AnalyserNode) => {
+    setAudioAnalyser(analyser)
+  }, [])
   const onEditorCodeChange = useCallback((code: string) => actions.setCode(code), [actions])
   const onEditorPlayStateChange = useCallback((playing: boolean) => actions.setPlaying(playing), [actions])
   const onEditorStrudelError = useCallback((error: string | null) => actions.setStrudelError(error), [actions])
@@ -968,6 +972,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     isFxRackCollapsed,
     isSending,
     masterVolume,
+    audioAnalyser,
     customApiEndpoint,
     customApiKey,
     customSystemPrompt,
@@ -1021,6 +1026,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onSystemPromptModeChange,
     onLoadModels,
     onMasterVolumeChange,
+    onEditorAnalyserReady,
     onEditorCodeChange,
     loadVersions,
     onEditorPlayStateChange,

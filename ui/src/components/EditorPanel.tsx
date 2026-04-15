@@ -28,6 +28,7 @@ interface EditorPanelProps {
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null
   onEditorReady: (bridge: Partial<EditorBridge>) => void
+  onAnalyserReady?: (analyser: AnalyserNode) => void
   onCodeChange: (code: string) => void
   onPlayStateChange: (isPlaying: boolean) => void
   onInitStateChange: (initialized: boolean, initializing: boolean) => void
@@ -43,7 +44,7 @@ interface EditorPanelProps {
 const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
   {
     project, sections, activeSection,
-    onEditorReady, onCodeChange, onPlayStateChange, onInitStateChange,
+    onEditorReady, onAnalyserReady, onCodeChange, onPlayStateChange, onInitStateChange,
     onStrudelError, onCodeEvaluated, onSelectSection,
     onShuffleRhythm, onAddVariation, onRandomReverb, onJuxRev,
   },
@@ -53,7 +54,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div
         ref={editorContainerRef}
-        className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-zinc-900 bg-gradient-to-br from-zinc-950 via-[#090909] to-zinc-950 p-2 sm:p-3"
+        className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/35 p-2 backdrop-blur-sm sm:p-3"
       >
         <StrudelEditor
           initialCode={project.strudel_code}
@@ -68,6 +69,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
           onMasterVolumeReady={(setMasterVolume) => onEditorReady({ setMasterVolume })}
           onCycleInfoReady={(getCycleInfo) => onEditorReady({ getCycleInfo })}
           onJumpToLineReady={(jumpToLine) => onEditorReady({ jumpToLine })}
+          onAnalyserReady={onAnalyserReady}
           onPlayStateChange={onPlayStateChange}
           onInitStateChange={onInitStateChange}
           onStrudelError={(error) => onStrudelError(error)}

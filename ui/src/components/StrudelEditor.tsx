@@ -429,6 +429,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
                 if (scheduler && typeof scheduler.now === 'function') {
                   // Use scheduler directly - this is the accurate path
                   const cps = scheduler.cps || 0.5
+                  cpsRef.current = cps
                   const cycleDurationMs = 1000 / cps
                   
                   if (!scheduler.started) {

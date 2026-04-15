@@ -38,7 +38,7 @@ VITE_API_URL=http://localhost:8788
 
 ## Important Files
 
-- `src/pages/HomePage.tsx` - DAW composition shell wiring chat, editor, HAL viz, transport, and side utilities
+- `src/pages/HomePage.tsx` - DAW composition shell wiring chat, stacked editor/HAL viz, transport, and side utilities
 - `src/hooks/useChatOrchestrator.ts` - chat, preview, autosave, version, and editor orchestration
 - `src/pages/ProjectsPage.tsx` - gallery page
 - `src/stores/projectStore.ts` - Zustand project/session state
@@ -46,11 +46,11 @@ VITE_API_URL=http://localhost:8788
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - compact horizontal toolbar for project metadata, grouped prompt/model controls, local prompt preset testing controls, master volume, custom provider config, export/share, shortcuts, and repo links
+- `src/components/ProjectTopbar.tsx` - compact horizontal toolbar for project metadata, grouped prompt/model controls, viz toggle, local prompt preset testing controls, master volume, custom provider config, export/share, shortcuts, and repo links
 - `src/components/TransportBar.tsx` - transport controls, visualization, and section navigation
-- `src/components/EditorPanel.tsx` - Strudel editor wrapper, section strip, and mutate toolbar
+- `src/components/EditorPanel.tsx` - Strudel editor wrapper, analyser passthrough, section strip, and mutate toolbar
 - `src/components/DawPanel.tsx` - right-side DAW utilities for telemetry, mixer, rhythm, arrange, and FX
-- `src/components/HalVisualization.tsx` - center-column HAL visualization panel
+- `src/components/HalVisualization.tsx` - center-column HAL visualization panel driven by the live Strudel analyser
 - `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper with per-voice gain control
 - `src/components/ArrangePanel.tsx` - per-track mask scheduling helper with a fixed 16-step grid
 - `src/components/FxRack.tsx` - global track FX application helper with explicit filter enable/disable toggles
@@ -61,7 +61,8 @@ VITE_API_URL=http://localhost:8788
 - Track mixer sliders patch per-track `gain()` and `pan()` calls live in the code and trigger a debounced re-evaluation while playback is active.
 - Slider commits create version snapshots on pointer/key release when the code actually changed.
 - AI previews can audition a proposed patch in the editor before Apply; Reject or Stop Preview restores the pre-preview snapshot.
-- The shell uses a fixed three-column layout: chat on the left, editor plus HAL visualization in the center, and DAW utilities on the right.
+- The shell uses a fixed three-column layout: chat on the left, editor stacked above HAL visualization in the center, and DAW utilities on the right.
+- The topbar viz toggle can hide the HAL panel entirely without affecting editor or transport behavior.
 - The right-side DAW panel scrolls internally so Rhythm Generator, Arrange, FX Rack, and Track Mixer remain reachable without document scrolling.
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
 - `pnpm preview` is only the local Vite production preview, not the production hosting path.
@@ -77,3 +78,4 @@ VITE_API_URL=http://localhost:8788
 - BPM and key/scale controls now live in the right-side DAW utility column above telemetry to keep the top bar shorter.
 - The streaming chat client keeps the pending assistant message visible on stream failures and malformed SSE chunks instead of losing the patch preview.
 - The topbar master volume slider controls a shared gain stage in the Strudel audio output, so it affects live playback immediately without rewriting code.
+- The editor now passes its live `AnalyserNode` through the orchestrator into `HalVisualization`, restoring audio-reactive HAL motion closer to toaster’s feel.

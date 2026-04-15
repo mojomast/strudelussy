@@ -33,14 +33,15 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - project topbar
 - AI chat panel
 - diff preview cards
-- center split editor + HAL visualization panel
-- transport/version strip below the center column
+- center editor column with HAL visualization beneath the editor
+- transport/version strip below the editor/viz stack
 - always-visible right-side DAW utility panel
 - section strip parsed from `// [section]` comments
 - per-track mixer panel that edits `gain()` and `pan()` live in the code
 - rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, BPM tap tempo, a topbar master volume slider, and optional custom chat provider override
 - version history panel with refresh and restore
 - topbar actions are now arranged as a compact horizontal toolbar: project identity on the left, prompt/model/audio controls in the middle, action buttons on the right, with a slim secondary row for smaller utility controls when needed
+- the topbar includes a `Viz On` / `Viz Off` toggle for the middle-column HAL panel
 - viewport-first responsive layout with earlier panel stacking and internal scrolling, including a scrollable editor column so lower DAW panels stay reachable
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
@@ -57,6 +58,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - users can load baseline or improved prompt text into the editable prompt field and save local prompt presets for testing
 - custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
 - the Strudelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
+- the HAL visualization now receives the live Strudel `AnalyserNode`, so motion is audio-reactive again instead of purely decorative
 - invalid drum bank+voice combinations are remapped to verified sample combos before code reaches the editor
 - chat history sent to the LLM is capped to the last 20 non-system messages
 - oversized generated code is rejected with a structured assistant message instead of reaching the editor

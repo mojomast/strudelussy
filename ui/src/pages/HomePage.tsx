@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import ChatPanel from '@/components/ChatPanel'
 import DAWShell from '@/components/DAWShell'
@@ -11,6 +12,7 @@ import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
 
 const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showVisualization, setShowVisualization] = useState(true)
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
 
   if (orchestrator.isLoadingProject || !orchestrator.currentProject) {
@@ -36,6 +38,7 @@ const HomePage = () => {
           availableModels={orchestrator.availableModels}
           isLoadingModels={orchestrator.isLoadingModels}
           modelLoadError={orchestrator.modelLoadError}
+          showVisualization={showVisualization}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}
           onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
@@ -49,6 +52,7 @@ const HomePage = () => {
           onModelChange={orchestrator.onModelChange}
           onSystemPromptModeChange={orchestrator.onSystemPromptModeChange}
           onLoadModels={() => void orchestrator.onLoadModels()}
+          onToggleVisualization={() => setShowVisualization((value) => !value)}
           onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
           onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
           onExportTxt={orchestrator.onExportTxt}
@@ -79,6 +83,7 @@ const HomePage = () => {
           isEditorInitializing={orchestrator.isEditorInitializing}
           cycleInfo={orchestrator.cycleInfo}
           onEditorReady={orchestrator.registerEditor}
+          onAnalyserReady={orchestrator.onEditorAnalyserReady}
           onCodeChange={orchestrator.onEditorCodeChange}
           onPlayStateChange={orchestrator.onEditorPlayStateChange}
           onInitStateChange={orchestrator.setEditorInitState}
@@ -91,8 +96,9 @@ const HomePage = () => {
           onJuxRev={orchestrator.onJuxRev}
         />
       }
+      showVisualization={showVisualization}
       vizPanel={
-        <HalVisualization isPlaying={isPlaying} isListening={false} />
+        showVisualization ? <HalVisualization isPlaying={isPlaying} isListening={false} audioAnalyser={orchestrator.audioAnalyser} /> : null
       }
       dawPanel={
         <DawPanel

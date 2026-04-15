@@ -15,6 +15,7 @@ interface ProjectTopbarProps {
   availableModels: string[]
   isLoadingModels: boolean
   modelLoadError: string | null
+  showVisualization: boolean
   onProjectNameChange: (name: string) => void
   onMasterVolumeChange: (volume: number) => void
   onCustomApiEndpointChange: (endpoint: string) => void
@@ -28,6 +29,7 @@ interface ProjectTopbarProps {
   onModelChange: (model: string) => void
   onSystemPromptModeChange: (mode: SystemPromptMode) => void
   onLoadModels: () => void
+  onToggleVisualization: () => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -51,6 +53,7 @@ const ProjectTopbar = ({
   availableModels,
   isLoadingModels,
   modelLoadError,
+  showVisualization,
   onProjectNameChange,
   onMasterVolumeChange,
   onCustomApiEndpointChange,
@@ -64,6 +67,7 @@ const ProjectTopbar = ({
   onModelChange,
   onSystemPromptModeChange,
   onLoadModels,
+  onToggleVisualization,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -110,6 +114,9 @@ const ProjectTopbar = ({
             </select>
             <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadModels} disabled={isLoadingModels}>
               {isLoadingModels ? 'Loading...' : 'Load Models'}
+            </Button>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleVisualization}>
+              {showVisualization ? 'Viz On' : 'Viz Off'}
             </Button>
             <label className="flex h-8 min-w-[154px] shrink-0 items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 text-xs text-zinc-400">
               <span>Master</span>

@@ -636,14 +636,14 @@ const HalVisualization = ({ isPlaying, isListening, audioAnalyser }: HalVisualiz
   }, [])
 
   return (
-    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 to-slate-900">
+    <div ref={containerRef} className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-950 via-black to-slate-900">
       {/* Strudel visualization mirror canvas - copies visualization frame-by-frame */}
       <canvas
         ref={mirrorCanvasRef}
         className="absolute inset-0 block h-full w-full pointer-events-none transition-all duration-300"
         style={{
           zIndex: 5,
-          opacity: isPlaying ? 0.7 : 0.4,
+          opacity: isPlaying ? 0.78 : 0.45,
           filter: isPlaying 
             ? 'blur(3px) brightness(1.5) saturate(1.5) contrast(1.3)' 
             : 'blur(5px) brightness(1.2) saturate(1.2)',
