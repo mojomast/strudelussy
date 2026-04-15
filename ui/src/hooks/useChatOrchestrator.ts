@@ -465,10 +465,14 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const modifierKey = navigator.platform.includes('Mac') ? event.metaKey : event.ctrlKey
+      const target = event.target as HTMLElement | null
+      const isTextInput = !!target && (
+        target.tagName === 'TEXTAREA'
+        || target.tagName === 'INPUT'
+        || target.isContentEditable
+      )
 
       if (event.code === 'Space') {
-        const activeElement = document.activeElement
-        const isTextInput = activeElement?.tagName === 'TEXTAREA' || activeElement?.tagName === 'INPUT'
         if (!isTextInput) {
           event.preventDefault()
           if (isPlaying) {
@@ -479,7 +483,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         }
       }
 
-      if (event.key === '?' && !(document.activeElement?.tagName === 'TEXTAREA' || document.activeElement?.tagName === 'INPUT')) {
+      if (event.key === '?' && !isTextInput) {
         event.preventDefault()
         setShowShortcuts((current) => !current)
       }
