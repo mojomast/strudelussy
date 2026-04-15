@@ -95,6 +95,14 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
     view.focus()
   }
 
+  const ensureAudioReady = async () => {
+    initAudioOnFirstClick()
+    const context = getAudioContext()
+    if (context.state === 'suspended') {
+      await context.resume()
+    }
+  }
+
   useImperativeHandle(ref, () => ({
     jumpToLine,
   }), [])
@@ -341,7 +349,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           if (onPlayReady) {
             onPlayReady(() => {
               if (strudelMirrorRef.current) {
-                strudelMirrorRef.current.evaluate()
+                void ensureAudioReady().then(() => strudelMirrorRef.current?.evaluate())
               }
             })
           }
@@ -349,7 +357,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           if (onEvaluateReady) {
             onEvaluateReady(() => {
               if (strudelMirrorRef.current) {
-                strudelMirrorRef.current.evaluate()
+                void ensureAudioReady().then(() => strudelMirrorRef.current?.evaluate())
               }
             })
           }

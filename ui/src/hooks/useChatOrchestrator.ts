@@ -300,6 +300,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     if (bridge.setMasterVolume) {
       bridge.setMasterVolume(masterVolumeRef.current)
     }
+    const currentCode = useProjectStore.getState().currentProject?.strudel_code
+    if (bridge.setCode && currentCode) {
+      bridge.setCode(currentCode)
+    }
   }, [])
 
   const getCurrentCode = useCallback(() => editorBridgeRef.current.getCode?.() ?? currentProject?.strudel_code ?? '', [currentProject?.strudel_code])
@@ -455,6 +459,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     void loadProject(null)
   }, [actions, loadProject, searchParams, setSearchParams, userId])
+
+  useEffect(() => {
+    if (!currentProject) return
+    editorBridgeRef.current.setCode?.(currentProject.strudel_code)
+  }, [currentProject?.id, currentProject?.strudel_code])
 
   useEffect(() => {
     if (!currentProject || !isDirty) return
