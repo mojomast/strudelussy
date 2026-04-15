@@ -1,4 +1,4 @@
-import type { AIResponse, ChatMessage, ChatModel, CodeVersion, Project, ProjectSummary, SystemPromptMode } from '@/types/project'
+import type { AIResponse, ChatMessage, ChatModel, ChatStreamErrorInfo, CodeVersion, Project, ProjectSummary, SystemPromptMode } from '@/types/project'
 
 const API_URL = import.meta.env.VITE_API_URL || ''
 
@@ -23,6 +23,52 @@ export interface ChatPayload {
 interface ChatStreamHandlers {
   onChunk?: (chunk: string) => void
   onDone?: (response: AIResponse) => void
+  onStreamError?: (error: ChatStreamErrorInfo) => void
+}
+
+const buildRequestError = async (response: Response): Promise<Error> => {
+  const error = await response.json().catch(() => ({})) as Record<string, unknown>
+  const message = typeof error['message'] === 'string'
+    ? error['message']
+    : typeof error['error'] === 'string'
+      ? error['error']
+      : `Request failed: ${response.status}`
+
+  const requestError = new Error(message) as Error & { status?: number; retryAfter?: number }
+  requestError.status = response.status
+  if (typeof error['retryAfter'] === 'number') {
+    requestError.retryAfter = error['retryAfter']
+  }
+  return requestError
+}
+
+const createChatStreamError = (message: string, status?: number, retryAfter?: number): ChatStreamErrorInfo => ({
+  message,
+  status,
+  retryAfter,
+  isRetryable: status === 429 || status === 503 || message.toLowerCase().includes('empty response'),
+})
+
+const parseSseEvent = (rawEvent: string): { data: string | null; isDone: boolean } => {
+  const normalized = rawEvent.replace(/\r\n?/g, '\n')
+  const lines = normalized.split('\n')
+  const dataLines: string[] = []
+
+  for (const line of lines) {
+    if (!line || line.startsWith(':')) continue
+    if (!line.startsWith('data:')) continue
+    dataLines.push(line.slice(5).trimStart())
+  }
+
+  if (dataLines.length === 0) {
+    return { data: null, isDone: false }
+  }
+
+  const data = dataLines.join('\n').trim()
+  return {
+    data,
+    isDone: data === '[DONE]',
+  }
 }
 
 const request = async <T>(path: string, options: RequestInit = {}, userId?: string): Promise<T> => {
@@ -36,8 +82,7 @@ const request = async <T>(path: string, options: RequestInit = {}, userId?: stri
   })
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}))
-    throw new Error(error.message || error.error || `Request failed: ${response.status}`)
+    throw await buildRequestError(response)
   }
 
   return response.json() as Promise<T>
@@ -96,8 +141,7 @@ export const api = {
     })
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({})) as Record<string, string>
-      throw new Error(error['message'] || error['error'] || `Request failed: ${response.status}`)
+      throw await buildRequestError(response)
     }
 
     if (!response.body) {
@@ -108,23 +152,22 @@ export const api = {
     const decoder = new TextDecoder()
     let buffer = ''
     let finalResponse: AIResponse | null = null
-    let streamError: string | null = null
+    let streamError: ChatStreamErrorInfo | null = null
+    let doneMarkerSeen = false
 
     const processLine = (rawEvent: string): boolean => {
-      const lines = rawEvent.split('\n')
-      let data = ''
-      for (const line of lines) {
-        if (!line.startsWith('data:')) continue
-        data += `${line.slice(5).trimStart()}\n`
+      const parsedEvent = parseSseEvent(rawEvent)
+      if (!parsedEvent.data) return false
+      if (parsedEvent.isDone) {
+        doneMarkerSeen = true
+        return true
       }
-      const payloadText = data.trim()
-      if (!payloadText) return false
-      if (payloadText === '[DONE]') return true
 
       let parsed: { type?: string; chunk?: string; response?: AIResponse; error?: string }
       try {
-        parsed = JSON.parse(payloadText) as typeof parsed
+        parsed = JSON.parse(parsedEvent.data) as typeof parsed
       } catch {
+        streamError = createChatStreamError('Received a malformed streaming event from the server.')
         return false
       }
 
@@ -133,7 +176,8 @@ export const api = {
         return false
       }
       if (parsed.type === 'error') {
-        streamError = parsed.error || 'Streaming chat failed'
+        streamError = createChatStreamError(parsed.error || 'Streaming chat failed')
+        handlers.onStreamError?.(streamError)
         return true
       }
       if (parsed.type === 'done' && parsed.response) {
@@ -167,11 +211,16 @@ export const api = {
     }
 
     if (streamError) {
-      throw new Error(streamError)
+      throw new Error((streamError as ChatStreamErrorInfo).message)
     }
 
     if (!finalResponse) {
-      throw new Error('Streaming chat ended before final response was received')
+      const message = doneMarkerSeen
+        ? 'Streaming chat ended without a final structured response'
+        : 'Streaming chat ended before final response was received'
+      const error = createChatStreamError(message)
+      handlers.onStreamError?.(error)
+      throw new Error(error.message)
     }
 
     handlers.onDone?.(finalResponse)

@@ -81,7 +81,14 @@ export interface ExtractedParam {
 
 export interface AIResponse {
   message: string
-  code?: string
-  diff_summary?: string
+  code: string
+  diff_summary: string
   has_code_change: boolean
+}
+
+export interface ChatStreamErrorInfo {
+  message: string
+  status?: number
+  retryAfter?: number
+  isRetryable?: boolean
 }

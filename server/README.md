@@ -63,12 +63,15 @@ pnpm exec tsc --noEmit
 
 - Auth is currently header-based (`x-user-id`) to support guest mode and unblock MVP persistence.
 - The chat route streams incremental chunks and then ends with the existing structured `AIResponse` payload.
-- The chat route now degrades safely when the upstream model returns non-JSON text instead of the requested structured payload.
+- The chat route now enforces a strict response contract with four required JSON fields: `message`, `code`, `diff_summary`, and `has_code_change`.
+- The chat route degrades safely when the upstream model returns non-JSON text, malformed JSON, or schema-invalid JSON instead of the requested structured payload.
 - The server currently uses `OPENROUTER_MODEL` or falls back to `google/gemini-2.5-flash`.
 - The chat route defaults to `google/gemini-2.5-flash`, but it also proxies custom endpoint + API key overrides from the UI.
 - `POST /api/chat/models` loads available model ids from a custom provider's `/models` endpoint so the UI can populate its selector dynamically.
 - The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `strudelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
 - The chat route can also append a user-authored custom system prompt override on top of the selected base prompt.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
-- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, malformed one-argument `.sometimesBy()` calls, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code. The Strudelussy prompt uses the same verified bank/voice table to reduce prompt/runtime drift.
+- The shared AI contract helper now parses balanced JSON more defensively, rejects unsupported methods and one-argument `.sometimesBy()` usage, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, rejects unsupported banks, rejects oversized generated code, and prevents false-positive `has_code_change` responses when the code is unchanged.
+- `POST /api/generate` now shares the same Strudel validator, unwraps accidental JSON envelopes or markdown fences, rejects unchanged fix attempts, and uses `OPENROUTER_MODEL` instead of a deprecated hardcoded preview model.
+- The chat SSE route emits keepalive comments so long-running generations are less likely to stall behind intermediate proxies.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.

@@ -66,6 +66,8 @@ const HomePage = () => {
         <ChatPanel
           messages={orchestrator.chatMessages}
           isSending={orchestrator.isSending}
+          statusText={orchestrator.chatStatus}
+          errorText={orchestrator.chatError}
           yoloMode={orchestrator.yoloMode}
           onSend={orchestrator.onSend}
           onRetryLast={orchestrator.onRetryLast}

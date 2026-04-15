@@ -9,6 +9,8 @@ import type { ChatMessage } from '@/types/project'
 interface ChatPanelProps {
   messages: ChatMessage[]
   isSending: boolean
+  statusText?: string | null
+  errorText?: string | null
   yoloMode?: boolean
   onSend: (content: string) => Promise<void>
   onRetryLast?: () => void
@@ -19,7 +21,7 @@ interface ChatPanelProps {
   onStopPreview: (messageId: string, diff: CodeDiff) => void
 }
 
-const ChatPanel = ({ messages, isSending, yoloMode = false, onSend, onRetryLast, onToggleYolo, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
+const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = false, onSend, onRetryLast, onToggleYolo, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
   const [value, setValue] = useState('')
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -98,6 +100,18 @@ const ChatPanel = ({ messages, isSending, yoloMode = false, onSend, onRetryLast,
       </div>
 
       <div className="border-t border-zinc-900 p-3 sm:p-4">
+        {errorText ? (
+          <div className="mb-3 rounded-xl border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+            {errorText}
+          </div>
+        ) : null}
+
+        {statusText && !errorText ? (
+          <div className="mb-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-400">
+            {statusText}
+          </div>
+        ) : null}
+
         <Textarea
           value={value}
           onChange={(event) => setValue(event.target.value)}
@@ -123,9 +137,9 @@ const ChatPanel = ({ messages, isSending, yoloMode = false, onSend, onRetryLast,
               </label>
             </div>
           </div>
-          <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={() => void handleSubmit()} disabled={!canSend}>
+          <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={() => void handleSubmit()} disabled={!canSend || isSending}>
             <SendHorizonal className="h-4 w-4" />
-            Send
+            {isSending ? 'Sending...' : 'Send'}
           </Button>
         </div>
       </div>

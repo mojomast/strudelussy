@@ -2,8 +2,12 @@ import { Hono } from 'hono'
 import OpenAI from 'openai'
 import type { Env } from '../index'
 import { STRUDEL_DOCS } from '../lib/strudel-docs/index.js'
+import { validateGeneratedCode } from '../lib/aiContract'
 
 type Variables = {}
+
+const GENERATE_MAX_PROMPT_LENGTH = 2000
+const GENERATE_MAX_PATTERN_LENGTH = 100000
 
 export const generateRoute = new Hono<{ Bindings: Env; Variables: Variables }>()
 
@@ -29,12 +33,12 @@ generateRoute.post('/', async (c) => {
     }
 
     // Limit prompt to 2000 characters to prevent abuse
-    if (prompt.length > 2000) {
+    if (prompt.length > GENERATE_MAX_PROMPT_LENGTH) {
       return c.json({ error: 'Prompt exceeds maximum length of 2,000 characters' }, 400)
     }
 
     // Limit currentPattern to 100k characters to prevent abuse
-    if (currentPattern && typeof currentPattern === 'string' && currentPattern.length > 100000) {
+    if (currentPattern && typeof currentPattern === 'string' && currentPattern.length > GENERATE_MAX_PATTERN_LENGTH) {
       return c.json({ error: 'Current pattern exceeds maximum length of 100,000 characters' }, 400)
     }
 
@@ -68,8 +72,25 @@ const generateStrudelCode = async (
     }
   })
 
-  // Build the system prompt with core documentation
-  const systemPrompt = `You are an expert Strudel live coding music assistant. Use the core documentation below to help users create and modify musical patterns.
+  const systemPrompt = `You are an expert Strudel live coding assistant.
+Return valid Strudel code only.
+
+STRICT OUTPUT RULES
+- Return ONLY raw Strudel code.
+- Do NOT return markdown fences.
+- Do NOT return JSON.
+- Do NOT explain the code.
+- Do NOT echo the prompt.
+- Do NOT use unsupported or invented Strudel functions.
+- Do NOT use Tidal/Haskell-only syntax.
+
+EDIT DISCIPLINE
+- If current pattern exists, return the FULL updated pattern.
+- Preserve existing working structure unless the user explicitly asks for a rewrite.
+- For additive requests, make the smallest targeted edit.
+- For error-fixing requests, actually correct the pattern instead of repeating it.
+- If an unsupported instrument, bank, or function is requested, substitute the closest safe supported option.
+- Keep the result concise and reviewable.
 
 ${STRUDEL_DOCS}`
 
@@ -96,43 +117,20 @@ User request: ${prompt}
 Only return raw Strudel code, no explanations or markdown.`
   }
 
-  const completion = await openai.chat.completions.create({
-    //TODO: Not sure why the env.OPENROUTER_MODEL is getting ignored
-    // model: 'x-ai/grok-4.1-fast',
-    // model: env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
-    // model: 'google/gemini-2.5-flash',
-    // model: 'google/gemini-3-flash-preview',
-    model: 'google/gemini-2.5-flash-preview-09-2025', // This was the best one :( but now deprecated
-    // model: 'anthropic/claude-haiku-4.5',
+    const completion = await openai.chat.completions.create({
+    model: env.OPENROUTER_MODEL || 'google/gemini-2.5-flash',
     messages: [
       { role: 'system', content: systemPrompt },
-      // { //Anthropic-specific prompt caching
-      //   role: 'system', 
-      //   content: [
-      //     { 
-      //       type: 'text', 
-      //       text: systemPrompt,
-      //       // @ts-expect-error - Anthropic-specific cache control for prompt caching
-      //       cache_control: { type: 'ephemeral' }
-      //     }
-      //   ]
-      // },
       { role: 'user', content: userMessage }
     ],
-    // reasoning: {
-    //   enabled: false
-    // },
-    temperature: 0.7,
-    // max_tokens: 2000,
+    temperature: 0.4,
   })
 
   const generatedCode = completion.choices[0]?.message?.content?.trim() || ''
-  
-  // Clean up the response - remove markdown code fences if present
-  return generatedCode
-    .replace(/```(?:javascript|js|strudel)?\n?/g, '')
-    .replace(/```\n?/g, '')
-    .replaceAll("gm_electric_piano_1", "gm_epiano1") //I don't know why it loves using this wrong instrument name
-    .trim()
-}
+  const validated = validateGeneratedCode(generatedCode, currentPattern)
+  if ('error' in validated) {
+    throw new Error(validated.error)
+  }
 
+  return validated.code
+}

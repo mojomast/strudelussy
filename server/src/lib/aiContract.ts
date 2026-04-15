@@ -1,0 +1,289 @@
+export interface AIResponseContract {
+  message: string
+  code: string
+  diff_summary: string
+  has_code_change: boolean
+}
+
+export const MAX_CODE_LENGTH = 8000
+export const MAX_CODE_LINES = 240
+
+const UNSUPPORTED_METHOD_NAMES = ['bend', 'stutter', 'bounce', 'pingpong', 'trancegate', 'rlpf', 'acidenv'] as const
+const UNSUPPORTED_METHOD_PATTERN = new RegExp(`\\.(${UNSUPPORTED_METHOD_NAMES.join('|')})\\s*\\(`, 'g')
+const SOMETIMES_BY_SINGLE_ARG_PATTERN = /\.sometimesBy\s*\(\s*[^,()]+\s*\)/g
+
+export const unsupportedSoundNames = ['chirp', 'bongo', 'conga', 'timbale', 'cowbell', 'tambourine', 'clap2']
+
+export const VERIFIED_BANK_VOICES: Record<string, string[]> = {
+  RolandTR808: ['bd', 'sd', 'hh', 'oh', 'cp', 'lt', 'mt', 'ht', 'cb', 'cy', 'cl', 'rs', 'ma'],
+  RolandTR909: ['bd', 'sd', 'hh', 'oh', 'cp', 'lt', 'mt', 'ht', 'rim', 'cb'],
+  RolandTR707: ['bd', 'sd', 'hh', 'oh', 'cp', 'lt', 'ht', 'cy', 'rs'],
+  AkaiLinn: ['bd', 'sd', 'hh', 'oh', 'cp', 'tm', 'lt', 'mt', 'ht', 'cy'],
+}
+
+interface SanitizedCodeResult {
+  code: string
+  substitutions: string[]
+  blockingIssue: string | null
+}
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+const normalizeNewlines = (value: string) => value.replace(/\r\n?/g, '\n')
+
+export const normalizeCodeForComparison = (value: string) => normalizeNewlines(value).trim()
+
+export const stripMarkdownFences = (value: string) => value
+  .replace(/```(?:json|javascript|js|strudel)?\n?/gi, '')
+  .replace(/```\n?/g, '')
+
+export const extractFirstJsonObject = (value: string): string | null => {
+  let start = -1
+  let depth = 0
+  let inString = false
+  let isEscaped = false
+
+  for (let index = 0; index < value.length; index += 1) {
+    const char = value[index]
+
+    if (start === -1) {
+      if (char === '{') {
+        start = index
+        depth = 1
+      }
+      continue
+    }
+
+    if (inString) {
+      if (isEscaped) {
+        isEscaped = false
+        continue
+      }
+
+      if (char === '\\') {
+        isEscaped = true
+        continue
+      }
+
+      if (char === '"') {
+        inString = false
+      }
+      continue
+    }
+
+    if (char === '"') {
+      inString = true
+      continue
+    }
+
+    if (char === '{') {
+      depth += 1
+      continue
+    }
+
+    if (char === '}') {
+      depth -= 1
+      if (depth === 0) {
+        return value.slice(start, index + 1)
+      }
+    }
+  }
+
+  return null
+}
+
+const dedupe = (items: string[]) => Array.from(new Set(items))
+
+const contractFailure = (message: string): AIResponseContract => ({
+  message,
+  code: '',
+  diff_summary: '',
+  has_code_change: false,
+})
+
+export const sanitizeStrudelCode = (input: string): SanitizedCodeResult => {
+  let code = normalizeNewlines(stripMarkdownFences(input)).trim()
+  const substitutions: string[] = []
+  const blockingIssues: string[] = []
+
+  if (!code) {
+    return {
+      code: '',
+      substitutions,
+      blockingIssue: 'Generated code was empty.',
+    }
+  }
+
+  const unsupportedMethods = dedupe(Array.from(code.matchAll(UNSUPPORTED_METHOD_PATTERN), (match) => `.${match[1]}()`))
+  if (unsupportedMethods.length > 0) {
+    blockingIssues.push(`Unsupported Strudel methods detected: ${unsupportedMethods.join(', ')}.`)
+  }
+
+  if (SOMETIMES_BY_SINGLE_ARG_PATTERN.test(code)) {
+    blockingIssues.push('`.sometimesBy()` must include both a probability and a transform.')
+  }
+
+  if (/\bawait\s+/.test(code)) {
+    code = code.replace(/\bawait\s+/g, '')
+    substitutions.push('Removed stray `await` from generated Strudel code.')
+  }
+
+  if (/\bgm_electric_piano_1\b/.test(code)) {
+    code = code.replace(/\bgm_electric_piano_1\b/g, 'gm_epiano1')
+    substitutions.push('Mapped `gm_electric_piano_1` to `gm_epiano1`.')
+  }
+
+  for (const soundName of unsupportedSoundNames) {
+    const pattern = new RegExp(`\\b${escapeRegExp(soundName)}\\b`, 'g')
+    if (!pattern.test(code)) continue
+    code = code.replace(pattern, 'hh')
+    substitutions.push(`Mapped unsupported percussion \`${soundName}\` to \`hh\`.`)
+  }
+
+  code = code.replace(
+    /s\("([a-z]+)\(([^\"]*)\)"\)\.bank\("([^\"]+)"\)/g,
+    (match, voice: string, steps: string, bank: string) => {
+      const validVoices = VERIFIED_BANK_VOICES[bank]
+      if (!validVoices) {
+        blockingIssues.push(`Unsupported drum bank \`${bank}\`. Use one of the verified banks only.`)
+        return match
+      }
+      if (validVoices.includes(voice)) return match
+      const fallbackVoice = validVoices.includes('bd') ? 'bd' : validVoices[0]
+      substitutions.push(`Mapped invalid voice \`${bank}.${voice}\` to \`${bank}.${fallbackVoice}\`.`)
+      return `s("${fallbackVoice}(${steps})").bank("${bank}")`
+    },
+  )
+
+  for (const bank of dedupe(Array.from(code.matchAll(/\.bank\("([^\"]+)"\)/g), (match) => match[1]))) {
+    if (!VERIFIED_BANK_VOICES[bank]) {
+      blockingIssues.push(`Unsupported drum bank \`${bank}\`. Use one of the verified banks only.`)
+    }
+  }
+
+  return {
+    code,
+    substitutions: dedupe(substitutions),
+    blockingIssue: blockingIssues.length > 0 ? dedupe(blockingIssues).join(' ') : null,
+  }
+}
+
+export const parseChatJsonResponse = (content: string, currentCode: string): AIResponseContract => {
+  const cleaned = stripMarkdownFences(content).trim()
+  const jsonCandidate = cleaned.startsWith('{') ? extractFirstJsonObject(cleaned) ?? cleaned : extractFirstJsonObject(cleaned)
+
+  if (!jsonCandidate) {
+    return contractFailure('The model returned text instead of the required JSON object. Ask again with a smaller, more specific request.')
+  }
+
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(jsonCandidate)
+  } catch {
+    return contractFailure('The model returned malformed JSON. Ask again with a smaller, more specific request.')
+  }
+
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    return contractFailure('The model JSON did not match the required response object.')
+  }
+
+  const response = parsed as Record<string, unknown>
+  if (
+    typeof response.message !== 'string'
+    || typeof response.code !== 'string'
+    || typeof response.diff_summary !== 'string'
+    || typeof response.has_code_change !== 'boolean'
+  ) {
+    return contractFailure('The model JSON did not match the required schema with message, code, diff_summary, and has_code_change.')
+  }
+
+  const message = response.message.trim() || 'Updated the project.'
+  const diffSummary = response.diff_summary.trim()
+
+  if (!response.has_code_change) {
+    return {
+      message,
+      code: '',
+      diff_summary: '',
+      has_code_change: false,
+    }
+  }
+
+  if (!response.code.trim()) {
+    return contractFailure('The model claimed to change code but did not include the full updated Strudel project.')
+  }
+
+  const sanitized = sanitizeStrudelCode(response.code)
+  if (sanitized.blockingIssue) {
+    return contractFailure(`${message} ${sanitized.blockingIssue}`.trim())
+  }
+
+  const nextCode = sanitized.code
+  const lineCount = nextCode.split('\n').length
+  if (nextCode.length > MAX_CODE_LENGTH || lineCount > MAX_CODE_LINES) {
+    return contractFailure('The proposed code change is too large to review safely. Ask for a smaller, more focused edit.')
+  }
+
+  if (normalizeCodeForComparison(nextCode) === normalizeCodeForComparison(currentCode)) {
+    return {
+      message,
+      code: '',
+      diff_summary: '',
+      has_code_change: false,
+    }
+  }
+
+  const substitutionMessage = sanitized.substitutions.join(' ')
+
+  return {
+    message: substitutionMessage ? `${message} ${substitutionMessage}`.trim() : message,
+    code: nextCode,
+    diff_summary: diffSummary || 'Updated the Strudel pattern.',
+    has_code_change: true,
+  }
+}
+
+export const extractGeneratedCode = (content: string): string => {
+  const cleaned = stripMarkdownFences(content).trim()
+  const jsonCandidate = cleaned.startsWith('{') ? extractFirstJsonObject(cleaned) ?? cleaned : null
+
+  if (!jsonCandidate) {
+    return cleaned
+  }
+
+  try {
+    const parsed = JSON.parse(jsonCandidate) as Record<string, unknown>
+    if (typeof parsed.code === 'string') {
+      return parsed.code.trim()
+    }
+  } catch {
+    return cleaned
+  }
+
+  return cleaned
+}
+
+export const validateGeneratedCode = (content: string, currentPattern?: string): { code: string } | { error: string } => {
+  const candidate = extractGeneratedCode(content)
+  const sanitized = sanitizeStrudelCode(candidate)
+
+  if (sanitized.blockingIssue) {
+    return { error: sanitized.blockingIssue }
+  }
+
+  const code = sanitized.code
+  const lineCount = code.split('\n').length
+  if (!code) {
+    return { error: 'The generator returned an empty pattern.' }
+  }
+
+  if (code.length > MAX_CODE_LENGTH || lineCount > MAX_CODE_LINES) {
+    return { error: 'The generator returned too much code. Ask for a smaller, more focused pattern.' }
+  }
+
+  if (currentPattern && normalizeCodeForComparison(code) === normalizeCodeForComparison(currentPattern)) {
+    return { error: 'The generator returned the same pattern unchanged. Ask for a more specific edit or retry.' }
+  }
+
+  return { code }
+}

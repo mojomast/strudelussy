@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import http.client
 import os
+import select
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from socket import timeout as SocketTimeout
 from urllib.parse import urlsplit
@@ -73,17 +74,38 @@ class PublicProxyHandler(SimpleHTTPRequestHandler):
 
             connection.request(self.command, self.path, body=body, headers=headers)
             response = connection.getresponse()
-            payload = response.read()
 
             self.send_response(response.status)
+            is_sse = response.getheader("Content-Type", "").startswith("text/event-stream")
             for key, value in response.getheaders():
                 if key.lower() in {"transfer-encoding", "connection", "keep-alive"}:
                     continue
                 self.send_header(key, value)
+            if is_sse:
+                self.send_header("Cache-Control", "no-cache")
             self.end_headers()
 
-            if self.command != "HEAD":
-                self.wfile.write(payload)
+            if self.command == "HEAD":
+                return
+
+            if is_sse:
+                self.close_connection = False
+                while True:
+                    ready, _, _ = select.select([response.fp], [], [], 15)
+                    if not ready:
+                        self.wfile.write(b": proxy-keepalive\n\n")
+                        self.wfile.flush()
+                        continue
+
+                    chunk = response.fp.read1(4096)
+                    if not chunk:
+                        break
+                    self.wfile.write(chunk)
+                    self.wfile.flush()
+                return
+
+            payload = response.read()
+            self.wfile.write(payload)
         except (ConnectionRefusedError, http.client.HTTPException, OSError, SocketTimeout):
             payload = b'{"error":"upstream unavailable"}'
             self.send_response(502)

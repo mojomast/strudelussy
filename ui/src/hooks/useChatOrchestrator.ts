@@ -17,7 +17,7 @@ import {
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
-import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SavedPromptPreset, SectionMarker, SystemPromptMode } from '@/types/project'
+import type { ChatMessage, ChatStreamErrorInfo, CodeDiff, CodeVersion, ExtractedParam, Project, SavedPromptPreset, SectionMarker, SystemPromptMode } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
 
@@ -69,8 +69,34 @@ Decision ladder:
 const EMPTY_RESPONSE_PATTERNS = [
   'empty response',
   'streaming chat ended before final response was received',
+  'streaming chat ended without a final structured response',
   'llm returned an empty response',
 ]
+
+const RATE_LIMIT_PATTERN = /rate limit/i
+const HIGH_DEMAND_PATTERN = /high demand|try again shortly/i
+
+const getFriendlyChatError = (error: ChatStreamErrorInfo | Error | unknown) => {
+  const message = error instanceof Error ? error.message : (error as ChatStreamErrorInfo | undefined)?.message || 'Something went wrong. Please try again.'
+  const lowerMessage = message.toLowerCase()
+
+  if (RATE_LIMIT_PATTERN.test(message)) {
+    const retryAfter = (error as ChatStreamErrorInfo | { retryAfter?: number } | undefined)?.retryAfter
+    return retryAfter
+      ? `Rate limit reached. Wait about ${retryAfter} seconds, then try again.`
+      : 'Rate limit reached. Wait a moment, then try again.'
+  }
+
+  if (HIGH_DEMAND_PATTERN.test(lowerMessage)) {
+    return 'The AI service is under heavy load right now. Retry in a moment.'
+  }
+
+  if (lowerMessage.includes('malformed streaming event')) {
+    return 'The stream glitched before the final patch arrived. Retry the prompt once.'
+  }
+
+  return message
+}
 
 const estimateTokens = (text: string) => Math.ceil(text.length / 4)
 
@@ -186,6 +212,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [lastSharedAt, setLastSharedAt] = useState<string | null>(null)
   const [chatSummary, setChatSummary] = useState<string | null>(null)
   const [approxTokenUsage, setApproxTokenUsage] = useState(0)
+  const [chatStatus, setChatStatus] = useState<string | null>(null)
+  const [chatError, setChatError] = useState<string | null>(null)
   const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null)
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
   const [isEditorInitializing, setIsEditorInitializing] = useState(false)
@@ -564,6 +592,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
     pendingSendContentsRef.current.add(trimmedContent)
     setIsSending(true)
+    setChatError(null)
+    setChatStatus('Connecting to the AI stream...')
     const userMessage: ChatMessage = {
       id: createId(),
       role: 'user',
@@ -610,9 +640,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         tags: currentProject.tags,
       },
     }
+    let requestEndedWithError = false
 
     const runChatOnce = async () => api.chatStream(payload, userId, {
       onChunk: (chunk) => {
+        setChatStatus('Streaming response...')
         bufferedStreamContentRef.current += chunk
         const now = performance.now()
 
@@ -640,6 +672,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         flushBufferedChunk()
       },
       onDone: (finalResponse) => {
+        setChatStatus(finalResponse.has_code_change ? 'Patch ready for review.' : 'Response ready.')
         const assistantMessage: ChatMessage = {
           id: streamingAssistantId,
           role: 'assistant',
@@ -664,6 +697,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
             void onApplyDiff(assistantMessage.id, assistantMessage.code_diff)
           }
         }
+      },
+      onStreamError: (error) => {
+        requestEndedWithError = true
+        setChatError(getFriendlyChatError(error))
       },
     })
 
@@ -691,7 +728,10 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
         }
       }
     } catch (error) {
-      const errorText = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+      requestEndedWithError = true
+      const errorText = getFriendlyChatError(error)
+      setChatError(errorText)
+      setChatStatus(null)
       const messages = useProjectStore.getState().chatMessages.map((message) =>
         message.id === streamingAssistantId
           ? { ...message, content: `⚠️ ${errorText}`, status: 'error' as const }
@@ -701,6 +741,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     } finally {
       setIsSending(false)
       pendingSendContentsRef.current.delete(trimmedContent)
+      if (!requestEndedWithError) {
+        window.setTimeout(() => setChatStatus((current) => (current === 'Patch ready for review.' || current === 'Response ready.' ? null : current)), 2500)
+      }
     }
   }, [actions, currentProject, customProvider, customSystemPrompt, getCurrentCode, onApplyDiff, selectedModel, systemPromptMode, userId, yoloMode])
 
@@ -1125,6 +1168,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     lastSharedAt,
     chatSummary,
     approxTokenUsage,
+    chatStatus,
+    chatError,
     editorContainerRef,
     registerEditor,
     onSend,

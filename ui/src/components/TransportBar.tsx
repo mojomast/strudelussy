@@ -49,7 +49,7 @@ const TransportBar = ({
             {isSaving ? 'Saving...' : isDirty ? 'Save Version' : 'Saved'}
           </Button>
           <span className={`max-w-full truncate rounded-full px-3 py-2 text-xs ${error ? 'bg-red-950/70 text-red-300' : 'bg-zinc-950 text-zinc-400'}`}>
-            {error ? `Error: ${error}` : 'Engine ready'}
+            {error ? `Attention: ${error}` : 'Engine ready'}
           </span>
         </div>
 
