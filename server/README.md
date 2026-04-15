@@ -70,5 +70,5 @@ pnpm exec tsc --noEmit
 - The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `strudelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
 - The chat route can also append a user-authored custom system prompt override on top of the selected base prompt.
 - Only the last 20 non-system chat messages are forwarded to the LLM on each request.
-- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code. The Strudelussy prompt uses the same verified bank/voice table to reduce prompt/runtime drift.
+- The sanitizer strips unsupported patterns like `.bend()`, `.stutter()`, `.bounce()`, `.pingpong()`, `.trancegate()`, `.rlpf()`, `.acidenv()`, malformed one-argument `.sometimesBy()` calls, removes stray `await`, replaces unsupported sound names like `chirp`, remaps invalid bank+voice combos to safe fallbacks, and rejects oversized generated code. The Strudelussy prompt uses the same verified bank/voice table to reduce prompt/runtime drift.
 - Firebase auth and Supabase are still planned follow-up work from the full spec.
