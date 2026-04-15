@@ -25,8 +25,6 @@ const HomePage = () => {
       topbar={
         <ProjectTopbar
           projectName={orchestrator.currentProject.name}
-          bpm={orchestrator.currentProject.bpm}
-          musicalKey={orchestrator.currentProject.key}
           masterVolume={orchestrator.masterVolume}
           customApiEndpoint={orchestrator.customApiEndpoint}
           customApiKey={orchestrator.customApiKey}
@@ -39,8 +37,6 @@ const HomePage = () => {
           isLoadingModels={orchestrator.isLoadingModels}
           modelLoadError={orchestrator.modelLoadError}
           onProjectNameChange={orchestrator.onProjectNameChange}
-          onBpmChange={orchestrator.onBpmChange}
-          onKeyChange={orchestrator.onProjectKeyChange}
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}
           onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
           onCustomApiKeyChange={orchestrator.onCustomApiKeyChange}
@@ -108,6 +104,8 @@ const HomePage = () => {
           cycleInfo={orchestrator.cycleInfo}
           shareUrl={orchestrator.shareUrl}
           pendingPatchCount={pendingPatchCount}
+          onBpmChange={orchestrator.onBpmChange}
+          onKeyChange={orchestrator.onProjectKeyChange}
           onTrackGainChange={orchestrator.onTrackGainChange}
           onTrackGainCommit={orchestrator.onTrackGainCommit}
           onTrackPanChange={orchestrator.onTrackPanChange}

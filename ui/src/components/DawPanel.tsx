@@ -16,6 +16,8 @@ interface DawPanelProps {
   isEditorInitialized: boolean
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null
+  onBpmChange: (bpm: number) => void
+  onKeyChange: (key: string) => void
   shareUrl: string | null
   pendingPatchCount: number
   onTrackGainChange: (tg: TrackGain, value: number) => void
@@ -28,16 +30,35 @@ interface DawPanelProps {
 
 const DawPanel = ({
   project, sections, params, isEditorInitialized, isEditorInitializing,
-  cycleInfo, pendingPatchCount,
+  cycleInfo, pendingPatchCount, onBpmChange, onKeyChange,
   onTrackGainChange, onTrackGainCommit, onTrackPanChange, onTrackPanCommit,
   onInjectCode, onApplyCode,
 }: DawPanelProps) => {
   const trackGains = parseTrackGains(project.strudel_code)
+  const bpm = project.bpm ?? 120
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
 
       <div className="flex flex-col gap-0 divide-y divide-zinc-900 p-3 space-y-3">
+
+        <div className="flex items-center gap-2 pb-3">
+          <label className="flex h-8 items-center gap-2 rounded-xl border border-zinc-800 bg-black/50 px-2 text-xs text-zinc-400">
+            BPM
+            <input
+              type="number"
+              value={bpm}
+              onChange={(event) => onBpmChange(Number(event.target.value) || 120)}
+              className="w-16 bg-transparent text-right text-white outline-none"
+            />
+          </label>
+          <input
+            value={project.key ?? ''}
+            onChange={(event) => onKeyChange(event.target.value)}
+            placeholder="Key / scale"
+            className="h-8 min-w-[120px] rounded-xl border border-zinc-800 bg-black/50 px-2 text-xs text-white outline-none transition focus:border-cyan-500"
+          />
+        </div>
 
         {/* Telemetry row */}
         <div className="grid grid-cols-4 gap-2 pb-3 text-center text-xs">

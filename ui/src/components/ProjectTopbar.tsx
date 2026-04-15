@@ -1,12 +1,9 @@
 import type { SavedPromptPreset, SystemPromptMode } from '@/types/project'
-import { useCallback, useRef } from 'react'
 import { Disc3 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface ProjectTopbarProps {
   projectName: string
-  bpm?: number
-  musicalKey?: string
   masterVolume: number
   customApiEndpoint: string
   customApiKey: string
@@ -19,8 +16,6 @@ interface ProjectTopbarProps {
   isLoadingModels: boolean
   modelLoadError: string | null
   onProjectNameChange: (name: string) => void
-  onBpmChange: (bpm: number) => void
-  onKeyChange: (key: string) => void
   onMasterVolumeChange: (volume: number) => void
   onCustomApiEndpointChange: (endpoint: string) => void
   onCustomApiKeyChange: (apiKey: string) => void
@@ -45,8 +40,6 @@ const toolbarInputClass = 'h-8 rounded-xl border border-zinc-800 bg-zinc-950/70 
 
 const ProjectTopbar = ({
   projectName,
-  bpm,
-  musicalKey,
   masterVolume,
   customApiEndpoint,
   customApiKey,
@@ -59,8 +52,6 @@ const ProjectTopbar = ({
   isLoadingModels,
   modelLoadError,
   onProjectNameChange,
-  onBpmChange,
-  onKeyChange,
   onMasterVolumeChange,
   onCustomApiEndpointChange,
   onCustomApiKeyChange,
@@ -80,22 +71,6 @@ const ProjectTopbar = ({
   onShare,
   onToggleShortcuts,
 }: ProjectTopbarProps) => {
-  const tapTimesRef = useRef<number[]>([])
-
-  const handleTapTempo = useCallback(() => {
-    const now = Date.now()
-    const recent = tapTimesRef.current.filter((timestamp) => now - timestamp <= 3000)
-    const next = [...recent, now]
-    tapTimesRef.current = next
-
-    if (next.length < 3) return
-
-    const intervals = next.slice(1).map((timestamp, index) => timestamp - next[index])
-    const averageInterval = intervals.reduce((sum, interval) => sum + interval, 0) / intervals.length
-    const nextBpm = Math.round(60000 / averageInterval)
-    onBpmChange(Math.min(240, Math.max(40, nextBpm)))
-  }, [onBpmChange])
-
   return (
     <header className="rounded-2xl border border-zinc-900 bg-black/60 px-3 py-2 backdrop-blur-xl sm:px-4">
       <div className="flex flex-col gap-2">
@@ -239,28 +214,6 @@ const ProjectTopbar = ({
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 overflow-x-auto">
-          <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
-            <label className="flex h-8 items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-950/70 px-2 text-xs text-zinc-400">
-              BPM
-              <input
-                type="number"
-                value={bpm ?? ''}
-                onChange={(event) => onBpmChange(Number(event.target.value) || 120)}
-                className="w-16 bg-transparent text-right text-white outline-none"
-              />
-            </label>
-            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={handleTapTempo}>
-              Tap
-            </Button>
-            <input
-              value={musicalKey ?? ''}
-              onChange={(event) => onKeyChange(event.target.value)}
-              placeholder="Key / scale"
-              className={`${toolbarInputClass} min-w-[120px] focus:border-cyan-500`}
-            />
-          </div>
-        </div>
       </div>
     </header>
   )
