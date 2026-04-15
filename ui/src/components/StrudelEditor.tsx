@@ -1,3 +1,8 @@
+/**
+ * // What changed:
+ * // - Added editor input forwarding so tutorial inactivity tracking follows real typing
+ */
+
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
 import { StrudelMirror } from '@strudel/codemirror'
@@ -338,7 +343,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           })
 
           strudelMirrorRef.current = editor
-          
+
           // Enable tab indentation in the editor
           editor.reconfigureExtension('isTabIndentationEnabled', true)
           
@@ -557,6 +562,20 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
       // Don't reset initializationRef to prevent StrictMode double-init
     }
   }, [])
+
+  useEffect(() => {
+    const root = editorRef.current
+    if (!root || !onCodeChange) {
+      return
+    }
+
+    const handleInput = () => {
+      onCodeChange(strudelMirrorRef.current?.code ?? '')
+    }
+
+    root.addEventListener('input', handleInput, true)
+    return () => root.removeEventListener('input', handleInput, true)
+  }, [onCodeChange])
 
   // Update code when initialCode prop changes
   useEffect(() => {

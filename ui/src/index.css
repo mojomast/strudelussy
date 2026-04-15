@@ -1,11 +1,9 @@
 /* ============================================================================
    strudelussy — Design System v2 ("Ussy Mode")
 
-   // What changed (Sprint 2 — Phase 5):
-   // - Transport pulse animation replaced with spec-compliant ussy-pulse-ring
-   //   (expanding box-shadow ring instead of glowing pulse)
-   // - Added ussy-token-red-pulse keyframes and class for token pill warning
-   // - Both pulse animations respect prefers-reduced-motion
+   // What changed:
+   // - Added tutorial confetti and shake animations
+   // - Preserved all existing --ussy-* tokens and reduced-motion behavior
    ============================================================================ */
 
 @tailwind base;
@@ -447,4 +445,45 @@ body {
 
 .animate-unfold {
   animation: unfold 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes confetti-fall {
+  0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(60px) rotate(720deg); opacity: 0; }
+}
+
+.tutorial-confetti span {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  animation: confetti-fall 0.8s ease-out forwards;
+}
+
+.tutorial-confetti span:nth-child(1) { left: 10%; background: var(--ussy-accent); animation-delay: 0ms; }
+.tutorial-confetti span:nth-child(2) { left: 25%; background: var(--ussy-accent-bright); animation-delay: 60ms; }
+.tutorial-confetti span:nth-child(3) { left: 40%; background: var(--ussy-accent); animation-delay: 120ms; }
+.tutorial-confetti span:nth-child(4) { left: 55%; background: var(--ussy-text); animation-delay: 30ms; }
+.tutorial-confetti span:nth-child(5) { left: 70%; background: var(--ussy-accent); animation-delay: 90ms; }
+.tutorial-confetti span:nth-child(6) { left: 85%; background: var(--ussy-accent-bright); animation-delay: 150ms; }
+.tutorial-confetti span:nth-child(7) { left: 50%; background: var(--ussy-text-muted); animation-delay: 45ms; }
+.tutorial-confetti span:nth-child(8) { left: 15%; background: var(--ussy-accent-dim); animation-delay: 75ms; }
+
+@keyframes tutorial-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+.tutorial-shake {
+  animation: tutorial-shake 0.4s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-confetti span,
+  .tutorial-shake {
+    animation: none;
+  }
 }

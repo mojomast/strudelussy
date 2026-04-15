@@ -1,18 +1,10 @@
 /**
  * HomePage – root page for the Strudelussy DAW.
  *
- * // What changed (Sprint 2):
- * // - BUG FIX: vizPanel now renders a lazy-loaded HalVisualization
- * //   wrapped in Suspense instead of being hardcoded to null
- * // - versionPanel props are now passed through to DawPanel
- * // - BPM and Key props wired from currentProject to ProjectTopbar
- *
- * Supports two UI modes toggled via a floating pill (bottom-right) or
- * the keyboard shortcut Cmd/Ctrl+Shift+L:
- *   • "ussy"  – the new DAWShell layout (default)
- *   • "legacy" – the classic LegacyDAWShell layout
- *
- * Both shells receive the exact same props; only the rendered component differs.
+ * // What changed:
+ * // - Wired the tutorial feature at the page level via useTutorial()
+ * // - Passed tutorial props into ChatPanel and rendered TutorialOverlay at the shell root
+ * // - Added Cmd/Ctrl+Shift+T handling to toggle the Learn tab
  */
 
 import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
@@ -26,6 +18,7 @@ import LegacyDAWShell from '@/components/LegacyDAWShell'
 import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
+import { TutorialOverlay, useTutorial } from '@/features/tutorial'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
 
 const HalVisualization = lazy(() => import('@/components/HalVisualization'))
@@ -38,8 +31,8 @@ const HomePage = () => {
   const [uiMode, setUiMode] = useState<UIMode>('ussy')
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
+  const tutorial = useTutorial()
 
-  // ── Keyboard shortcut: Cmd/Ctrl + Shift + L toggles UI mode ──────────
   const toggleUiMode = useCallback(() => {
     setUiMode((prev) => (prev === 'ussy' ? 'legacy' : 'ussy'))
   }, [])
@@ -50,13 +43,21 @@ const HomePage = () => {
         e.preventDefault()
         toggleUiMode()
       }
+
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault()
+        if (tutorial.state.activeTab === 'learn') {
+          tutorial.setActiveTab('chat')
+        } else {
+          tutorial.openTutorial()
+        }
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [toggleUiMode])
+  }, [toggleUiMode, tutorial])
 
-  // ── Loading guard ────────────────────────────────────────────────────
   if (orchestrator.isLoadingProject || !orchestrator.currentProject) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[var(--ussy-bg)] text-[var(--ussy-text-muted)]">
@@ -68,7 +69,6 @@ const HomePage = () => {
   const { currentProject, sections, params, pendingDiffs, isPlaying } = orchestrator
   const pendingPatchCount = pendingDiffs.size
 
-  // ── Version panel props (shared between shellProps and DawPanel) ─────
   const versionPanelProps = {
     versions: currentProject.versions,
     isLoading: orchestrator.isLoadingVersions,
@@ -79,7 +79,6 @@ const HomePage = () => {
       void orchestrator.onRestoreVersion(version),
   } as const
 
-  // ── Shared props for both DAWShell and LegacyDAWShell ────────────────
   const shellProps = {
     topbar: (
       <ProjectTopbar
@@ -138,6 +137,29 @@ const HomePage = () => {
         onRejectDiff={(messageId) => orchestrator.onRejectDiff(messageId)}
         onPreviewDiff={orchestrator.onPreviewDiff}
         onStopPreview={(messageId) => orchestrator.onStopPreview(messageId)}
+        tutorial={{
+          onInjectCode: orchestrator.onApplyGeneratedCode,
+          getEditorCode: () => orchestrator.currentProject?.strudel_code ?? '',
+          state: tutorial.state,
+          currentLesson: tutorial.currentLesson,
+          currentChapter: tutorial.currentChapter,
+          chapterProgress: tutorial.chapterProgress,
+          isChapterUnlocked: tutorial.isChapterUnlocked,
+          incompleteCount: tutorial.incompleteCount,
+          nextLesson: tutorial.nextLesson,
+          prevLesson: tutorial.prevLesson,
+          completeLesson: tutorial.completeLesson,
+          validateLesson: tutorial.validateLesson,
+          revealNextHint: tutorial.revealNextHint,
+          resetActivityTimer: tutorial.resetActivityTimer,
+          openProgressMap: tutorial.openProgressMap,
+          closeProgressMap: tutorial.closeProgressMap,
+          openTutorial: tutorial.openTutorial,
+        }}
+        activeTab={tutorial.state.activeTab}
+        onActiveTabChange={tutorial.setActiveTab}
+        incompleteCount={tutorial.incompleteCount}
+        openTutorial={tutorial.openTutorial}
       />
     ),
     editorPanel: (
@@ -154,7 +176,10 @@ const HomePage = () => {
         cycleInfo={orchestrator.cycleInfo}
         onEditorReady={orchestrator.registerEditor}
         onAnalyserReady={orchestrator.onEditorAnalyserReady}
-        onCodeChange={orchestrator.onEditorCodeChange}
+        onCodeChange={(code) => {
+          orchestrator.onEditorCodeChange(code)
+          tutorial.resetActivityTimer()
+        }}
         onPlayStateChange={orchestrator.onEditorPlayStateChange}
         onInitStateChange={orchestrator.setEditorInitState}
         onStrudelError={orchestrator.onEditorStrudelError}
@@ -216,21 +241,22 @@ const HomePage = () => {
     ),
     versionPanel: versionPanelProps,
     overlay: (
-      <ShortcutsOverlay
-        open={orchestrator.showShortcuts}
-        onOpenChange={orchestrator.setShowShortcuts}
-      />
+      <>
+        <ShortcutsOverlay
+          open={orchestrator.showShortcuts}
+          onOpenChange={orchestrator.setShowShortcuts}
+        />
+        <TutorialOverlay lesson={tutorial.currentLesson} isOpen={tutorial.state.activeTab === 'learn'} />
+      </>
     ),
   } as const
 
-  // ── Render ───────────────────────────────────────────────────────────
   const Shell = uiMode === 'legacy' ? LegacyDAWShell : DAWShell
 
   return (
     <>
       <Shell {...shellProps} />
 
-      {/* ── Floating UI-mode toggle (bottom-right) ─────────────────────── */}
       {uiMode === 'legacy' ? (
         <div className="fixed bottom-4 right-14 z-50 flex items-center gap-2 rounded-full border border-amber-500/30 bg-amber-950/80 px-4 py-2 text-sm text-amber-200 shadow-lg backdrop-blur-sm">
           <span className="font-medium">Legacy UI</span>

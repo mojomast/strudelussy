@@ -1,12 +1,8 @@
 /**
- * ChatPanel — Session chat interface for AI interaction.
- *
- * // What changed (Sprint 2):
- * // - Added onCollapse callback prop for DAWShell panel collapse integration
- * // - Added onClear callback prop for clearing chat history
- * // - Header bar redesigned with message count badge, clear & collapse buttons
- * // - All colors migrated from hardcoded zinc/purple to --ussy-* design tokens
- * // - Send button and YOLO checkbox now use teal accent instead of purple
+ * // What changed:
+ * // - Added Chat/Learn tab switching and tutorial panel rendering
+ * // - Added AI response deep-links into matching interactive tutorial lessons
+ * // - Preserved existing chat message rendering, diff actions, and composer behavior
  */
 
 import { useEffect, useMemo, useRef, useState } from 'react'
@@ -14,8 +10,8 @@ import { Bot, ChevronLeft, SendHorizonal, Trash2, User2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import DiffPreviewCard from '@/components/DiffPreviewCard'
-import type { CodeDiff } from '@/types/project'
-import type { ChatMessage } from '@/types/project'
+import { FUNCTION_LESSON_MAP, TutorialPanel, type LessonId } from '@/features/tutorial'
+import type { CodeDiff, ChatMessage } from '@/types/project'
 
 interface ChatPanelProps {
   messages: ChatMessage[]
@@ -32,6 +28,11 @@ interface ChatPanelProps {
   onStopPreview: (messageId: string, diff: CodeDiff) => void
   onCollapse?: () => void
   onClear?: () => void
+  tutorial: React.ComponentProps<typeof TutorialPanel>
+  activeTab: 'chat' | 'learn'
+  onActiveTabChange: (tab: 'chat' | 'learn') => void
+  incompleteCount: number
+  openTutorial: (lessonId?: LessonId) => void
 }
 
 const ChatPanel = ({
@@ -49,15 +50,20 @@ const ChatPanel = ({
   onStopPreview,
   onCollapse,
   onClear,
+  tutorial,
+  activeTab,
+  onActiveTabChange,
+  incompleteCount,
+  openTutorial,
 }: ChatPanelProps) => {
   const [value, setValue] = useState('')
   const threadRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const container = threadRef.current
-    if (!container) return
+    if (!container || activeTab !== 'chat') return
     container.scrollTop = container.scrollHeight
-  }, [messages, isSending])
+  }, [activeTab, messages, isSending])
 
   const canSend = useMemo(() => value.trim().length > 0, [value])
 
@@ -70,148 +76,206 @@ const ChatPanel = ({
 
   const messageCount = messages.length
 
+  const getLessonMatch = (message: ChatMessage): { lessonId: LessonId; functionName: string } | null => {
+    if (message.role !== 'assistant') return null
+    const matchedFunction = Object.keys(FUNCTION_LESSON_MAP).find((key) => message.content.includes(key))
+    if (!matchedFunction) return null
+    return {
+      lessonId: FUNCTION_LESSON_MAP[matchedFunction] as LessonId,
+      functionName: matchedFunction,
+    }
+  }
+
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface)]">
-      {/* Header bar */}
-      <div className="flex items-center gap-2 border-b border-[var(--ussy-divider)] px-3 py-2.5">
-        <p className="flex-1 text-sm font-semibold text-[var(--ussy-text)]">Session Chat</p>
-        <span className="rounded-full bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
-          {messageCount} msg{messageCount !== 1 ? 's' : ''}
-        </span>
-        {onClear && (
+      <div className="border-b border-[var(--ussy-divider)]">
+        <div className="flex items-center gap-2 px-3 py-2.5">
+          <p className="flex-1 text-sm font-semibold text-[var(--ussy-text)]">Session Chat</p>
+          <span className="rounded-full bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
+            {messageCount} msg{messageCount !== 1 ? 's' : ''}
+          </span>
+          {onClear ? (
+            <button
+              onClick={onClear}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+              aria-label="Clear chat history"
+              title="Clear chat"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          {onCollapse ? (
+            <button
+              onClick={onCollapse}
+              className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+              aria-label="Collapse chat panel"
+              title="Collapse"
+            >
+              <ChevronLeft className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex border-t border-[var(--ussy-divider)] px-1">
           <button
-            onClick={onClear}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
-            aria-label="Clear chat history"
-            title="Clear chat"
+            className={`px-4 py-2 text-xs font-medium ${
+              activeTab === 'chat'
+                ? 'border-b-2 border-[var(--ussy-accent)] text-[var(--ussy-text)]'
+                : 'text-[var(--ussy-text-muted)] hover:text-[var(--ussy-text)]'
+            }`}
+            onClick={() => onActiveTabChange('chat')}
           >
-            <Trash2 className="h-3.5 w-3.5" />
+            Chat
           </button>
-        )}
-        {onCollapse && (
           <button
-            onClick={onCollapse}
-            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
-            aria-label="Collapse chat panel"
-            title="Collapse"
+            className={`relative px-4 py-2 text-xs font-medium ${
+              activeTab === 'learn'
+                ? 'border-b-2 border-[var(--ussy-accent)] text-[var(--ussy-text)]'
+                : 'text-[var(--ussy-text-muted)] hover:text-[var(--ussy-text)]'
+            }`}
+            onClick={() => onActiveTabChange('learn')}
           >
-            <ChevronLeft className="h-3.5 w-3.5" />
+            Learn
+            {incompleteCount > 0 ? (
+              <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[var(--ussy-accent)] text-[8px] text-black">
+                {Math.min(incompleteCount, 9)}
+              </span>
+            ) : null}
           </button>
-        )}
+        </div>
       </div>
 
-      {/* Message thread */}
-      <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
-        {messages.map((message) => (
-          <div key={message.id} className="space-y-3">
-            <div className="flex gap-3">
-              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text-muted)]">
-                {message.role === 'user' ? <User2 className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--ussy-text-muted)]">
-                  <span>{message.role}</span>
-                  <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                </div>
-                <div className="mt-2 whitespace-pre-wrap rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3 text-sm text-[var(--ussy-text)]">
-                  {message.role === 'assistant' &&
-                   !message.status &&
-                   !message.code_diff &&
-                   message.content.trimStart().startsWith('{')
-                    ? '\u2726 Composing...'
-                    : message.content}
-                </div>
-              </div>
-            </div>
+      {activeTab === 'learn' ? (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <TutorialPanel {...tutorial} />
+        </div>
+      ) : (
+        <>
+          <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
+            {messages.map((message) => {
+              const lessonMatch = getLessonMatch(message)
 
-            {message.code_diff ? (
-              <div className="pl-11">
-                <DiffPreviewCard
-                  messageId={message.id}
-                  diff={message.code_diff}
-                  status={message.status}
-                  isPreviewing={message.isPreviewing}
-                  onApply={onApplyDiff}
-                  onReject={onRejectDiff}
-                  onPreview={onPreviewDiff}
-                  onStopPreview={onStopPreview}
-                />
+              return (
+                <div key={message.id} className="space-y-3">
+                  <div className="flex gap-3">
+                    <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text-muted)]">
+                      {message.role === 'user' ? <User2 className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--ussy-text-muted)]">
+                        <span>{message.role}</span>
+                        <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                      <div className="mt-2 whitespace-pre-wrap rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3 text-sm text-[var(--ussy-text)]">
+                        {message.role === 'assistant' &&
+                        !message.status &&
+                        !message.code_diff &&
+                        message.content.trimStart().startsWith('{')
+                          ? '\u2726 Composing...'
+                          : message.content}
+                      </div>
+                      {lessonMatch ? (
+                        <button
+                          type="button"
+                          className="mt-2 text-xs text-[var(--ussy-accent)] hover:underline"
+                          onClick={() => openTutorial(lessonMatch.lessonId)}
+                        >
+                          → Learn {lessonMatch.functionName} interactively (Lesson {lessonMatch.lessonId})
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+
+                  {message.code_diff ? (
+                    <div className="pl-11">
+                      <DiffPreviewCard
+                        messageId={message.id}
+                        diff={message.code_diff}
+                        status={message.status}
+                        isPreviewing={message.isPreviewing}
+                        onApply={onApplyDiff}
+                        onReject={onRejectDiff}
+                        onPreview={onPreviewDiff}
+                        onStopPreview={onStopPreview}
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )
+            })}
+
+            {isSending ? (
+              <div className="flex gap-3 pl-1 text-sm text-[var(--ussy-text-muted)]">
+                <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)]">
+                  <Bot className="h-4 w-4" />
+                </div>
+                <div className="rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3">
+                  Streaming response...
+                </div>
               </div>
             ) : null}
           </div>
-        ))}
 
-        {isSending ? (
-          <div className="flex gap-3 pl-1 text-sm text-[var(--ussy-text-muted)]">
-            <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)]">
-              <Bot className="h-4 w-4" />
-            </div>
-            <div className="rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3">
-              Streaming response...
-            </div>
-          </div>
-        ) : null}
-      </div>
+          <div className="border-t border-[var(--ussy-divider)] p-3 sm:p-4">
+            {errorText ? (
+              <div className="mb-3 rounded-xl border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+                {errorText}
+              </div>
+            ) : null}
 
-      {/* Input area */}
-      <div className="border-t border-[var(--ussy-divider)] p-3 sm:p-4">
-        {errorText ? (
-          <div className="mb-3 rounded-xl border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
-            {errorText}
-          </div>
-        ) : null}
+            {statusText && !errorText ? (
+              <div className="mb-3 rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-3 py-2 text-xs text-[var(--ussy-text-muted)]">
+                {statusText}
+              </div>
+            ) : null}
 
-        {statusText && !errorText ? (
-          <div className="mb-3 rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-3 py-2 text-xs text-[var(--ussy-text-muted)]">
-            {statusText}
-          </div>
-        ) : null}
-
-        <Textarea
-          value={value}
-          onChange={(event) => setValue(event.target.value)}
-          onKeyDown={(event) => {
-            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
-              event.preventDefault()
-              void handleSubmit()
-            }
-          }}
-          placeholder="Describe a change, ask for a section, or request a fix..."
-          className="min-h-[84px] resize-none border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text)] placeholder:text-[var(--ussy-text-faint)] focus-visible:ring-[var(--ussy-accent)] sm:min-h-[104px]"
-        />
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <p className="text-xs text-[var(--ussy-text-muted)]">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
-            <div className="flex items-center gap-3">
+            <Textarea
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              onKeyDown={(event) => {
+                if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                  event.preventDefault()
+                  void handleSubmit()
+                }
+              }}
+              placeholder="Describe a change, ask for a section, or request a fix..."
+              className="min-h-[84px] resize-none border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text)] placeholder:text-[var(--ussy-text-faint)] focus-visible:ring-[var(--ussy-accent)] sm:min-h-[104px]"
+            />
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                <p className="text-xs text-[var(--ussy-text-muted)]">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
+                <div className="flex items-center gap-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 border-[var(--ussy-divider)] bg-transparent px-2 text-xs text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]"
+                    onClick={() => void onRetryLast?.()}
+                  >
+                    Retry last
+                  </Button>
+                  <label className="flex items-center gap-2 text-xs text-[var(--ussy-text-muted)]">
+                    <input
+                      type="checkbox"
+                      checked={yoloMode}
+                      onChange={() => onToggleYolo?.()}
+                      className="h-4 w-4 rounded border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-accent)] focus:ring-[var(--ussy-accent)]"
+                    />
+                    <span>YOLO: auto-apply patches</span>
+                  </label>
+                </div>
+              </div>
               <Button
-                variant="outline"
-                size="sm"
-                className="h-8 border-[var(--ussy-divider)] bg-transparent px-2 text-xs text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]"
-                onClick={() => void onRetryLast?.()}
+                className="gap-2 bg-[var(--ussy-accent)] text-black hover:bg-[var(--ussy-accent-bright)]"
+                onClick={() => void handleSubmit()}
+                disabled={!canSend || isSending}
               >
-                Retry last
+                <SendHorizonal className="h-4 w-4" />
+                {isSending ? 'Sending...' : 'Send'}
               </Button>
-              <label className="flex items-center gap-2 text-xs text-[var(--ussy-text-muted)]">
-                <input
-                  type="checkbox"
-                  checked={yoloMode}
-                  onChange={() => onToggleYolo?.()}
-                  className="h-4 w-4 rounded border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-accent)] focus:ring-[var(--ussy-accent)]"
-                />
-                <span>YOLO: auto-apply patches</span>
-              </label>
             </div>
           </div>
-          <Button
-            className="gap-2 bg-[var(--ussy-accent)] text-black hover:bg-[var(--ussy-accent-bright)]"
-            onClick={() => void handleSubmit()}
-            disabled={!canSend || isSending}
-          >
-            <SendHorizonal className="h-4 w-4" />
-            {isSending ? 'Sending...' : 'Send'}
-          </Button>
-        </div>
-      </div>
+        </>
+      )}
     </section>
   )
 }

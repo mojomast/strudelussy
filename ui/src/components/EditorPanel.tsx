@@ -1,3 +1,9 @@
+/**
+ * // What changed:
+ * // - Preserved the editor bridge API used for tutorial code injection and reads
+ * // - No direct UI changes; tutorial integration consumes the existing setCode/getCode bridge
+ */
+
 import { forwardRef, lazy, Suspense } from 'react'
 
 const HalVisualization = lazy(() => import('@/components/HalVisualization'))
