@@ -54,10 +54,28 @@ Critical rules:
 - Prefer small incremental edits unless the user explicitly asks for a rewrite.
 - If the request cannot be completed safely in supported Strudel, explain the limitation and choose the closest safe alternative or return has_code_change false.
 
+Strudel-specific rules:
+- For "occasional" or "rare" one-shot events, prefer explicit mini-notation choices using ~ for silence, e.g.:
+  s("sample | ~ | ~ | ~")
+- Use degradeBy(p) ONLY to drop events in patterns that already have repeated events; it removes events with probability p.
+- Do NOT use sometimesBy(p, x => x) as a way to mute; x => x is a no-op. If you need to mute, apply a transform that actually silences, such as masking or explicit ~.
+- If you’re unsure, FALL BACK to the explicit pattern form with ~ for silence, rather than guessing degradeBy/sometimesBy semantics.
+
 Decision ladder:
 1. Make the smallest safe change that satisfies the request.
 2. If only part is possible, make the closest safe substitution and explain it.
 3. If advice is better than code, return has_code_change false.`
+
+const EMPTY_RESPONSE_PATTERNS = [
+  'empty response',
+  'streaming chat ended before final response was received',
+  'llm returned an empty response',
+]
+
+const isRetryableEmptyResponseError = (error: unknown) => {
+  const message = error instanceof Error ? error.message.toLowerCase() : ''
+  return EMPTY_RESPONSE_PATTERNS.some((pattern) => message.includes(pattern))
+}
 
 const DEFAULT_CODE = `setcps(0.5)
 
@@ -143,7 +161,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_CHAT_MODEL])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [modelLoadError, setModelLoadError] = useState<string | null>(null)
+  const [yoloMode, setYoloMode] = useState(false)
   const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [shareError, setShareError] = useState<string | null>(null)
+  const [isSharing, setIsSharing] = useState(false)
+  const [lastSharedAt, setLastSharedAt] = useState<string | null>(null)
   const [cycleInfo, setCycleInfo] = useState<CycleInfo | null>(null)
   const [isEditorInitialized, setIsEditorInitialized] = useState(false)
   const [isEditorInitializing, setIsEditorInitializing] = useState(false)
@@ -476,90 +498,6 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     }
   }, [])
 
-  const onSend = useCallback(async (content: string) => {
-    if (!currentProject) return
-    const trimmedContent = content.trim()
-    if (!trimmedContent || pendingSendContentsRef.current.has(trimmedContent)) return
-
-    pendingSendContentsRef.current.add(trimmedContent)
-    setIsSending(true)
-    const userMessage: ChatMessage = {
-      id: createId(),
-      role: 'user',
-      content: trimmedContent,
-      timestamp: new Date().toISOString(),
-    }
-
-    const streamingAssistantId = createId()
-    const nextMessages = [...useProjectStore.getState().chatMessages, userMessage, {
-      id: streamingAssistantId,
-      role: 'assistant' as const,
-      content: '',
-      timestamp: new Date().toISOString(),
-    }]
-
-    actions.setChatMessages(nextMessages)
-
-    try {
-      const currentCode = getCurrentCode()
-      await api.chatStream({
-        project_id: currentProject.id,
-        messages: trimChatHistoryForApi([...useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)]),
-        current_code: currentCode,
-        model: selectedModel,
-        system_prompt_mode: systemPromptMode,
-        custom_system_prompt: customSystemPrompt.trim() || undefined,
-        provider: customProvider ?? undefined,
-        project_meta: {
-          bpm: currentProject.bpm,
-          key: currentProject.key,
-          tags: currentProject.tags,
-        },
-      }, userId, {
-        onChunk: (chunk) => {
-          const messages = useProjectStore.getState().chatMessages.map((message) =>
-            message.id === streamingAssistantId ? { ...message, content: `${message.content}${chunk}` } : message,
-          )
-          actions.setChatMessages(messages)
-        },
-        onDone: (finalResponse) => {
-          const assistantMessage: ChatMessage = {
-            id: streamingAssistantId,
-            role: 'assistant',
-            content: finalResponse.message,
-            timestamp: new Date().toISOString(),
-          }
-
-          if (finalResponse.has_code_change && finalResponse.code) {
-            const diff = buildCodeDiff(currentCode, finalResponse.code, finalResponse.diff_summary || 'Updated the Strudel arrangement')
-            assistantMessage.code_diff = diff
-            assistantMessage.status = 'pending'
-          }
-
-          const finalizedMessages = useProjectStore.getState().chatMessages.map((message) =>
-            message.id === streamingAssistantId ? assistantMessage : message,
-          )
-          actions.setChatMessages(finalizedMessages)
-
-          if (assistantMessage.code_diff) {
-            actions.setPendingDiff(assistantMessage.id, assistantMessage.code_diff)
-          }
-        },
-      })
-    } catch (error) {
-      const errorText = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
-      const messages = useProjectStore.getState().chatMessages.map((message) =>
-        message.id === streamingAssistantId
-          ? { ...message, content: `⚠️ ${errorText}`, status: 'error' as const }
-          : message,
-      )
-      actions.setChatMessages(messages)
-    } finally {
-      setIsSending(false)
-      pendingSendContentsRef.current.delete(trimmedContent)
-    }
-  }, [actions, currentProject, customProvider, customSystemPrompt, getCurrentCode, selectedModel, systemPromptMode, userId])
-
   const onPreviewDiff = useCallback((messageId: string, diff: CodeDiff) => {
     previewSnapshotRef.current = getCurrentCode()
     previewMessageIdRef.current = messageId
@@ -588,6 +526,122 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     actions.applyDiff(messageId)
     await saveVersionSnapshot(currentProject, diff.after, 'Applied AI patch', 'ai')
   }, [actions, currentProject, isPlaying, saveVersionSnapshot])
+
+  const onSend = useCallback(async (content: string) => {
+    if (!currentProject) return
+    const trimmedContent = content.trim()
+    if (!trimmedContent || pendingSendContentsRef.current.has(trimmedContent)) return
+
+    pendingSendContentsRef.current.add(trimmedContent)
+    setIsSending(true)
+    const userMessage: ChatMessage = {
+      id: createId(),
+      role: 'user',
+      content: trimmedContent,
+      timestamp: new Date().toISOString(),
+    }
+
+    const streamingAssistantId = createId()
+    const nextMessages = [...useProjectStore.getState().chatMessages, userMessage, {
+      id: streamingAssistantId,
+      role: 'assistant' as const,
+      content: '',
+      timestamp: new Date().toISOString(),
+    }]
+
+    actions.setChatMessages(nextMessages)
+
+    const currentCode = getCurrentCode()
+    const payload = {
+      project_id: currentProject.id,
+      messages: trimChatHistoryForApi([...useProjectStore.getState().chatMessages.filter((message) => message.id !== streamingAssistantId)]),
+      current_code: currentCode,
+      model: selectedModel,
+      system_prompt_mode: systemPromptMode,
+      custom_system_prompt: customSystemPrompt.trim() || undefined,
+      provider: customProvider ?? undefined,
+      project_meta: {
+        bpm: currentProject.bpm,
+        key: currentProject.key,
+        tags: currentProject.tags,
+      },
+    }
+
+    const runChatOnce = async () => api.chatStream(payload, userId, {
+      onChunk: (chunk) => {
+        const messages = useProjectStore.getState().chatMessages.map((message) =>
+          message.id === streamingAssistantId ? { ...message, content: `${message.content}${chunk}` } : message,
+        )
+        actions.setChatMessages(messages)
+      },
+      onDone: (finalResponse) => {
+        const assistantMessage: ChatMessage = {
+          id: streamingAssistantId,
+          role: 'assistant',
+          content: finalResponse.message,
+          timestamp: new Date().toISOString(),
+        }
+
+        if (finalResponse.has_code_change && finalResponse.code) {
+          const diff = buildCodeDiff(currentCode, finalResponse.code, finalResponse.diff_summary || 'Updated the Strudel arrangement')
+          assistantMessage.code_diff = diff
+          assistantMessage.status = yoloMode ? 'applied' : 'pending'
+        }
+
+        const finalizedMessages = useProjectStore.getState().chatMessages.map((message) =>
+          message.id === streamingAssistantId ? assistantMessage : message,
+        )
+        actions.setChatMessages(finalizedMessages)
+
+        if (assistantMessage.code_diff) {
+          actions.setPendingDiff(assistantMessage.id, assistantMessage.code_diff)
+          if (yoloMode) {
+            void onApplyDiff(assistantMessage.id, assistantMessage.code_diff)
+          }
+        }
+      },
+    })
+
+    try {
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          await runChatOnce()
+          break
+        } catch (error) {
+          const shouldRetry = attempt === 0 && isRetryableEmptyResponseError(error)
+          if (shouldRetry) {
+            const resetMessages = useProjectStore.getState().chatMessages.map((message) =>
+              message.id === streamingAssistantId ? { ...message, content: '' } : message,
+            )
+            actions.setChatMessages(resetMessages)
+            continue
+          }
+
+          throw error
+        }
+      }
+    } catch (error) {
+      const errorText = error instanceof Error ? error.message : 'Something went wrong. Please try again.'
+      const messages = useProjectStore.getState().chatMessages.map((message) =>
+        message.id === streamingAssistantId
+          ? { ...message, content: `⚠️ ${errorText}`, status: 'error' as const }
+          : message,
+      )
+      actions.setChatMessages(messages)
+    } finally {
+      setIsSending(false)
+      pendingSendContentsRef.current.delete(trimmedContent)
+    }
+  }, [actions, currentProject, customProvider, customSystemPrompt, getCurrentCode, onApplyDiff, selectedModel, systemPromptMode, userId, yoloMode])
+
+  const onRetryLast = useCallback(async () => {
+    const lastUser = useProjectStore.getState().chatMessages
+      .slice()
+      .reverse()
+      .find((message) => message.role === 'user')
+    if (!lastUser || !lastUser.content.trim()) return
+    await onSend(lastUser.content)
+  }, [onSend])
 
   const onRejectDiff = useCallback((messageId: string) => {
     if (previewMessageIdRef.current === messageId) {
@@ -766,16 +820,30 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     saveLocalProject(project)
     setSearchParams({ project: project.id })
     setShareUrl(null)
+    setShareError(null)
     setVersionError(null)
   }, [actions, isPlaying, setSearchParams, userId])
 
   const onShare = useCallback(async () => {
     if (!currentProject) return
+    setIsSharing(true)
+    setShareError(null)
     try {
       const response = await api.shareCode(getCurrentCode())
       setShareUrl(response.url)
-    } catch {
-      setShareUrl('Share failed')
+      setLastSharedAt(new Date().toISOString())
+      if (navigator.clipboard?.writeText) {
+        try {
+          await navigator.clipboard.writeText(response.url)
+        } catch {
+          // ignore clipboard failures; URL still shown in UI
+        }
+      }
+    } catch (error) {
+      setShareUrl(null)
+      setShareError(error instanceof Error ? error.message : 'Unable to create share link.')
+    } finally {
+      setIsSharing(false)
     }
   }, [currentProject, getCurrentCode])
 
@@ -971,6 +1039,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     isArrangePanelCollapsed,
     isFxRackCollapsed,
     isSending,
+    yoloMode,
     masterVolume,
     audioAnalyser,
     customApiEndpoint,
@@ -981,9 +1050,13 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     availableModels,
     isLoadingModels,
     modelLoadError,
+    shareError,
+    isSharing,
+    lastSharedAt,
     editorContainerRef,
     registerEditor,
     onSend,
+    onRetryLast,
     onApplyDiff,
     onRejectDiff,
     onPreviewDiff,
@@ -1026,6 +1099,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onSystemPromptModeChange,
     onLoadModels,
     onMasterVolumeChange,
+    setYoloMode,
     onEditorAnalyserReady,
     onEditorCodeChange,
     loadVersions,

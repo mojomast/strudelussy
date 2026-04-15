@@ -9,14 +9,17 @@ import type { ChatMessage } from '@/types/project'
 interface ChatPanelProps {
   messages: ChatMessage[]
   isSending: boolean
+  yoloMode?: boolean
   onSend: (content: string) => Promise<void>
+  onRetryLast?: () => void
+  onToggleYolo?: () => void
   onApplyDiff: (messageId: string, diff: CodeDiff) => void
   onRejectDiff: (messageId: string, diff: CodeDiff) => void
   onPreviewDiff: (messageId: string, diff: CodeDiff) => void
   onStopPreview: (messageId: string, diff: CodeDiff) => void
 }
 
-const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
+const ChatPanel = ({ messages, isSending, yoloMode = false, onSend, onRetryLast, onToggleYolo, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
   const [value, setValue] = useState('')
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -108,7 +111,18 @@ const ChatPanel = ({ messages, isSending, onSend, onApplyDiff, onRejectDiff, onP
           className="min-h-[84px] resize-none border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-purple-500 sm:min-h-[104px]"
         />
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-zinc-500">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <p className="text-xs text-zinc-500">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
+            <div className="flex items-center gap-3">
+              <Button variant="outline" size="sm" className="h-8 border-zinc-700 bg-transparent px-2 text-xs text-zinc-200 hover:bg-zinc-900" onClick={() => void onRetryLast?.()}>
+                Retry last
+              </Button>
+              <label className="flex items-center gap-2 text-xs text-zinc-400">
+                <input type="checkbox" checked={yoloMode} onChange={() => onToggleYolo?.()} className="h-4 w-4 rounded border-zinc-700 bg-zinc-950 text-purple-500 focus:ring-purple-500" />
+                <span>YOLO: auto-apply patches</span>
+              </label>
+            </div>
+          </div>
           <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={() => void handleSubmit()} disabled={!canSend}>
             <SendHorizonal className="h-4 w-4" />
             Send

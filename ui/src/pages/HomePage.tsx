@@ -37,6 +37,7 @@ const HomePage = () => {
           availableModels={orchestrator.availableModels}
           isLoadingModels={orchestrator.isLoadingModels}
           modelLoadError={orchestrator.modelLoadError}
+          isSharing={orchestrator.isSharing}
           showVisualization={showVisualization}
           onProjectNameChange={orchestrator.onProjectNameChange}
           onMasterVolumeChange={orchestrator.onMasterVolumeChange}
@@ -64,7 +65,10 @@ const HomePage = () => {
         <ChatPanel
           messages={orchestrator.chatMessages}
           isSending={orchestrator.isSending}
+          yoloMode={orchestrator.yoloMode}
           onSend={orchestrator.onSend}
+          onRetryLast={orchestrator.onRetryLast}
+          onToggleYolo={() => orchestrator.setYoloMode(!orchestrator.yoloMode)}
           onApplyDiff={(messageId, diff) => void orchestrator.onApplyDiff(messageId, diff)}
           onRejectDiff={(messageId) => orchestrator.onRejectDiff(messageId)}
           onPreviewDiff={orchestrator.onPreviewDiff}
@@ -108,6 +112,8 @@ const HomePage = () => {
           isEditorInitializing={orchestrator.isEditorInitializing}
           cycleInfo={orchestrator.cycleInfo}
           shareUrl={orchestrator.shareUrl}
+          shareError={orchestrator.shareError}
+          isSharing={orchestrator.isSharing}
           pendingPatchCount={pendingPatchCount}
           onBpmChange={orchestrator.onBpmChange}
           onKeyChange={orchestrator.onProjectKeyChange}

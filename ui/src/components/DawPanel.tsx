@@ -19,6 +19,8 @@ interface DawPanelProps {
   onBpmChange: (bpm: number) => void
   onKeyChange: (key: string) => void
   shareUrl: string | null
+  shareError: string | null
+  isSharing: boolean
   pendingPatchCount: number
   onTrackGainChange: (tg: TrackGain, value: number) => void
   onTrackGainCommit: (tg: TrackGain, value: number) => void
@@ -30,7 +32,7 @@ interface DawPanelProps {
 
 const DawPanel = ({
   project, sections, params, isEditorInitialized, isEditorInitializing,
-  cycleInfo, pendingPatchCount, onBpmChange, onKeyChange,
+  cycleInfo, shareUrl, shareError, isSharing, pendingPatchCount, onBpmChange, onKeyChange,
   onTrackGainChange, onTrackGainCommit, onTrackPanChange, onTrackPanCommit,
   onInjectCode, onApplyCode,
 }: DawPanelProps) => {
@@ -128,13 +130,42 @@ const DawPanel = ({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-3">
-          <Button asChild variant="outline" size="sm" className="h-7 border-zinc-700 bg-transparent px-2 text-xs text-zinc-300 hover:bg-zinc-900">
-            <Link to="/projects"><FolderKanban className="mr-1.5 h-3 w-3" /> Projects</Link>
-          </Button>
-          <span className="text-right text-xs text-zinc-600">
-            {pendingPatchCount > 0 ? `${pendingPatchCount} patch${pendingPatchCount === 1 ? '' : 'es'} pending` : 'No pending patch'}
-          </span>
+        <div className="space-y-2 pt-3">
+          {shareUrl ? (
+            <div className="rounded-xl border border-emerald-700/40 bg-emerald-950/20 px-3 py-2 text-xs text-emerald-200">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium">Shared</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 border-emerald-700/50 bg-transparent px-2 text-xs text-emerald-100 hover:bg-emerald-900/40"
+                  onClick={() => {
+                    if (navigator.clipboard?.writeText) {
+                      void navigator.clipboard.writeText(shareUrl)
+                    }
+                  }}
+                >
+                  Copy link
+                </Button>
+              </div>
+              <div className="mt-1 truncate text-emerald-100/80">{shareUrl}</div>
+            </div>
+          ) : null}
+
+          {shareError ? (
+            <div className="rounded-xl border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
+              {shareError}
+            </div>
+          ) : null}
+
+          <div className="flex items-center justify-between">
+            <Button asChild variant="outline" size="sm" className="h-7 border-zinc-700 bg-transparent px-2 text-xs text-zinc-300 hover:bg-zinc-900">
+              <Link to="/projects"><FolderKanban className="mr-1.5 h-3 w-3" /> Projects</Link>
+            </Button>
+            <span className="text-right text-xs text-zinc-600">
+              {isSharing ? 'Sharing...' : pendingPatchCount > 0 ? `${pendingPatchCount} patch${pendingPatchCount === 1 ? '' : 'es'} pending` : 'No pending patch'}
+            </span>
+          </div>
         </div>
 
       </div>

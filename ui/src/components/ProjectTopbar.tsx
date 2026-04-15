@@ -15,6 +15,7 @@ interface ProjectTopbarProps {
   availableModels: string[]
   isLoadingModels: boolean
   modelLoadError: string | null
+  isSharing: boolean
   showVisualization: boolean
   onProjectNameChange: (name: string) => void
   onMasterVolumeChange: (volume: number) => void
@@ -53,6 +54,7 @@ const ProjectTopbar = ({
   availableModels,
   isLoadingModels,
   modelLoadError,
+  isSharing,
   showVisualization,
   onProjectNameChange,
   onMasterVolumeChange,
@@ -146,7 +148,7 @@ const ProjectTopbar = ({
             <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onExportProject}>
               Export .strudel
             </Button>
-            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare}>
+            <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onShare} disabled={isSharing}>
               Share
             </Button>
             <Button size="toolbar" variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onToggleShortcuts}>
