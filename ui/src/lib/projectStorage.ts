@@ -1,11 +1,12 @@
 import { DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
-import type { Project, SystemPromptMode } from '@/types/project'
+import type { Project, SavedPromptPreset, SystemPromptMode } from '@/types/project'
 import { createId } from '@/lib/utils'
 
 const PROJECTS_KEY = 'strudelussy.projects'
 const LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
 const USER_KEY = 'strudelussy.userId'
 const CHAT_PROVIDER_KEY = 'strudelussy.chatProvider'
+const PROMPT_PRESETS_KEY = 'strudelussy.promptPresets'
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 
@@ -103,4 +104,40 @@ export const saveChatProviderConfig = (config: StoredChatProviderConfig | null) 
   }
 
   window.localStorage.setItem(CHAT_PROVIDER_KEY, JSON.stringify(config))
+}
+
+export const loadPromptPresets = (): SavedPromptPreset[] => {
+  if (!canUseStorage()) return []
+  const raw = window.localStorage.getItem(PROMPT_PRESETS_KEY)
+  if (!raw) return []
+
+  try {
+    const parsed = JSON.parse(raw) as SavedPromptPreset[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export const savePromptPresets = (presets: SavedPromptPreset[]) => {
+  if (!canUseStorage()) return
+  window.localStorage.setItem(PROMPT_PRESETS_KEY, JSON.stringify(presets))
+}
+
+export const upsertPromptPreset = (label: string, content: string): SavedPromptPreset[] => {
+  const trimmedLabel = label.trim() || 'Untitled prompt'
+  const now = new Date().toISOString()
+  const presets = loadPromptPresets()
+  const existing = presets.find((preset) => preset.label === trimmedLabel)
+
+  const nextPresets = existing
+    ? presets.map((preset) =>
+        preset.id === existing.id
+          ? { ...preset, content, updatedAt: now }
+          : preset,
+      )
+    : [{ id: createId('prompt'), label: trimmedLabel, content, createdAt: now, updatedAt: now }, ...presets]
+
+  savePromptPresets(nextPresets)
+  return nextPresets
 }

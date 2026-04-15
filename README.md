@@ -54,6 +54,7 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - chat requests default to `google/gemini-2.5-flash`, but users can override the endpoint and API key in the topbar
 - the topbar can switch between a legacy toaster-style system prompt and a stricter Strudelussy prompt
 - users can also append their own custom system prompt instructions from the topbar
+- users can load baseline or improved prompt text into the editable prompt field and save local prompt presets for testing
 - custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
 - the Strudelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
 - invalid drum bank+voice combinations are remapped to verified sample combos before code reaches the editor

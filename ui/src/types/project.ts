@@ -5,6 +5,14 @@ export type ChatModel = string
 export type SystemPromptMode = 'legacy-toaster' | 'strudelussy'
 export type CustomSystemPrompt = string
 
+export interface SavedPromptPreset {
+  id: string
+  label: string
+  content: string
+  createdAt: string
+  updatedAt: string
+}
+
 export interface CodeDiff {
   before: string
   after: string

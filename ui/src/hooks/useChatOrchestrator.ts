@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useProjectStore, trimChatHistoryForApi } from '@/stores/projectStore'
 import { api } from '@/lib/api'
 import { buildCodeDiff } from '@/lib/diffUtils'
-import { getLastProjectId, getOrCreateGuestUserId, loadChatProviderConfig, loadLocalProject, saveChatProviderConfig, saveLocalProject } from '@/lib/projectStorage'
+import { getLastProjectId, getOrCreateGuestUserId, loadChatProviderConfig, loadLocalProject, loadPromptPresets, saveChatProviderConfig, saveLocalProject, upsertPromptPreset } from '@/lib/projectStorage'
 import {
   addJuxRevToRandomMelodicTrack,
   addRandomReverbToTracks,
@@ -17,7 +17,7 @@ import {
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
-import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SectionMarker, SystemPromptMode } from '@/types/project'
+import type { ChatMessage, CodeDiff, CodeVersion, ExtractedParam, Project, SavedPromptPreset, SectionMarker, SystemPromptMode } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
 
@@ -30,6 +30,34 @@ const formatProviderConfig = (endpoint: string, apiKey: string) => {
     ? { endpoint: normalizedEndpoint, apiKey: trimmedApiKey }
     : null
 }
+
+const DEFAULT_CUSTOM_PROMPT_TEMPLATE = `You are an expert Strudel live coding music assistant. Use the core documentation below to help users create and modify musical patterns.
+
+Rules:
+- Return one valid JSON object only.
+- If code changes, return the full updated Strudel code.
+- Keep existing structure unless the user explicitly asks for a rewrite.
+- If the request is impossible in supported Strudel, explain that and set has_code_change to false.`
+
+const IMPROVED_CUSTOM_PROMPT_TEMPLATE = `You are an expert Strudel live coding assistant.
+Your ONLY job is to help the user create and refine music using Strudel's pattern API and mini-notation.
+
+Strict contract:
+- Output ONLY one valid JSON object.
+- Always include message, code, diff_summary, and has_code_change.
+- When no code change is needed, set code and diff_summary to empty strings.
+- When a code change is needed, code must contain the FULL updated Strudel code.
+
+Critical rules:
+- Only use constructs already present in the current code, explicitly listed in the system prompt, or documented in the Strudel reference.
+- Never invent unsupported methods, sounds, banks, or track forms.
+- Prefer small incremental edits unless the user explicitly asks for a rewrite.
+- If the request cannot be completed safely in supported Strudel, explain the limitation and choose the closest safe alternative or return has_code_change false.
+
+Decision ladder:
+1. Make the smallest safe change that satisfies the request.
+2. If only part is possible, make the closest safe substitution and explain it.
+3. If advice is better than code, return has_code_change false.`
 
 const DEFAULT_CODE = `setcps(0.5)
 
@@ -109,6 +137,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const [customApiEndpoint, setCustomApiEndpoint] = useState('')
   const [customApiKey, setCustomApiKey] = useState('')
   const [customSystemPrompt, setCustomSystemPrompt] = useState('')
+  const [savedPromptPresets, setSavedPromptPresets] = useState<SavedPromptPreset[]>([])
+  const [promptPresetName, setPromptPresetName] = useState('')
   const [availableModels, setAvailableModels] = useState<string[]>([DEFAULT_CHAT_MODEL])
   const [isLoadingModels, setIsLoadingModels] = useState(false)
   const [modelLoadError, setModelLoadError] = useState<string | null>(null)
@@ -157,6 +187,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   useEffect(() => {
     const savedConfig = loadChatProviderConfig()
+    setSavedPromptPresets(loadPromptPresets())
     if (!savedConfig) return
 
     setCustomApiEndpoint(savedConfig.endpoint)
@@ -817,6 +848,25 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
       })
     }
   }, [customProvider, selectedModel, systemPromptMode])
+  const onLoadDefaultPromptTemplate = useCallback(() => {
+    setCustomSystemPrompt(DEFAULT_CUSTOM_PROMPT_TEMPLATE)
+  }, [])
+  const onLoadImprovedPromptTemplate = useCallback(() => {
+    setCustomSystemPrompt(IMPROVED_CUSTOM_PROMPT_TEMPLATE)
+  }, [])
+  const onPromptPresetNameChange = useCallback((label: string) => {
+    setPromptPresetName(label)
+  }, [])
+  const onSavePromptPreset = useCallback(() => {
+    const nextPresets = upsertPromptPreset(promptPresetName, customSystemPrompt)
+    setSavedPromptPresets(nextPresets)
+    if (!promptPresetName.trim()) {
+      setPromptPresetName('Untitled prompt')
+    }
+  }, [customSystemPrompt, promptPresetName])
+  const onLoadSavedPromptPreset = useCallback((content: string) => {
+    setCustomSystemPrompt(content)
+  }, [])
   const onModelChange = useCallback((model: string) => {
     actions.setSelectedModel(model)
     if (customProvider) {
@@ -921,6 +971,8 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     customApiEndpoint,
     customApiKey,
     customSystemPrompt,
+    savedPromptPresets,
+    promptPresetName,
     availableModels,
     isLoadingModels,
     modelLoadError,
@@ -960,6 +1012,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onCustomApiEndpointChange,
     onCustomApiKeyChange,
     onCustomSystemPromptChange,
+    onLoadDefaultPromptTemplate,
+    onLoadImprovedPromptTemplate,
+    onPromptPresetNameChange,
+    onSavePromptPreset,
+    onLoadSavedPromptPreset,
     onModelChange,
     onSystemPromptModeChange,
     onLoadModels,

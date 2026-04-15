@@ -31,6 +31,8 @@ const HomePage = () => {
           customApiEndpoint={orchestrator.customApiEndpoint}
           customApiKey={orchestrator.customApiKey}
           customSystemPrompt={orchestrator.customSystemPrompt}
+          promptPresetName={orchestrator.promptPresetName}
+          savedPromptPresets={orchestrator.savedPromptPresets}
           selectedModel={orchestrator.selectedModel}
           systemPromptMode={orchestrator.systemPromptMode}
           availableModels={orchestrator.availableModels}
@@ -43,6 +45,11 @@ const HomePage = () => {
           onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
           onCustomApiKeyChange={orchestrator.onCustomApiKeyChange}
           onCustomSystemPromptChange={orchestrator.onCustomSystemPromptChange}
+          onLoadDefaultPromptTemplate={orchestrator.onLoadDefaultPromptTemplate}
+          onLoadImprovedPromptTemplate={orchestrator.onLoadImprovedPromptTemplate}
+          onPromptPresetNameChange={orchestrator.onPromptPresetNameChange}
+          onSavePromptPreset={orchestrator.onSavePromptPreset}
+          onLoadSavedPromptPreset={orchestrator.onLoadSavedPromptPreset}
           onModelChange={orchestrator.onModelChange}
           onSystemPromptModeChange={orchestrator.onSystemPromptModeChange}
           onLoadModels={() => void orchestrator.onLoadModels()}

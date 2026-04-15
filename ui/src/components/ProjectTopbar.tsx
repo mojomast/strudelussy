@@ -1,4 +1,4 @@
-import type { SystemPromptMode } from '@/types/project'
+import type { SavedPromptPreset, SystemPromptMode } from '@/types/project'
 import { useCallback, useRef } from 'react'
 import { Disc3, ExternalLink } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,8 @@ interface ProjectTopbarProps {
   customApiEndpoint: string
   customApiKey: string
   customSystemPrompt: string
+  promptPresetName: string
+  savedPromptPresets: SavedPromptPreset[]
   selectedModel: string
   systemPromptMode: SystemPromptMode
   availableModels: string[]
@@ -23,6 +25,11 @@ interface ProjectTopbarProps {
   onCustomApiEndpointChange: (endpoint: string) => void
   onCustomApiKeyChange: (apiKey: string) => void
   onCustomSystemPromptChange: (prompt: string) => void
+  onLoadDefaultPromptTemplate: () => void
+  onLoadImprovedPromptTemplate: () => void
+  onPromptPresetNameChange: (label: string) => void
+  onSavePromptPreset: () => void
+  onLoadSavedPromptPreset: (content: string) => void
   onModelChange: (model: string) => void
   onSystemPromptModeChange: (mode: SystemPromptMode) => void
   onLoadModels: () => void
@@ -42,6 +49,8 @@ const ProjectTopbar = ({
   customApiEndpoint,
   customApiKey,
   customSystemPrompt,
+  promptPresetName,
+  savedPromptPresets,
   selectedModel,
   systemPromptMode,
   availableModels,
@@ -54,6 +63,11 @@ const ProjectTopbar = ({
   onCustomApiEndpointChange,
   onCustomApiKeyChange,
   onCustomSystemPromptChange,
+  onLoadDefaultPromptTemplate,
+  onLoadImprovedPromptTemplate,
+  onPromptPresetNameChange,
+  onSavePromptPreset,
+  onLoadSavedPromptPreset,
   onModelChange,
   onSystemPromptModeChange,
   onLoadModels,
@@ -145,6 +159,40 @@ const ProjectTopbar = ({
               placeholder="Optional system prompt override"
               className="min-h-[76px] min-w-[260px] flex-[1.4] rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
             />
+            <div className="flex min-w-[260px] flex-1 flex-col gap-2">
+              <div className="flex flex-wrap gap-2">
+                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadDefaultPromptTemplate}>
+                  Load Default Prompt
+                </Button>
+                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onLoadImprovedPromptTemplate}>
+                  Load Improved Prompt
+                </Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input
+                  value={promptPresetName}
+                  onChange={(event) => onPromptPresetNameChange(event.target.value)}
+                  placeholder="Prompt preset name"
+                  className="min-w-[180px] flex-1 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+                />
+                <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={onSavePromptPreset}>
+                  Save Prompt
+                </Button>
+              </div>
+              <select
+                value=""
+                onChange={(event) => {
+                  const preset = savedPromptPresets.find((entry) => entry.id === event.target.value)
+                  if (preset) onLoadSavedPromptPreset(preset.content)
+                }}
+                className="rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-sm text-white outline-none transition focus:border-purple-500"
+              >
+                <option value="">Load saved prompt preset</option>
+                {savedPromptPresets.map((preset) => (
+                  <option key={preset.id} value={preset.id}>{preset.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
