@@ -17,12 +17,19 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - projects gallery route, share/export basics, and version restore UI
 - explicit `New Project` and `Load Demo` flows
 - rhythm generator with per-voice gain, arrange mask, FX rack with explicit on/off filter states, mutate toolbar, keyboard shortcuts overlay, and optional custom chat provider override
-- collapsible accordion sections in the DAW sidebar with localStorage-persisted open/close state
-- slim single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share)
+- collapsible accordion sections in the DAW sidebar with localStorage-persisted open/close state and ResizeObserver-based animated expand/collapse
+- slim single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share), editable BPM and Key inputs, Escape-to-close, and active tab badge on gear button
 - focus mode (`Cmd+Shift+F`) that hides topbar and both sidebars for distraction-free editing
 - panel toggle shortcuts (`[` for chat, `]` for DAW) with proper CodeMirror contenteditable guard
-- slim 44px transport bar with phase progress indicator and play pulse animation
-- lazy-loaded HAL visualization with code-split chunk
+- slim 44px transport bar with phase progress indicator and expanding ring pulse animation
+- lazy-loaded HAL visualization with code-split chunk, rendered both as editor overlay and as a separate viz panel in the center column
+- resize handles use pointer events with `setPointerCapture` for tablet/trackpad support
+- panel widths and collapse states persisted to localStorage (widths debounced 300ms, collapse states immediate)
+- chat panel collapse button integrated into the ChatPanel header via `React.cloneElement` injection
+- version history rendered inside DawPanel accordion (not as a separate panel in DAWShell sidebar)
+- token usage pill with `≈` prefix format and red pulse warning animation at high usage
+- mixer slider value popover: floating tooltip above thumb during drag
+- `prefers-reduced-motion` respected globally (motion durations, pulse animations)
 - public host runtime for `strudel.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
@@ -38,29 +45,33 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 ### Frontend
 
 - `HomePage` supports two UI modes:
-  - **Ussy mode** (`DAWShell.tsx`): CSS Grid layout with `--chat-width`/`--daw-width` CSS variables, resize handles on both sidebars, collapse-to-icon-rail, focus mode, and the ussy design system
+  - **Ussy mode** (`DAWShell.tsx`): CSS Grid layout with `--chat-width`/`--daw-width` CSS variables, pointer-event resize handles on both sidebars, collapse-to-icon-rail, focus mode, and the ussy design system
   - **Legacy mode** (`LegacyDAWShell.tsx`): preserved copy of the original fixed three-column layout
   - Toggle between modes with `Cmd+Shift+L` or a floating button
-- project topbar: slim 40px single-row bar with settings drawer (4 tabs), token usage pill, and `Cmd+,` shortcut
-- AI chat panel (collapsible via `[` key or chevron button)
+- project topbar: slim 40px single-row bar with settings drawer (4 tabs), editable BPM/Key inputs, token usage pill with `≈` prefix and red pulse warning, `Cmd+,` to open / Escape to close
+- AI chat panel (collapsible via `[` key or header chevron button), with message count badge and session clear action
 - diff preview cards
-- center editor column with lazy-loaded HAL layered beneath the code inside the editor surface
-- slim 44px transport bar with phase progress indicator and play pulse animation
+- center editor column with lazy-loaded HAL layered beneath the code inside the editor surface, plus a separate viz panel slot rendered via `<Suspense>`
+- slim 44px transport bar with phase progress indicator and expanding ring pulse animation
 - collapsible right-side DAW utility panel (via `]` key or chevron button) with accordion sections:
-  - Mixer (per-track gain/pan)
+  - Mixer (per-track gain/pan with floating value popover on drag)
   - Rhythm Generator (Euclidean drum patterns)
-  - Arrange (per-track 16-step mask grid)
-  - FX Rack (room, delay, filters, gain with on/off toggles)
-  - Version History
+  - Arrange (per-track 16-step mask grid, badge with section count)
+  - FX Rack (room, delay, filters, gain with on/off toggles, badge with FX count)
+  - Version History (real VersionHistoryPanel, badge with snapshot count)
 - accordion section state persisted in localStorage, with Collapse All / Expand All toggle
+- accordion animation driven by ResizeObserver with dynamic duration proportional to content height
 - section strip parsed from `// [section]` comments
 - keyboard shortcuts overlay grouped into 4 sections (Playback & Editing, Chat, UI Panels, Settings)
 - focus mode (`Cmd+Shift+F`) hides topbar and both sidebars, floating toggle always visible
-- version history panel with refresh and restore
+- version history panel with refresh and restore, rendered inside DawPanel accordion
 - topbar actions organized as a compact horizontal toolbar with settings drawer for secondary controls
+- gear button shows active tab name badge when drawer is open
 - the topbar includes a `Viz On` / `Viz Off` toggle for the HAL background under the editor
-- resize handles on both chat and DAW panels with min/max constraints
+- resize handles on both chat and DAW panels with min/max constraints, using pointer events with `setPointerCapture` for tablet/trackpad support
+- panel widths and collapse states persisted to localStorage (widths debounced 300ms)
 - full ARIA accessibility: tablist/tab/tabpanel roles in settings drawer, aria-labels on icon-only buttons, role=progressbar on phase bar, aria-expanded on accordion headers
+- `prefers-reduced-motion` respected: all motion durations and pulse animations disabled
 - lightweight project state is handled with Zustand
 - guest-mode projects are stored in `localStorage`
 - `/projects` lists locally stored projects and attempts remote project listing when available

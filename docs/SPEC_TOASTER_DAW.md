@@ -40,6 +40,21 @@ Current repo status after the first build pass:
   - Full ARIA accessibility audit: tablist/tab/tabpanel roles, aria-labels on icon-only buttons, role=progressbar, aria-expanded on accordion headers and settings toggle
   - Original layout preserved as `LegacyDAWShell.tsx` with `Cmd+Shift+L` toggle between modes
   - `tailwind.config.js` extended with ussy color tokens
+- **UI polish sprint (Sprint 2)**: bug fixes, animation quality, topbar polish, and micro-interactions:
+  - Resize handles converted from mouse to pointer events with `setPointerCapture` for tablet/trackpad support
+  - Panel widths and collapse states persisted to localStorage (widths debounced 300ms, collapse states immediate)
+  - Version history rendering moved from DAWShell sidebar into DawPanel accordion with real VersionHistoryPanel
+  - ChatPanel collapse button moved into ChatPanel header via `React.cloneElement` injection; header includes message count badge and clear button
+  - Accordion animation rewritten with ResizeObserver for accurate height measurement and dynamic duration
+  - Topbar BPM read-only pill replaced with editable number input; Key text input added
+  - Token pill format updated: `≈` prefix, red pulse warning at high usage
+  - Model selector max-width reduced, overflow tooltip added
+  - Settings drawer Escape-to-close and active tab badge on gear button
+  - Transport pulse animation replaced with spec-compliant expanding ring (`ussy-pulse-ring`)
+  - Mixer slider floating value popover on drag
+  - `vizPanel` now renders lazy-loaded HalVisualization in the center column (was hardcoded to null)
+  - `prefers-reduced-motion` respected globally for all animations
+  - All colors migrated from hardcoded zinc/purple to `--ussy-*` design tokens
 
 Items still intentionally deferred from the full spec:
 

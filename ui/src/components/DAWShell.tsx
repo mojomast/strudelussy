@@ -1,19 +1,30 @@
 /* ============================================================================
    DAWShell.tsx — Refactored layout shell (Ussy Mode)
-   
-   What changed:
-   - CSS Grid with CSS custom properties (--chat-width, --daw-width) for
-     resize-handle-driven panel widths
-   - Left/right panel collapse via chevron buttons (collapse to 40px icon rail)
-   - Focus mode: Cmd+Shift+F hides topbar and both sidebars
-   - Resize handles on chat panel right edge and daw panel left edge
-   - Version history moved OUT of center column, into daw sidebar accordion
-   - Viz panel remains conditional in center column
-   - Transport bar is a slim bottom dock
-   - All transitions use the motion contract from index.css
+
+   // What changed (Sprint 2):
+   // - BUG FIX: Resize handles converted from mouse to pointer events with
+   //   setPointerCapture for tablet/trackpad support
+   // - BUG FIX: Panel widths & collapse states persisted to localStorage
+   //   (widths debounced 300ms, collapse states immediate)
+   // - BUG FIX: VersionHistoryPanel rendering removed from DAW sidebar —
+   //   DawPanel accordion now owns it via its own versionPanel prop
+   // - UX: ChatPanel collapse button moved into ChatPanel header via
+   //   React.cloneElement; absolute overlay collapse button removed
+   // - UX: isDragging state adds select-none during resize drag
+   // - UX: Focus mode collapses grid gutter columns to 0px
+   // - UX: Icon rail tooltips added via title attributes
+   // - A11Y: Resize handles retain ARIA separator role + keyboard attributes
    ============================================================================ */
 
-import { type ReactNode, useState, useCallback, useRef, useEffect } from 'react'
+import {
+  type ReactNode,
+  useState,
+  useCallback,
+  useRef,
+  useEffect,
+  isValidElement,
+  cloneElement,
+} from 'react'
 import { ChevronLeft, ChevronRight, MessageSquare, Sliders, Maximize2, Minimize2 } from 'lucide-react'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel'
 
@@ -37,6 +48,32 @@ const DAW_DEFAULT = 380
 const DAW_MAX = 520
 const COLLAPSED_WIDTH = 40
 
+// localStorage keys
+const LS_CHAT_WIDTH = 'strudelussy:chatWidth'
+const LS_DAW_WIDTH = 'strudelussy:dawWidth'
+const LS_CHAT_COLLAPSED = 'strudelussy:chatCollapsed'
+const LS_DAW_COLLAPSED = 'strudelussy:dawCollapsed'
+
+function readNumber(key: string, fallback: number, min: number, max: number): number {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw !== null) {
+      const n = Number(raw)
+      if (Number.isFinite(n)) return Math.min(max, Math.max(min, n))
+    }
+  } catch { /* storage unavailable */ }
+  return fallback
+}
+
+function readBool(key: string, fallback: boolean): boolean {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw === 'true') return true
+    if (raw === 'false') return false
+  } catch { /* storage unavailable */ }
+  return fallback
+}
+
 const DAWShell = ({
   topbar,
   chatPanel,
@@ -45,75 +82,91 @@ const DAWShell = ({
   showVisualization = true,
   dawPanel,
   transportBar,
-  versionPanel,
+  versionPanel: _versionPanel,
   overlay,
 }: DAWShellProps) => {
-  const [chatWidth, setChatWidth] = useState(CHAT_DEFAULT)
-  const [dawWidth, setDawWidth] = useState(DAW_DEFAULT)
-  const [chatCollapsed, setChatCollapsed] = useState(false)
-  const [dawCollapsed, setDawCollapsed] = useState(false)
+  const [chatWidth, setChatWidth] = useState(() => readNumber(LS_CHAT_WIDTH, CHAT_DEFAULT, CHAT_MIN, CHAT_MAX))
+  const [dawWidth, setDawWidth] = useState(() => readNumber(LS_DAW_WIDTH, DAW_DEFAULT, DAW_MIN, DAW_MAX))
+  const [chatCollapsed, setChatCollapsed] = useState(() => readBool(LS_CHAT_COLLAPSED, false))
+  const [dawCollapsed, setDawCollapsed] = useState(() => readBool(LS_DAW_COLLAPSED, false))
   const [focusMode, setFocusMode] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const isDraggingRef = useRef<'chat' | 'daw' | null>(null)
+  const widthTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // Resize handler for chat panel (right edge)
-  const handleChatResizeStart = useCallback((e: React.MouseEvent) => {
+  // Debounced localStorage persistence for widths
+  useEffect(() => {
+    if (widthTimerRef.current) clearTimeout(widthTimerRef.current)
+    widthTimerRef.current = setTimeout(() => {
+      try {
+        localStorage.setItem(LS_CHAT_WIDTH, String(chatWidth))
+        localStorage.setItem(LS_DAW_WIDTH, String(dawWidth))
+      } catch { /* ignore */ }
+    }, 300)
+    return () => {
+      if (widthTimerRef.current) clearTimeout(widthTimerRef.current)
+    }
+  }, [chatWidth, dawWidth])
+
+  // Immediate localStorage persistence for collapse states
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_CHAT_COLLAPSED, String(chatCollapsed))
+      localStorage.setItem(LS_DAW_COLLAPSED, String(dawCollapsed))
+    } catch { /* ignore */ }
+  }, [chatCollapsed, dawCollapsed])
+
+  // Resize handler for chat panel (right edge) — pointer events
+  const handleChatResizeStart = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
-    isDraggingRef.current = 'chat'
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setIsDragging(true)
     const startX = e.clientX
     const startWidth = chatWidth
 
-    const onMove = (moveEvent: MouseEvent) => {
+    const onMove = (moveEvent: PointerEvent) => {
       const delta = moveEvent.clientX - startX
       const newWidth = Math.min(CHAT_MAX, Math.max(CHAT_MIN, startWidth + delta))
       setChatWidth(newWidth)
     }
 
     const onUp = () => {
-      isDraggingRef.current = null
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      setIsDragging(false)
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
     }
 
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
   }, [chatWidth])
 
-  // Resize handler for daw panel (left edge)
-  const handleDawResizeStart = useCallback((e: React.MouseEvent) => {
+  // Resize handler for daw panel (left edge) — pointer events
+  const handleDawResizeStart = useCallback((e: React.PointerEvent) => {
     e.preventDefault()
-    isDraggingRef.current = 'daw'
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setIsDragging(true)
     const startX = e.clientX
     const startWidth = dawWidth
 
-    const onMove = (moveEvent: MouseEvent) => {
+    const onMove = (moveEvent: PointerEvent) => {
       const delta = startX - moveEvent.clientX
       const newWidth = Math.min(DAW_MAX, Math.max(DAW_MIN, startWidth + delta))
       setDawWidth(newWidth)
     }
 
     const onUp = () => {
-      isDraggingRef.current = null
-      document.removeEventListener('mousemove', onMove)
-      document.removeEventListener('mouseup', onUp)
-      document.body.style.cursor = ''
-      document.body.style.userSelect = ''
+      setIsDragging(false)
+      document.removeEventListener('pointermove', onMove)
+      document.removeEventListener('pointerup', onUp)
     }
 
-    document.body.style.cursor = 'col-resize'
-    document.body.style.userSelect = 'none'
-    document.addEventListener('mousemove', onMove)
-    document.addEventListener('mouseup', onUp)
+    document.addEventListener('pointermove', onMove)
+    document.addEventListener('pointerup', onUp)
   }, [dawWidth])
 
-  // Focus mode keyboard shortcut
+  // Keyboard shortcuts
   useEffect(() => {
-    /** Returns true if the keyboard event target is an editable element (text input, textarea, select, or contenteditable). */
     const isEditableTarget = (e: KeyboardEvent): boolean => {
       const target = e.target
       if (!(target instanceof HTMLElement)) return false
@@ -127,20 +180,16 @@ const DAWShell = ({
     }
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl+Shift+F: toggle focus mode
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
         e.preventDefault()
         setFocusMode((f) => !f)
       }
-      // ESC: exit focus mode
       if (e.key === 'Escape' && focusMode) {
         setFocusMode(false)
       }
-      // [ : toggle left panel (only when not typing)
       if (e.key === '[' && !e.metaKey && !e.ctrlKey && !isEditableTarget(e)) {
         setChatCollapsed((c) => !c)
       }
-      // ] : toggle right panel (only when not typing)
       if (e.key === ']' && !e.metaKey && !e.ctrlKey && !isEditableTarget(e)) {
         setDawCollapsed((c) => !c)
       }
@@ -152,12 +201,18 @@ const DAWShell = ({
 
   const effectiveChatWidth = focusMode ? 0 : chatCollapsed ? COLLAPSED_WIDTH : chatWidth
   const effectiveDawWidth = focusMode ? 0 : dawCollapsed ? COLLAPSED_WIDTH : dawWidth
+  const gutterWidth = focusMode ? 0 : 6
+
+  // Inject onCollapse into chatPanel via cloneElement
+  const chatPanelWithCollapse = isValidElement<{ onCollapse?: () => void }>(chatPanel)
+    ? cloneElement(chatPanel, { onCollapse: () => setChatCollapsed(true) })
+    : chatPanel
 
   return (
     <>
       <main
         ref={containerRef}
-        className={`h-screen overflow-hidden px-2 py-2 text-white sm:px-3 sm:py-3 ${focusMode ? 'focus-mode' : ''}`}
+        className={`h-screen overflow-hidden px-2 py-2 text-white sm:px-3 sm:py-3 ${focusMode ? 'focus-mode' : ''} ${isDragging ? 'select-none' : ''}`}
         style={{ backgroundColor: 'var(--ussy-bg)' }}
       >
         <div className="flex h-full min-h-0 flex-col gap-1.5">
@@ -173,7 +228,7 @@ const DAWShell = ({
           <div
             className="ussy-panel-transition grid min-h-0 flex-1 gap-0 overflow-hidden"
             style={{
-              gridTemplateColumns: `${effectiveChatWidth}px 6px 1fr 6px ${effectiveDawWidth}px`,
+              gridTemplateColumns: `${effectiveChatWidth}px ${gutterWidth}px 1fr ${gutterWidth}px ${effectiveDawWidth}px`,
             }}
           >
 
@@ -187,25 +242,20 @@ const DAWShell = ({
                         onClick={() => setChatCollapsed(false)}
                         className="ussy-hover-transition flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ussy-text-muted)] hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
                         aria-label="Expand chat panel"
-                        title="Expand chat panel"
+                        title="Session Chat"
                       >
                         <ChevronRight className="h-4 w-4" />
                       </button>
-                      <div className="flex h-8 w-8 items-center justify-center text-[var(--ussy-text-faint)]">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center text-[var(--ussy-text-faint)]"
+                        title="Session Chat"
+                      >
                         <MessageSquare className="h-4 w-4" />
                       </div>
                     </div>
                   ) : (
                     <div className="relative flex h-full min-h-0 flex-col">
-                      <button
-                        onClick={() => setChatCollapsed(true)}
-                        className="ussy-hover-transition absolute right-2 top-2 z-20 flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
-                        aria-label="Collapse chat panel"
-                        title="Collapse chat panel"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </button>
-                      {chatPanel}
+                      {chatPanelWithCollapse}
                     </div>
                   )}
                 </div>
@@ -213,7 +263,7 @@ const DAWShell = ({
                 {/* Chat resize handle */}
                 <div
                   className="ussy-resize-handle"
-                  onMouseDown={chatCollapsed ? undefined : handleChatResizeStart}
+                  onPointerDown={chatCollapsed ? undefined : handleChatResizeStart}
                   role="separator"
                   tabIndex={0}
                   aria-orientation="vertical"
@@ -233,19 +283,16 @@ const DAWShell = ({
 
             {/* CENTER: Editor + Viz + Transport */}
             <section className="flex min-h-0 flex-1 flex-col gap-1.5 overflow-hidden">
-              {/* Editor fills available space */}
               <div className="min-h-0 flex-1 overflow-hidden">
                 {editorPanel}
               </div>
 
-              {/* Viz panel (collapsible) */}
               {showVisualization && vizPanel ? (
                 <div className="h-48 shrink-0 overflow-hidden rounded-xl border border-[var(--ussy-divider)] bg-black/40">
                   {vizPanel}
                 </div>
               ) : null}
 
-              {/* Transport bar — slim bottom dock */}
               <div className="shrink-0">
                 {transportBar}
               </div>
@@ -256,7 +303,7 @@ const DAWShell = ({
               <>
                 <div
                   className="ussy-resize-handle"
-                  onMouseDown={dawCollapsed ? undefined : handleDawResizeStart}
+                  onPointerDown={dawCollapsed ? undefined : handleDawResizeStart}
                   role="separator"
                   tabIndex={0}
                   aria-orientation="vertical"
@@ -274,11 +321,14 @@ const DAWShell = ({
                         onClick={() => setDawCollapsed(false)}
                         className="ussy-hover-transition flex h-8 w-8 items-center justify-center rounded-lg text-[var(--ussy-text-muted)] hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
                         aria-label="Expand DAW panel"
-                        title="Expand DAW panel"
+                        title="DAW Controls"
                       >
                         <ChevronLeft className="h-4 w-4" />
                       </button>
-                      <div className="flex h-8 w-8 items-center justify-center text-[var(--ussy-text-faint)]">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center text-[var(--ussy-text-faint)]"
+                        title="DAW Controls"
+                      >
                         <Sliders className="h-4 w-4" />
                       </div>
                     </div>
@@ -294,10 +344,6 @@ const DAWShell = ({
                       </button>
                       <div className="flex h-full min-h-0 flex-col overflow-y-auto">
                         {dawPanel}
-                        {/* Version History inside DAW sidebar */}
-                        <div className="border-t border-[var(--ussy-divider)] p-3">
-                          <VersionHistoryPanel {...versionPanel} />
-                        </div>
                       </div>
                     </div>
                   )}

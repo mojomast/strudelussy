@@ -55,20 +55,21 @@ VITE_API_URL=http://localhost:8788
 - `src/stores/projectStore.ts` - Zustand project/session state
 - `src/lib/api.ts` - API client
 - `src/lib/codeParser.ts` - BPM/key/section/track parsing plus FX, arrange, and mutation helpers
-- `src/components/DAWShell.tsx` - Ussy mode layout shell: CSS Grid with `--chat-width`/`--daw-width` CSS vars, resize handles, collapse-to-icon-rail, focus mode (`Cmd+Shift+F`), `[`/`]` panel toggle, VersionHistoryPanel in DAW sidebar
+- `src/components/DAWShell.tsx` - Ussy mode layout shell: CSS Grid with `--chat-width`/`--daw-width` CSS vars, pointer-event resize handles with `setPointerCapture`, collapse-to-icon-rail, focus mode (`Cmd+Shift+F`), `[`/`]` panel toggle, panel widths and collapse states persisted to localStorage (widths debounced 300ms), `React.cloneElement` injection of `onCollapse` into ChatPanel
 - `src/components/LegacyDAWShell.tsx` - preserved copy of original fixed three-column DAWShell layout
 - `src/components/StrudelEditor.tsx` - existing editor extended with line jumping and imperative evaluate hook
 - `src/components/VersionHistoryPanel.tsx` - snapshot refresh/restore UI
-- `src/components/ProjectTopbar.tsx` - slim 40px single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share), token usage pill with color coding, model selector, master volume, viz toggle, `Cmd+,` shortcut, and ARIA tab roles
-- `src/components/TransportBar.tsx` - slim 44px transport dock with play/stop, undo/redo (aria-labeled), save, error status (role=alert), phase progress bar (role=progressbar), and play pulse animation
+- `src/components/ProjectTopbar.tsx` - slim 40px single-row topbar with settings drawer (4 tabs: AI Settings, Prompts, API, Export & Share), editable BPM number input and Key text input, token usage pill with `≈` prefix format and red pulse warning at high usage, model selector with 160px max-width and overflow tooltip, master volume, viz toggle, `Cmd+,` to open / Escape to close, active tab badge on gear button, ARIA tab roles
+- `src/components/TransportBar.tsx` - slim 44px transport dock with play/stop, undo/redo (aria-labeled), save, error status (role=alert), phase progress bar (role=progressbar), and expanding ring pulse animation
 - `src/components/EditorPanel.tsx` - Strudel editor wrapper with lazy-loaded HAL background (React.lazy + Suspense), analyser passthrough, section strip, and mutate toolbar
-- `src/components/DawPanel.tsx` - accordion sidebar with 5 collapsible sections (Mixer, Rhythm Generator, Arrange, FX Rack, Version History), SectionHeader component with full a11y, localStorage persistence, Collapse All/Expand All, stable useCallback references, and ussy design tokens
-- `src/components/HalVisualization.tsx` - HAL background layer driven by the live Strudel analyser (lazy-loaded, code-split)
+- `src/components/ChatPanel.tsx` - session chat with header bar (message count badge, clear button, collapse chevron), `onCollapse` and `onClear` callback props, all colors migrated to `--ussy-*` tokens, teal accent on send button and YOLO checkbox
+- `src/components/DawPanel.tsx` - accordion sidebar with 5 collapsible sections (Mixer, Rhythm Generator, Arrange, FX Rack, Version History), SectionHeader with badges (track count, section count, FX count, version count), ResizeObserver-based AnimatedSection with dynamic duration proportional to content height, floating slider value popover on gain/pan drag, localStorage persistence, Collapse All/Expand All, stable useCallback references, ussy design tokens, `prefers-reduced-motion` support
+- `src/components/HalVisualization.tsx` - HAL background layer driven by the live Strudel analyser (lazy-loaded, code-split), also rendered in the viz panel slot via Suspense in HomePage
 - `src/components/RhythmGenerator.tsx` - Euclidean drum pattern helper with per-voice gain control (React.memo wrapped)
 - `src/components/ArrangePanel.tsx` - per-track mask scheduling helper with a fixed 16-step grid (React.memo wrapped)
 - `src/components/FxRack.tsx` - global track FX application helper with explicit filter enable/disable toggles (React.memo wrapped)
 - `src/components/ShortcutsOverlay.tsx` - keyboard shortcut reference modal with 10 shortcuts grouped into 4 sections
-- `src/index.css` - ussy design system: `--ussy-*` CSS custom properties (surface palette, accent color, text hierarchy, alpha-blended dividers, motion contract, panel transitions, resize handles, focus mode classes, transport pulse animation, token pill colors, accordion chevron rotation)
+- `src/index.css` - ussy design system: `--ussy-*` CSS custom properties (surface palette, accent color, text hierarchy, alpha-blended dividers, motion contract, panel transitions, resize handles, focus mode classes, expanding ring pulse animation, token pill colors with red pulse warning, accordion chevron rotation, `prefers-reduced-motion` support for all animations)
 
 ## Notes
 

@@ -1,5 +1,16 @@
+/**
+ * ChatPanel — Session chat interface for AI interaction.
+ *
+ * // What changed (Sprint 2):
+ * // - Added onCollapse callback prop for DAWShell panel collapse integration
+ * // - Added onClear callback prop for clearing chat history
+ * // - Header bar redesigned with message count badge, clear & collapse buttons
+ * // - All colors migrated from hardcoded zinc/purple to --ussy-* design tokens
+ * // - Send button and YOLO checkbox now use teal accent instead of purple
+ */
+
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Bot, SendHorizonal, User2 } from 'lucide-react'
+import { Bot, ChevronLeft, SendHorizonal, Trash2, User2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import DiffPreviewCard from '@/components/DiffPreviewCard'
@@ -19,9 +30,26 @@ interface ChatPanelProps {
   onRejectDiff: (messageId: string, diff: CodeDiff) => void
   onPreviewDiff: (messageId: string, diff: CodeDiff) => void
   onStopPreview: (messageId: string, diff: CodeDiff) => void
+  onCollapse?: () => void
+  onClear?: () => void
 }
 
-const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = false, onSend, onRetryLast, onToggleYolo, onApplyDiff, onRejectDiff, onPreviewDiff, onStopPreview }: ChatPanelProps) => {
+const ChatPanel = ({
+  messages,
+  isSending,
+  statusText,
+  errorText,
+  yoloMode = false,
+  onSend,
+  onRetryLast,
+  onToggleYolo,
+  onApplyDiff,
+  onRejectDiff,
+  onPreviewDiff,
+  onStopPreview,
+  onCollapse,
+  onClear,
+}: ChatPanelProps) => {
   const [value, setValue] = useState('')
   const threadRef = useRef<HTMLDivElement>(null)
 
@@ -40,31 +68,57 @@ const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = fals
     await onSend(nextValue)
   }
 
+  const messageCount = messages.length
+
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-zinc-900 bg-black/50">
-      <div className="border-b border-zinc-900 px-4 py-3 sm:px-5 sm:py-4">
-        <p className="text-sm font-semibold text-white">Session Chat</p>
-        <p className="text-xs text-zinc-500">Prompt the bot, review patches, then decide what lands in the editor.</p>
+    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface)]">
+      {/* Header bar */}
+      <div className="flex items-center gap-2 border-b border-[var(--ussy-divider)] px-3 py-2.5">
+        <p className="flex-1 text-sm font-semibold text-[var(--ussy-text)]">Session Chat</p>
+        <span className="rounded-full bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
+          {messageCount} msg{messageCount !== 1 ? 's' : ''}
+        </span>
+        {onClear && (
+          <button
+            onClick={onClear}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+            aria-label="Clear chat history"
+            title="Clear chat"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+          </button>
+        )}
+        {onCollapse && (
+          <button
+            onClick={onCollapse}
+            className="flex h-6 w-6 items-center justify-center rounded-md text-[var(--ussy-text-faint)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
+            aria-label="Collapse chat panel"
+            title="Collapse"
+          >
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
+      {/* Message thread */}
       <div ref={threadRef} className="flex-1 space-y-4 overflow-auto px-3 py-3 sm:px-4 sm:py-4">
         {messages.map((message) => (
           <div key={message.id} className="space-y-3">
             <div className="flex gap-3">
-              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950 text-zinc-300">
+              <div className="mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text-muted)]">
                 {message.role === 'user' ? <User2 className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-zinc-500">
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--ussy-text-muted)]">
                   <span>{message.role}</span>
                   <span>{new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <div className="mt-2 whitespace-pre-wrap rounded-2xl border border-zinc-900 bg-zinc-950/70 px-4 py-3 text-sm text-zinc-100">
+                <div className="mt-2 whitespace-pre-wrap rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3 text-sm text-[var(--ussy-text)]">
                   {message.role === 'assistant' &&
                    !message.status &&
                    !message.code_diff &&
                    message.content.trimStart().startsWith('{')
-                    ? '✦ Composing...'
+                    ? '\u2726 Composing...'
                     : message.content}
                 </div>
               </div>
@@ -88,18 +142,19 @@ const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = fals
         ))}
 
         {isSending ? (
-          <div className="flex gap-3 pl-1 text-sm text-zinc-400">
-            <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-zinc-800 bg-zinc-950">
+          <div className="flex gap-3 pl-1 text-sm text-[var(--ussy-text-muted)]">
+            <div className="mt-1 flex h-8 w-8 items-center justify-center rounded-full border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)]">
               <Bot className="h-4 w-4" />
             </div>
-            <div className="rounded-2xl border border-zinc-900 bg-zinc-950/70 px-4 py-3">
+            <div className="rounded-2xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-4 py-3">
               Streaming response...
             </div>
           </div>
         ) : null}
       </div>
 
-      <div className="border-t border-zinc-900 p-3 sm:p-4">
+      {/* Input area */}
+      <div className="border-t border-[var(--ussy-divider)] p-3 sm:p-4">
         {errorText ? (
           <div className="mb-3 rounded-xl border border-amber-700/40 bg-amber-950/20 px-3 py-2 text-xs text-amber-200">
             {errorText}
@@ -107,7 +162,7 @@ const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = fals
         ) : null}
 
         {statusText && !errorText ? (
-          <div className="mb-3 rounded-xl border border-zinc-800 bg-zinc-950/70 px-3 py-2 text-xs text-zinc-400">
+          <div className="mb-3 rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-3 py-2 text-xs text-[var(--ussy-text-muted)]">
             {statusText}
           </div>
         ) : null}
@@ -122,22 +177,36 @@ const ChatPanel = ({ messages, isSending, statusText, errorText, yoloMode = fals
             }
           }}
           placeholder="Describe a change, ask for a section, or request a fix..."
-          className="min-h-[84px] resize-none border-zinc-800 bg-zinc-950 text-zinc-100 placeholder:text-zinc-500 focus-visible:ring-purple-500 sm:min-h-[104px]"
+          className="min-h-[84px] resize-none border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-text)] placeholder:text-[var(--ussy-text-faint)] focus-visible:ring-[var(--ussy-accent)] sm:min-h-[104px]"
         />
         <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
-            <p className="text-xs text-zinc-500">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
+            <p className="text-xs text-[var(--ussy-text-muted)]">Cmd/Ctrl+Enter sends. AI changes stay in review until you apply them.</p>
             <div className="flex items-center gap-3">
-              <Button variant="outline" size="sm" className="h-8 border-zinc-700 bg-transparent px-2 text-xs text-zinc-200 hover:bg-zinc-900" onClick={() => void onRetryLast?.()}>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 border-[var(--ussy-divider)] bg-transparent px-2 text-xs text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]"
+                onClick={() => void onRetryLast?.()}
+              >
                 Retry last
               </Button>
-              <label className="flex items-center gap-2 text-xs text-zinc-400">
-                <input type="checkbox" checked={yoloMode} onChange={() => onToggleYolo?.()} className="h-4 w-4 rounded border-zinc-700 bg-zinc-950 text-purple-500 focus:ring-purple-500" />
+              <label className="flex items-center gap-2 text-xs text-[var(--ussy-text-muted)]">
+                <input
+                  type="checkbox"
+                  checked={yoloMode}
+                  onChange={() => onToggleYolo?.()}
+                  className="h-4 w-4 rounded border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] text-[var(--ussy-accent)] focus:ring-[var(--ussy-accent)]"
+                />
                 <span>YOLO: auto-apply patches</span>
               </label>
             </div>
           </div>
-          <Button className="gap-2 bg-purple-600 text-white hover:bg-purple-500" onClick={() => void handleSubmit()} disabled={!canSend || isSending}>
+          <Button
+            className="gap-2 bg-[var(--ussy-accent)] text-black hover:bg-[var(--ussy-accent-bright)]"
+            onClick={() => void handleSubmit()}
+            disabled={!canSend || isSending}
+          >
             <SendHorizonal className="h-4 w-4" />
             {isSending ? 'Sending...' : 'Send'}
           </Button>

@@ -1,23 +1,26 @@
 /**
  * DawPanel — Collapsible accordion sidebar for the DAW workspace.
  *
- * Changes from the previous flat-scroll layout:
- * - All content sections (Mixer, Rhythm Generator, Arrange, FX Rack, Version History)
- *   are now collapsible accordion sections with animated expand/collapse.
- * - BPM, Key, and Telemetry rows removed from this component (moved to topbar).
- *   Props are preserved in the interface so nothing breaks upstream.
- * - Section open/closed state is persisted in localStorage.
- * - "Collapse All / Expand All" toggle button at the top.
- * - Styling migrated to --ussy-* CSS custom property tokens.
- * - Reusable SectionHeader inner component with full a11y support.
+ * // What changed (Sprint 2):
+ * // - BUG FIX: Version History section now renders real VersionHistoryPanel
+ * //   instead of placeholder stub, via new versionPanel prop
+ * // - AnimatedSection rewritten with ResizeObserver for accurate height
+ * //   measurement — dynamic duration proportional to content height, no more
+ * //   max-height: 2000px hack
+ * // - Respects prefers-reduced-motion (0ms duration when enabled)
+ * // - Badges added: Arrange (section markers), FX Rack (effect count),
+ * //   Version History (snapshot count)
+ * // - Mixer slider value popover: floating tooltip above thumb during drag
+ * // - sections prop now destructured and used for Arrange badge
  */
 
 import { Link } from 'react-router-dom'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, type ComponentProps } from 'react'
 import { FolderKanban, Sliders, Disc, LayoutGrid, SlidersHorizontal, Clock, ChevronDown, ChevronsUpDown } from 'lucide-react'
 import ArrangePanel from '@/components/ArrangePanel'
 import FxRack from '@/components/FxRack'
 import RhythmGenerator from '@/components/RhythmGenerator'
+import VersionHistoryPanel from '@/components/VersionHistoryPanel'
 import { Button } from '@/components/ui/button'
 import { parseTrackGains } from '@/lib/codeParser'
 import type { TrackGain } from '@/lib/codeParser'
@@ -47,6 +50,7 @@ interface DawPanelProps {
   onTrackPanCommit: (tg: TrackGain, value: number) => void
   onInjectCode: (snippet: string) => void
   onApplyCode: (code: string) => void
+  versionPanel: ComponentProps<typeof VersionHistoryPanel>
 }
 
 interface SectionHeaderProps {
@@ -62,6 +66,7 @@ interface SectionHeaderProps {
 // ---------------------------------------------------------------------------
 
 const STORAGE_KEY = 'strudelussy:sidebarSections'
+const FX_PATTERN = /\.(room|delay|reverb|crush|distort|lpf|hpf)\b/g
 
 type SectionId = 'mixer' | 'rhythm' | 'arrange' | 'fx' | 'versionHistory'
 
@@ -72,6 +77,9 @@ const DEFAULT_OPEN_STATE: Record<SectionId, boolean> = {
   fx: false,
   versionHistory: false,
 }
+
+const PREFERS_REDUCED_MOTION =
+  typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -84,7 +92,6 @@ function loadSectionState(): Record<SectionId, boolean> {
     if (raw) {
       const parsed: unknown = JSON.parse(raw)
       if (parsed && typeof parsed === 'object') {
-        // Merge with defaults so newly-added sections get a sensible value
         return { ...DEFAULT_OPEN_STATE, ...(parsed as Record<string, boolean>) }
       }
     }
@@ -153,18 +160,65 @@ function SectionHeader({ icon, label, badge, isOpen, onToggle }: SectionHeaderPr
 }
 
 // ---------------------------------------------------------------------------
-// AnimatedSection — wraps content with max-height animation
+// AnimatedSection — ResizeObserver-driven height measurement
 // ---------------------------------------------------------------------------
 
 function AnimatedSection({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const [measuredHeight, setMeasuredHeight] = useState(0)
+  const [ready, setReady] = useState(false)
+
+  useEffect(() => {
+    const el = contentRef.current
+    if (!el) return
+
+    // Initial measurement
+    setMeasuredHeight(el.scrollHeight)
+
+    // Enable transitions after initial measurement to prevent flash
+    const frame = requestAnimationFrame(() => setReady(true))
+
+    const ro = new ResizeObserver(() => {
+      setMeasuredHeight(el.scrollHeight)
+    })
+    ro.observe(el)
+
+    return () => {
+      cancelAnimationFrame(frame)
+      ro.disconnect()
+    }
+  }, [])
+
+  // Dynamic duration: faster for short content, proportional for tall
+  const duration = PREFERS_REDUCED_MOTION
+    ? 0
+    : Math.min(250, Math.max(120, measuredHeight * 0.4))
+
   return (
     <div
-      className="overflow-hidden transition-[max-height] duration-200 ease-out"
-      style={{ maxHeight: isOpen ? '2000px' : '0px' }}
+      style={{
+        maxHeight: isOpen ? (measuredHeight > 0 ? `${measuredHeight}px` : '9999px') : '0px',
+        overflow: 'hidden',
+        transition: ready
+          ? `max-height ${duration}ms cubic-bezier(0.16, 1, 0.3, 1)`
+          : 'none',
+      }}
     >
-      <div className="p-3">{children}</div>
+      <div ref={contentRef} className="p-3">
+        {children}
+      </div>
     </div>
   )
+}
+
+// ---------------------------------------------------------------------------
+// Slider value popover type
+// ---------------------------------------------------------------------------
+
+interface ActiveSlider {
+  trackId: string
+  value: number
+  type: 'gain' | 'pan'
 }
 
 // ---------------------------------------------------------------------------
@@ -173,6 +227,7 @@ function AnimatedSection({ isOpen, children }: { isOpen: boolean; children: Reac
 
 const DawPanel = ({
   project,
+  sections,
   shareUrl,
   shareError,
   isSharing,
@@ -183,9 +238,11 @@ const DawPanel = ({
   onTrackPanCommit,
   onInjectCode,
   onApplyCode,
+  versionPanel,
 }: DawPanelProps) => {
   // ---- Section open/closed state with localStorage persistence ----
   const [openSections, setOpenSections] = useState<Record<SectionId, boolean>>(loadSectionState)
+  const [activeSlider, setActiveSlider] = useState<ActiveSlider | null>(null)
 
   // Persist whenever openSections changes (after initial load)
   useEffect(() => {
@@ -193,10 +250,7 @@ const DawPanel = ({
   }, [openSections])
 
   const toggleSection = useCallback((id: SectionId) => {
-    setOpenSections((prev) => {
-      const next = { ...prev, [id]: !prev[id] }
-      return next
-    })
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }))
   }, [])
 
   // Stable per-section toggle callbacks for memoized child components
@@ -225,6 +279,9 @@ const DawPanel = ({
 
   // ---- Derived data ----
   const trackGains = parseTrackGains(project.strudel_code)
+  const fxCount = (project.strudel_code.match(FX_PATTERN) || []).length
+  const sectionCount = sections.length
+  const versionCount = versionPanel.versions.length
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
@@ -273,19 +330,45 @@ const DawPanel = ({
                       {tg.gain.toFixed(2)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min={0}
-                    max={1.5}
-                    step={0.01}
-                    value={tg.gain}
-                    onChange={(e) => onTrackGainChange(tg, Number(e.target.value))}
-                    onPointerUp={(e) =>
-                      onTrackGainCommit(tg, Number((e.currentTarget as HTMLInputElement).value))
-                    }
-                    className="mt-1.5 w-full accent-[var(--ussy-accent)]"
-                    aria-label={`${tg.trackName} gain`}
-                  />
+
+                  {/* Gain slider with popover */}
+                  <div className="relative mt-1.5">
+                    <input
+                      type="range"
+                      min={0}
+                      max={1.5}
+                      step={0.01}
+                      value={tg.gain}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        onTrackGainChange(tg, val)
+                        if (activeSlider?.trackId === tg.trackId && activeSlider.type === 'gain') {
+                          setActiveSlider({ trackId: tg.trackId, value: val, type: 'gain' })
+                        }
+                      }}
+                      onPointerDown={() =>
+                        setActiveSlider({ trackId: tg.trackId, value: tg.gain, type: 'gain' })
+                      }
+                      onPointerUp={(e) => {
+                        onTrackGainCommit(tg, Number((e.currentTarget as HTMLInputElement).value))
+                        setActiveSlider(null)
+                      }}
+                      className="w-full accent-[var(--ussy-accent)]"
+                      aria-label={`${tg.trackName} gain`}
+                    />
+                    {activeSlider?.trackId === tg.trackId && activeSlider.type === 'gain' && (
+                      <div
+                        className="pointer-events-none absolute -top-6 rounded bg-[var(--ussy-surface-3)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text)] shadow-md"
+                        style={{
+                          left: `${(activeSlider.value / 1.5) * 100}%`,
+                          transform: 'translateX(-50%)',
+                        }}
+                      >
+                        {activeSlider.value.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] uppercase tracking-widest text-[var(--ussy-text-faint)]">
                       Pan
@@ -294,19 +377,44 @@ const DawPanel = ({
                       {tg.pan.toFixed(2)}
                     </span>
                   </div>
-                  <input
-                    type="range"
-                    min={-1}
-                    max={1}
-                    step={0.01}
-                    value={tg.pan}
-                    onChange={(e) => onTrackPanChange(tg, Number(e.target.value))}
-                    onPointerUp={(e) =>
-                      onTrackPanCommit(tg, Number((e.currentTarget as HTMLInputElement).value))
-                    }
-                    className="mt-1 w-full accent-[var(--ussy-accent)]"
-                    aria-label={`${tg.trackName} pan`}
-                  />
+
+                  {/* Pan slider with popover */}
+                  <div className="relative mt-1">
+                    <input
+                      type="range"
+                      min={-1}
+                      max={1}
+                      step={0.01}
+                      value={tg.pan}
+                      onChange={(e) => {
+                        const val = Number(e.target.value)
+                        onTrackPanChange(tg, val)
+                        if (activeSlider?.trackId === tg.trackId && activeSlider.type === 'pan') {
+                          setActiveSlider({ trackId: tg.trackId, value: val, type: 'pan' })
+                        }
+                      }}
+                      onPointerDown={() =>
+                        setActiveSlider({ trackId: tg.trackId, value: tg.pan, type: 'pan' })
+                      }
+                      onPointerUp={(e) => {
+                        onTrackPanCommit(tg, Number((e.currentTarget as HTMLInputElement).value))
+                        setActiveSlider(null)
+                      }}
+                      className="w-full accent-[var(--ussy-accent)]"
+                      aria-label={`${tg.trackName} pan`}
+                    />
+                    {activeSlider?.trackId === tg.trackId && activeSlider.type === 'pan' && (
+                      <div
+                        className="pointer-events-none absolute -top-6 rounded bg-[var(--ussy-surface-3)] px-1.5 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text)] shadow-md"
+                        style={{
+                          left: `${((activeSlider.value + 1) / 2) * 100}%`,
+                          transform: 'translateX(-50%)',
+                        }}
+                      >
+                        {activeSlider.value.toFixed(2)}
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -328,6 +436,7 @@ const DawPanel = ({
         <SectionHeader
           icon={<LayoutGrid className="h-4 w-4" />}
           label="Arrange"
+          badge={sectionCount > 0 ? sectionCount : undefined}
           isOpen={openSections.arrange}
           onToggle={toggleArrange}
         />
@@ -344,6 +453,7 @@ const DawPanel = ({
         <SectionHeader
           icon={<SlidersHorizontal className="h-4 w-4" />}
           label="FX Rack"
+          badge={fxCount > 0 ? fxCount : undefined}
           isOpen={openSections.fx}
           onToggle={toggleFx}
         />
@@ -356,17 +466,16 @@ const DawPanel = ({
           />
         </AnimatedSection>
 
-        {/* 5. Version History (placeholder — real content rendered by DAWShell) */}
+        {/* 5. Version History */}
         <SectionHeader
           icon={<Clock className="h-4 w-4" />}
           label="Version History"
+          badge={versionCount > 0 ? versionCount : undefined}
           isOpen={openSections.versionHistory}
           onToggle={toggleVersionHistory}
         />
         <AnimatedSection isOpen={openSections.versionHistory}>
-          <p className="text-xs text-[var(--ussy-text-faint)]">
-            Version history is displayed in the parent shell.
-          </p>
+          <VersionHistoryPanel {...versionPanel} />
         </AnimatedSection>
       </div>
 

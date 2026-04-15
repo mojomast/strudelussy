@@ -1,13 +1,11 @@
 /* ============================================================================
    strudelussy — Design System v2 ("Ussy Mode")
-   
-   What changed:
-   - Refined dark theme with blue-black base (#0a0a0f) instead of pure black
-   - Electric teal accent color for a music production / live coding feel
-   - Motion contract: panel transitions, hover states, reduced-motion support
-   - New CSS custom properties for panel layout (--chat-width, --daw-width)
-   - Focus mode support via .focus-mode class
-   - Transport pulse animation for playback indicator
+
+   // What changed (Sprint 2 — Phase 5):
+   // - Transport pulse animation replaced with spec-compliant ussy-pulse-ring
+   //   (expanding box-shadow ring instead of glowing pulse)
+   // - Added ussy-token-red-pulse keyframes and class for token pill warning
+   // - Both pulse animations respect prefers-reduced-motion
    ============================================================================ */
 
 @tailwind base;
@@ -137,6 +135,14 @@
     --duration-section: 0ms;
     --duration-hover: 0ms;
   }
+
+  .ussy-playing-pulse {
+    animation: none;
+  }
+
+  .ussy-token-red-pulse {
+    animation: none;
+  }
 }
 
 /* ============================================================================
@@ -233,14 +239,25 @@ body {
   display: none !important;
 }
 
-/* Transport play pulse */
-@keyframes ussy-pulse {
-  0%, 100% { box-shadow: 0 0 0 0 var(--ussy-accent-glow); }
-  50% { box-shadow: 0 0 12px 4px var(--ussy-accent-glow); }
+/* Transport play pulse — expanding ring */
+@keyframes ussy-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0.5); }
+  70% { box-shadow: 0 0 0 8px rgba(45, 212, 191, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(45, 212, 191, 0); }
 }
 
 .ussy-playing-pulse {
-  animation: ussy-pulse 2s ease-in-out infinite;
+  animation: ussy-pulse-ring 1.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Token pill red warning pulse */
+@keyframes ussy-token-red-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  50% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0); }
+}
+
+.ussy-token-red-pulse {
+  animation: ussy-token-red-pulse 2s ease-in-out infinite;
 }
 
 /* Section strip active glow */

@@ -1,22 +1,16 @@
 /**
  * ProjectTopbar – v2 (slim single-row topbar with settings drawer)
  *
- * WHAT CHANGED (v1 → v2):
- * ─────────────────────────────────────────────────────────────────
- * • Collapsed from a 3-row, ~20%-of-viewport header into a single
- *   40 px slim row containing only essential controls.
- * • All secondary settings (system prompt, API keys, export actions,
- *   prompt presets, license links) moved into a slide-down drawer
- *   toggled by a ⚙ gear button (or ⌘, keyboard shortcut).
- * • Drawer organised into 4 tabs: AI Settings · Prompts · API ·
- *   Export & Share.
- * • Added colour-coded token-usage pill (green / yellow / amber / red).
- * • BPM read-only pill displayed inline (value currently derived from
- *   no prop – shows "—" unless a `bpm` prop is wired up).
- * • Styling migrated to CSS-variable design tokens (--ussy-*) with
- *   teal accent colour instead of purple-500.
- * • Props interface is UNCHANGED – every prop from v1 is preserved.
- * ─────────────────────────────────────────────────────────────────
+ * // What changed (Sprint 2 — Phase 3):
+ * // - BPM read-only pill replaced with 60px number input, wired to onBpmChange
+ * // - Key text input (80px) added after BPM input, wired to onKeyChange
+ * // - Token pill format: "≈8.2k" prefix with ≈, "tok" suffix removed
+ * // - Token pill pulsing red when approxTokenUsage >= 14000
+ * // - Model selector max-width reduced to 160px, title tooltip for overflow
+ * // - Escape key closes drawer when open
+ * // - Active tab badge shown on gear button when drawer is open
+ * // - New props: bpm, projectKey, onBpmChange, onKeyChange
+ * // - All existing props preserved
  */
 
 import { useCallback, useEffect, useState } from 'react'
@@ -48,6 +42,8 @@ interface ProjectTopbarProps {
   isSharing: boolean
   approxTokenUsage: number
   showVisualization: boolean
+  bpm?: number | null
+  projectKey?: string | null
   onProjectNameChange: (name: string) => void
   onMasterVolumeChange: (volume: number) => void
   onCustomApiEndpointChange: (endpoint: string) => void
@@ -68,6 +64,8 @@ interface ProjectTopbarProps {
   onExportProject: () => void
   onShare: () => void
   onToggleShortcuts: () => void
+  onBpmChange?: (bpm: number) => void
+  onKeyChange?: (key: string) => void
 }
 
 // ── Shared input class ───────────────────────────────────────────
@@ -84,9 +82,9 @@ function tokenPillClass(tokens: number): string {
   return 'ussy-token-green'
 }
 
-/** Format token count as a human-readable string, e.g. "8.2k". */
+/** Format token count as a human-readable string, e.g. "≈8.2k". */
 function formatTokens(tokens: number): string {
-  return `${(Math.round(tokens / 100) / 10).toFixed(1)}k`
+  return `≈${(Math.round(tokens / 100) / 10).toFixed(1)}k`
 }
 
 // ── Drawer tab definitions ───────────────────────────────────────
@@ -115,6 +113,8 @@ const ProjectTopbar = ({
   isSharing,
   approxTokenUsage,
   showVisualization,
+  bpm,
+  projectKey,
   onProjectNameChange,
   onMasterVolumeChange,
   onCustomApiEndpointChange,
@@ -135,11 +135,13 @@ const ProjectTopbar = ({
   onExportProject,
   onShare,
   onToggleShortcuts,
+  onBpmChange,
+  onKeyChange,
 }: ProjectTopbarProps) => {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [activeTab, setActiveTab] = useState<DrawerTab>('ai')
 
-  // ── ⌘, keyboard shortcut to toggle drawer ─────────────────────
+  // ── ⌘, keyboard shortcut to toggle drawer + Escape to close ───
   const toggleDrawer = useCallback(() => setDrawerOpen((prev) => !prev), [])
 
   useEffect(() => {
@@ -148,10 +150,14 @@ const ProjectTopbar = ({
         e.preventDefault()
         toggleDrawer()
       }
+      if (e.key === 'Escape' && drawerOpen) {
+        e.preventDefault()
+        setDrawerOpen(false)
+      }
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [toggleDrawer])
+  }, [toggleDrawer, drawerOpen])
 
   // ── Derived values ─────────────────────────────────────────────
   const apiStatusText =
@@ -159,6 +165,12 @@ const ProjectTopbar = ({
       ? 'Custom provider fields are populated'
       : 'Using built-in OpenRouter Gemini 2.5 Flash'
   const modelStatusText = modelLoadError ?? (isLoadingModels ? 'Loading models…' : 'Model list ready')
+
+  // Active tab label for gear button badge
+  const activeTabLabel = DRAWER_TABS.find((t) => t.id === activeTab)?.label ?? ''
+
+  // Token pulse class — pulse when red tier
+  const tokenPulseClass = approxTokenUsage >= 14_000 ? 'ussy-token-red-pulse' : ''
 
   // ── Render ─────────────────────────────────────────────────────
   return (
@@ -186,17 +198,43 @@ const ProjectTopbar = ({
           aria-label="Project name"
         />
 
-        {/* 4. BPM read-only pill (value displayed if available via project) */}
-        <span className="shrink-0 rounded-md border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-2 py-0.5 text-[10px] font-medium tabular-nums text-[var(--ussy-text-muted)]">
-          — BPM
-        </span>
+        {/* 4. BPM input */}
+        <input
+          type="number"
+          min={20}
+          max={300}
+          step={1}
+          value={bpm ?? ''}
+          placeholder="BPM"
+          onChange={(e) => {
+            const val = Number(e.target.value)
+            if (Number.isFinite(val) && val > 0 && onBpmChange) {
+              onBpmChange(val)
+            }
+          }}
+          className={`${inputClass} w-[60px] tabular-nums`}
+          aria-label="BPM"
+          title="Beats per minute"
+        />
 
-        {/* 5. Model selector dropdown */}
+        {/* 5. Key input */}
+        <input
+          type="text"
+          value={projectKey ?? ''}
+          placeholder="Key"
+          onChange={(e) => onKeyChange?.(e.target.value)}
+          className={`${inputClass} w-[80px]`}
+          aria-label="Musical key"
+          title="Musical key (e.g. C major, Am)"
+        />
+
+        {/* 6. Model selector dropdown */}
         <select
           value={selectedModel}
           onChange={(e) => onModelChange(e.target.value)}
-          className={`${inputClass} max-w-[180px] min-w-[120px]`}
+          className={`${inputClass} max-w-[160px] min-w-[120px]`}
           aria-label="Model selector"
+          title={selectedModel}
         >
           {availableModels.map((model) => (
             <option key={model} value={model}>
@@ -205,7 +243,7 @@ const ProjectTopbar = ({
           ))}
         </select>
 
-        {/* 6. Play indicator dot */}
+        {/* 7. Play indicator dot */}
         <span
           className="h-2 w-2 shrink-0 rounded-full"
           style={{
@@ -220,7 +258,7 @@ const ProjectTopbar = ({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* 7. Master volume slider (compact) */}
+        {/* 8. Master volume slider (compact) */}
         <label className="flex h-7 shrink-0 items-center gap-1.5 rounded-lg border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-2 text-[10px] text-[var(--ussy-text-muted)]">
           <span>Vol</span>
           <input
@@ -237,18 +275,18 @@ const ProjectTopbar = ({
           </span>
         </label>
 
-        {/* 8. Token usage pill */}
+        {/* 9. Token usage pill */}
         <span
-          className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium tabular-nums ${tokenPillClass(approxTokenUsage)}`}
+          className={`shrink-0 rounded-md px-2 py-0.5 text-[10px] font-medium tabular-nums ${tokenPillClass(approxTokenUsage)} ${tokenPulseClass}`}
           title={`≈ ${approxTokenUsage.toLocaleString()} tokens in context`}
         >
-          {formatTokens(approxTokenUsage)} tok
+          {formatTokens(approxTokenUsage)}
         </span>
 
         {/* Divider */}
         <div className="h-4 w-px shrink-0 bg-[var(--ussy-divider)]" />
 
-        {/* 9. Settings gear button */}
+        {/* 10. Settings gear button */}
         <button
           onClick={toggleDrawer}
           className="flex shrink-0 items-center gap-1 rounded-lg px-1.5 py-1 text-[var(--ussy-text-muted)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"
@@ -257,12 +295,18 @@ const ProjectTopbar = ({
           title="Settings (⌘,)"
         >
           <Settings className="h-4 w-4" />
-          <kbd className="hidden rounded border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-1 py-px text-[9px] text-[var(--ussy-text-faint)] sm:inline-block">
-            ⌘,
-          </kbd>
+          {drawerOpen ? (
+            <span className="rounded bg-[var(--ussy-accent)] px-1.5 py-px text-[9px] font-semibold text-black">
+              {activeTabLabel}
+            </span>
+          ) : (
+            <kbd className="hidden rounded border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] px-1 py-px text-[9px] text-[var(--ussy-text-faint)] sm:inline-block">
+              ⌘,
+            </kbd>
+          )}
         </button>
 
-        {/* 10. Shortcuts button */}
+        {/* 11. Shortcuts button */}
         <button
           onClick={onToggleShortcuts}
           className="flex h-6 w-6 shrink-0 items-center justify-center rounded-lg text-[var(--ussy-text-muted)] transition hover:bg-[var(--ussy-surface-2)] hover:text-[var(--ussy-text)]"

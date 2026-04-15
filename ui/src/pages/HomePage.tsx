@@ -1,6 +1,12 @@
 /**
  * HomePage – root page for the Strudelussy DAW.
  *
+ * // What changed (Sprint 2):
+ * // - BUG FIX: vizPanel now renders a lazy-loaded HalVisualization
+ * //   wrapped in Suspense instead of being hardcoded to null
+ * // - versionPanel props are now passed through to DawPanel
+ * // - BPM and Key props wired from currentProject to ProjectTopbar
+ *
  * Supports two UI modes toggled via a floating pill (bottom-right) or
  * the keyboard shortcut Cmd/Ctrl+Shift+L:
  *   • "ussy"  – the new DAWShell layout (default)
@@ -9,7 +15,7 @@
  * Both shells receive the exact same props; only the rendered component differs.
  */
 
-import { useCallback, useEffect, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import ChatPanel from '@/components/ChatPanel'
@@ -21,6 +27,8 @@ import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
+
+const HalVisualization = lazy(() => import('@/components/HalVisualization'))
 
 type UIMode = 'ussy' | 'legacy'
 
@@ -60,6 +68,17 @@ const HomePage = () => {
   const { currentProject, sections, params, pendingDiffs, isPlaying } = orchestrator
   const pendingPatchCount = pendingDiffs.size
 
+  // ── Version panel props (shared between shellProps and DawPanel) ─────
+  const versionPanelProps = {
+    versions: currentProject.versions,
+    isLoading: orchestrator.isLoadingVersions,
+    isRestoring: orchestrator.isRestoringVersion,
+    error: orchestrator.versionError,
+    onRefresh: () => void orchestrator.loadVersions(currentProject.id),
+    onRestore: (version: Parameters<typeof orchestrator.onRestoreVersion>[0]) =>
+      void orchestrator.onRestoreVersion(version),
+  } as const
+
   // ── Shared props for both DAWShell and LegacyDAWShell ────────────────
   const shellProps = {
     topbar: (
@@ -79,6 +98,8 @@ const HomePage = () => {
         isSharing={orchestrator.isSharing}
         approxTokenUsage={orchestrator.approxTokenUsage}
         showVisualization={showVisualization}
+        bpm={currentProject.bpm ?? null}
+        projectKey={currentProject.key ?? null}
         onProjectNameChange={orchestrator.onProjectNameChange}
         onMasterVolumeChange={orchestrator.onMasterVolumeChange}
         onCustomApiEndpointChange={orchestrator.onCustomApiEndpointChange}
@@ -99,6 +120,8 @@ const HomePage = () => {
         onExportProject={orchestrator.onExportProject}
         onShare={() => void orchestrator.onShare()}
         onToggleShortcuts={() => orchestrator.setShowShortcuts(!orchestrator.showShortcuts)}
+        onBpmChange={orchestrator.onBpmChange}
+        onKeyChange={orchestrator.onProjectKeyChange}
       />
     ),
     chatPanel: (
@@ -144,7 +167,15 @@ const HomePage = () => {
       />
     ),
     showVisualization,
-    vizPanel: null,
+    vizPanel: showVisualization ? (
+      <Suspense fallback={null}>
+        <HalVisualization
+          isPlaying={isPlaying}
+          isListening={false}
+          audioAnalyser={orchestrator.audioAnalyser}
+        />
+      </Suspense>
+    ) : null,
     dawPanel: (
       <DawPanel
         project={currentProject}
@@ -165,6 +196,7 @@ const HomePage = () => {
         onTrackPanCommit={orchestrator.onTrackPanCommit}
         onInjectCode={orchestrator.onInjectCode}
         onApplyCode={orchestrator.onApplyGeneratedCode}
+        versionPanel={versionPanelProps}
       />
     ),
     transportBar: (
@@ -182,15 +214,7 @@ const HomePage = () => {
         onRedo={orchestrator.onRedo}
       />
     ),
-    versionPanel: {
-      versions: currentProject.versions,
-      isLoading: orchestrator.isLoadingVersions,
-      isRestoring: orchestrator.isRestoringVersion,
-      error: orchestrator.versionError,
-      onRefresh: () => void orchestrator.loadVersions(currentProject.id),
-      onRestore: (version: Parameters<typeof orchestrator.onRestoreVersion>[0]) =>
-        void orchestrator.onRestoreVersion(version),
-    },
+    versionPanel: versionPanelProps,
     overlay: (
       <ShortcutsOverlay
         open={orchestrator.showShortcuts}
