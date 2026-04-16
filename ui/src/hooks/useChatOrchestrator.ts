@@ -17,7 +17,7 @@ import {
 import type { TrackGain } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
 import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
-import type { ChatMessage, ChatStreamErrorInfo, CodeDiff, CodeVersion, ExtractedParam, Project, SavedPromptPreset, SectionMarker, SystemPromptMode } from '@/types/project'
+import type { ChatMessage, ChatStreamErrorInfo, CodeDiff, CodeVersion, ExtractedParam, LightingProjectState, Project, SavedPromptPreset, SectionMarker, SystemPromptMode } from '@/types/project'
 import type { CycleInfo } from '@/components/StrudelEditor'
 import type { EditorBridge } from '@/components/EditorPanel'
 
@@ -180,6 +180,7 @@ const createProjectTemplate = (userId: string, template: 'empty' | 'demo' = 'dem
       },
     ],
     versions: [],
+    lighting: { cue_bindings: [], group_bindings: [] },
     bpm: parseBpmFromCode(strudelCode),
     key: parseKeyFromCode(strudelCode),
     tags: template === 'demo' ? ['guest', 'demo'] : ['guest', 'empty'],
@@ -1025,6 +1026,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
 
   const onProjectNameChange = useCallback((name: string) => actions.setProjectName(name), [actions])
   const onProjectKeyChange = useCallback((key: string) => actions.setProjectKey(key), [actions])
+  const onProjectLightingChange = useCallback((lighting: LightingProjectState) => actions.setLighting(lighting), [actions])
   const onCustomApiEndpointChange = useCallback((endpoint: string) => {
     setCustomApiEndpoint(endpoint)
   }, [])
@@ -1200,6 +1202,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     editorContainerRef,
     registerEditor,
     getCurrentCode,
+    getTrackActivity: () => editorBridgeRef.current.getTrackActivity?.() ?? { activeTracks: [], cycleStart: 0, cycleEnd: 0 },
     onSend,
     onRetryLast,
     onApplyDiff,
@@ -1232,6 +1235,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onJuxRev,
     onProjectNameChange,
     onProjectKeyChange,
+    onProjectLightingChange,
     onCustomApiEndpointChange,
     onCustomApiKeyChange,
     onCustomSystemPromptChange,

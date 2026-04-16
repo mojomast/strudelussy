@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, Project, SectionMarker, SystemPromptMode } from '@/types/project'
+import type { ChatMessage, ChatModel, CodeDiff, ExtractedParam, LightingProjectState, Project, SectionMarker, SystemPromptMode } from '@/types/project'
 import { DEFAULT_CHAT_MODEL, DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
 import { extractParams, parseBpmFromCode, parseKeyFromCode, parseSections } from '@/lib/codeParser'
 import { createId } from '@/lib/utils'
@@ -37,6 +37,7 @@ interface ProjectStore {
     setProject: (project: Project) => void
     setProjectName: (name: string) => void
     setProjectKey: (key: string) => void
+    setLighting: (lighting: LightingProjectState) => void
     setCode: (code: string) => void
     setChatMessages: (messages: ChatMessage[]) => void
     appendMessage: (message: ChatMessage) => void
@@ -59,6 +60,7 @@ interface ProjectStore {
 
 const deriveProject = (project: Project): Project => ({
   ...project,
+  lighting: project.lighting ?? { cue_bindings: [], group_bindings: [] },
   bpm: project.bpm ?? parseBpmFromCode(project.strudel_code),
   key: project.key ?? parseKeyFromCode(project.strudel_code),
 })
@@ -119,6 +121,15 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         if (!state.currentProject) return state
         return {
           currentProject: { ...state.currentProject, key, updated_at: new Date().toISOString() },
+          isDirty: true,
+        }
+      }),
+
+    setLighting: (lighting) =>
+      set((state) => {
+        if (!state.currentProject) return state
+        return {
+          currentProject: { ...state.currentProject, lighting, updated_at: new Date().toISOString() },
           isDirty: true,
         }
       }),

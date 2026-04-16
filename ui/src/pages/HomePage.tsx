@@ -7,7 +7,7 @@
  * // - Added Cmd/Ctrl+Shift+T handling to toggle the Learn tab
  */
 
-import { lazy, Suspense, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import ChatPanel from '@/components/ChatPanel'
@@ -18,10 +18,10 @@ import LegacyDAWShell from '@/components/LegacyDAWShell'
 import ProjectTopbar from '@/components/ProjectTopbar'
 import ShortcutsOverlay from '@/components/ShortcutsOverlay'
 import TransportBar from '@/components/TransportBar'
+import VisualizationSurface from '@/components/visualization/VisualizationSurface'
+import type { DmxVisualizationData, VisualizationMode } from '@/components/visualization/types'
 import { TutorialOverlay, useTutorial } from '@/features/tutorial'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
-
-const HalVisualization = lazy(() => import('@/components/HalVisualization'))
 
 type UIMode = 'ussy' | 'legacy'
 
@@ -29,6 +29,17 @@ const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const [showVisualization, setShowVisualization] = useState(true)
   const [uiMode, setUiMode] = useState<UIMode>('ussy')
+  const [visualizationMode, setVisualizationMode] = useState<VisualizationMode>('hal')
+  const [dmxVisualizationData, setDmxVisualizationData] = useState<DmxVisualizationData | null>(null)
+  const [activeLightingScene, setActiveLightingScene] = useState<string | null>(null)
+  const [activeLightingGroup, setActiveLightingGroup] = useState<string | null>(null)
+  const [automationStatus, setAutomationStatus] = useState<Array<{ group_id: string; track_name: string; intensity: number; remaining_ms: number }>>([])
+  const lastTriggeredSceneRef = useRef<string | null>(null)
+  const lastTriggeredGroupRef = useRef<string | null>(null)
+  const groupPulseTimersRef = useRef<Map<string, number>>(new Map())
+  const lastGroupPulseKeyRef = useRef<string | null>(null)
+  const groupPulseMetaRef = useRef<Map<string, { track_name: string; intensity: number; ends_at: number }>>(new Map())
+  const dmxBridgeUrl = (import.meta.env.VITE_DMX_BRIDGE_URL as string | undefined) ?? 'http://127.0.0.1:3334'
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
   const tutorial = useTutorial()
@@ -68,6 +79,180 @@ const HomePage = () => {
 
   const { currentProject, sections, params, pendingDiffs, isPlaying } = orchestrator
   const pendingPatchCount = pendingDiffs.size
+  const lighting = currentProject.lighting ?? { cue_bindings: [], group_bindings: [] }
+
+  const refreshDmxVisualization = useCallback(async () => {
+    try {
+      const response = await fetch(`${dmxBridgeUrl}/state`)
+      if (!response.ok) {
+        throw new Error(`Bridge state request failed: ${response.status}`)
+      }
+      const payload = await response.json() as DmxVisualizationData
+      setDmxVisualizationData(payload)
+    } catch {
+      setDmxVisualizationData(null)
+    }
+  }, [dmxBridgeUrl])
+
+  useEffect(() => {
+    if (!showVisualization && visualizationMode !== 'dmx') {
+      return
+    }
+
+    let cancelled = false
+    const poll = async () => {
+      await refreshDmxVisualization()
+      if (cancelled) {
+        return
+      }
+    }
+
+    void poll()
+    const interval = window.setInterval(() => {
+      void poll()
+    }, 1000)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(interval)
+    }
+  }, [refreshDmxVisualization, showVisualization, visualizationMode])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      const now = Date.now()
+      const next = [...groupPulseMetaRef.current.entries()]
+        .map(([group_id, meta]) => ({
+          group_id,
+          track_name: meta.track_name,
+          intensity: meta.intensity,
+          remaining_ms: Math.max(0, Math.round(meta.ends_at - now)),
+        }))
+        .filter((entry) => entry.remaining_ms > 0)
+      setAutomationStatus(next)
+    }, 50)
+
+    return () => window.clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    if (isPlaying) {
+      return
+    }
+
+    lastTriggeredSceneRef.current = null
+    lastTriggeredGroupRef.current = null
+    for (const timer of groupPulseTimersRef.current.values()) {
+      window.clearTimeout(timer)
+    }
+    groupPulseTimersRef.current.clear()
+    groupPulseMetaRef.current.clear()
+    lastGroupPulseKeyRef.current = null
+    setAutomationStatus([])
+    setActiveLightingScene(null)
+    setActiveLightingGroup(null)
+  }, [isPlaying])
+
+  useEffect(() => {
+    if (!isPlaying) {
+      return
+    }
+
+    const activeSection = orchestrator.activeSection
+    if (!activeSection) {
+      setActiveLightingScene(null)
+      return
+    }
+
+    const cueBinding = lighting.cue_bindings.find((binding) => binding.section_label === activeSection)
+    if (!cueBinding) {
+      setActiveLightingScene(null)
+      return
+    }
+
+    setActiveLightingScene(cueBinding.scene_id)
+    if (lastTriggeredSceneRef.current === cueBinding.scene_id) {
+      return
+    }
+
+    lastTriggeredSceneRef.current = cueBinding.scene_id
+    void fetch(`${dmxBridgeUrl}/scenes/apply`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scene_id: cueBinding.scene_id }),
+    }).then(() => refreshDmxVisualization()).catch(() => undefined)
+  }, [dmxBridgeUrl, isPlaying, lighting.cue_bindings, orchestrator.activeSection, refreshDmxVisualization])
+
+  useEffect(() => {
+    if (!isPlaying) {
+      return
+    }
+
+    const activity = orchestrator.getTrackActivity()
+    const activeTrackName = activity.activeTracks.find((trackName) =>
+      lighting.group_bindings.some((binding) => binding.track_name === trackName),
+    )
+
+    if (!activeTrackName) {
+      setActiveLightingGroup(null)
+      return
+    }
+
+    const binding = lighting.group_bindings.find((candidate) => candidate.track_name === activeTrackName)
+    if (!binding) {
+      setActiveLightingGroup(null)
+      return
+    }
+
+    setActiveLightingGroup(binding.group_id)
+    const intensity = Math.max(0, Math.min(255, binding.intensity ?? 180))
+    const holdMs = Math.max(50, Math.min(2000, binding.hold_ms ?? 150))
+    const fadeMs = Math.max(0, Math.min(1000, binding.fade_ms ?? 30))
+    const pulseKey = `${binding.track_name}:${binding.group_id}:${activity.cycleStart}`
+    if (lastGroupPulseKeyRef.current === pulseKey) {
+      return
+    }
+
+    lastGroupPulseKeyRef.current = pulseKey
+    lastTriggeredGroupRef.current = binding.group_id
+    const pulseStart = Date.now()
+    const pulseEnd = pulseStart + holdMs
+    groupPulseMetaRef.current.set(binding.group_id, {
+      track_name: binding.track_name,
+      intensity,
+      ends_at: pulseEnd,
+    })
+    void fetch(`${dmxBridgeUrl}/control/group`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ group_id: binding.group_id, intensity }),
+    }).then(() => refreshDmxVisualization()).catch(() => undefined)
+
+    const existingTimer = groupPulseTimersRef.current.get(binding.group_id)
+    if (existingTimer) {
+      window.clearTimeout(existingTimer)
+    }
+
+    const releaseTimer = window.setTimeout(() => {
+      const fadeSteps = fadeMs > 0 ? Math.max(1, Math.round(fadeMs / 50)) : 1
+      for (let step = 1; step <= fadeSteps; step += 1) {
+        window.setTimeout(() => {
+          const nextIntensity = Math.max(0, Math.round(intensity * (1 - step / fadeSteps)))
+          void fetch(`${dmxBridgeUrl}/control/group`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ group_id: binding.group_id, intensity: nextIntensity }),
+          }).then(() => refreshDmxVisualization()).catch(() => undefined)
+          if (step === fadeSteps) {
+            groupPulseMetaRef.current.delete(binding.group_id)
+          }
+        }, step * Math.max(1, Math.floor(fadeMs / Math.max(1, fadeSteps))))
+      }
+      groupPulseTimersRef.current.delete(binding.group_id)
+    }, holdMs)
+
+    groupPulseTimersRef.current.set(binding.group_id, releaseTimer)
+  }, [dmxBridgeUrl, isPlaying, lighting.group_bindings, orchestrator.getTrackActivity, refreshDmxVisualization])
 
   const versionPanelProps = {
     versions: currentProject.versions,
@@ -97,6 +282,7 @@ const HomePage = () => {
         isSharing={orchestrator.isSharing}
         approxTokenUsage={orchestrator.approxTokenUsage}
         showVisualization={showVisualization}
+        visualizationMode={visualizationMode}
         bpm={currentProject.bpm ?? null}
         projectKey={currentProject.key ?? null}
         onProjectNameChange={orchestrator.onProjectNameChange}
@@ -113,6 +299,7 @@ const HomePage = () => {
         onSystemPromptModeChange={orchestrator.onSystemPromptModeChange}
         onLoadModels={() => void orchestrator.onLoadModels()}
         onToggleVisualization={() => setShowVisualization((value) => !value)}
+        onVisualizationModeChange={setVisualizationMode}
         onNewProject={() => orchestrator.onLoadTemplateProject('empty')}
         onLoadDemo={() => orchestrator.onLoadTemplateProject('demo')}
         onExportTxt={orchestrator.onExportTxt}
@@ -169,9 +356,14 @@ const HomePage = () => {
         project={currentProject}
         sections={sections}
         activeSection={orchestrator.activeSection}
+        activeLightingScene={activeLightingScene}
+        activeLightingGroup={activeLightingGroup}
         isPlaying={isPlaying}
         showVisualization={showVisualization}
         audioAnalyser={orchestrator.audioAnalyser}
+        visualizationMode={visualizationMode}
+        dmxVisualizationData={dmxVisualizationData}
+        dmxBridgeUrl={dmxBridgeUrl}
         isEditorInitialized={orchestrator.isEditorInitialized}
         isEditorInitializing={orchestrator.isEditorInitializing}
         cycleInfo={orchestrator.cycleInfo}
@@ -197,13 +389,13 @@ const HomePage = () => {
     ),
     showVisualization,
     vizPanel: showVisualization ? (
-      <Suspense fallback={null}>
-        <HalVisualization
-          isPlaying={isPlaying}
-          isListening={false}
-          audioAnalyser={orchestrator.audioAnalyser}
-        />
-      </Suspense>
+      <VisualizationSurface
+        mode={visualizationMode}
+        isPlaying={isPlaying}
+        audioAnalyser={orchestrator.audioAnalyser}
+        dmxData={dmxVisualizationData}
+        dmxBridgeUrl={dmxBridgeUrl}
+      />
     ) : null,
     dawPanel: (
       <DawPanel
@@ -217,6 +409,12 @@ const HomePage = () => {
         shareError={orchestrator.shareError}
         isSharing={orchestrator.isSharing}
         pendingPatchCount={pendingPatchCount}
+        dmxVisualizationData={dmxVisualizationData}
+        dmxBridgeUrl={dmxBridgeUrl}
+        visualizationEnabled={showVisualization}
+        visualizationMode={visualizationMode}
+        lighting={currentProject.lighting ?? { cue_bindings: [], group_bindings: [] }}
+        automationStatus={automationStatus}
         onBpmChange={orchestrator.onBpmChange}
         onKeyChange={orchestrator.onProjectKeyChange}
         onTrackGainChange={orchestrator.onTrackGainChange}
@@ -225,6 +423,9 @@ const HomePage = () => {
         onTrackPanCommit={orchestrator.onTrackPanCommit}
         onInjectCode={orchestrator.onInjectCode}
         onApplyCode={orchestrator.onApplyGeneratedCode}
+        onVisualizationModeChange={setVisualizationMode}
+        onLightingChange={orchestrator.onProjectLightingChange}
+        onRefreshDmx={() => void refreshDmxVisualization()}
         versionPanel={versionPanelProps}
       />
     ),
@@ -236,6 +437,8 @@ const HomePage = () => {
         error={orchestrator.strudelError || orchestrator.saveError}
         phase={orchestrator.cycleInfo?.phase ?? 0}
         activeSection={orchestrator.activeSection}
+        activeLightingScene={activeLightingScene}
+        activeLightingGroup={activeLightingGroup}
         onPlay={orchestrator.onPlay}
         onStop={orchestrator.onStop}
         onSave={() => void orchestrator.onManualSave()}

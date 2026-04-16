@@ -4,14 +4,14 @@
  * // - Left editor wiring unchanged so tutorial integration consumes the existing bridge cleanly
  */
 
-import { forwardRef, lazy, Suspense, useEffect, useRef } from 'react'
-
-const HalVisualization = lazy(() => import('@/components/HalVisualization'))
+import { forwardRef, useEffect, useRef } from 'react'
 import { Shuffle, Sparkles, Waves, Wand2 } from 'lucide-react'
 import StrudelEditor, { type CycleInfo } from '@/components/StrudelEditor'
 import SectionStrip from '@/components/SectionStrip'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import VisualizationSurface from '@/components/visualization/VisualizationSurface'
+import type { DmxVisualizationData, VisualizationMode } from '@/components/visualization/types'
 import type { Project, SectionMarker } from '@/types/project'
 
 export interface EditorBridge {
@@ -24,6 +24,7 @@ export interface EditorBridge {
   setMasterVolume: (volume: number) => void
   getCode: () => string
   getCycleInfo: () => CycleInfo | null
+  getTrackActivity: () => { activeTracks: string[]; cycleStart: number; cycleEnd: number }
   jumpToLine: (line: number) => void
 }
 
@@ -31,9 +32,14 @@ interface EditorPanelProps {
   project: Project
   sections: SectionMarker[]
   activeSection: string | null
+  activeLightingScene?: string | null
+  activeLightingGroup?: string | null
   isPlaying: boolean
   showVisualization: boolean
   audioAnalyser?: AnalyserNode | null
+  visualizationMode?: VisualizationMode
+  dmxVisualizationData?: DmxVisualizationData | null
+  dmxBridgeUrl?: string
   isEditorInitialized: boolean
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null
@@ -54,7 +60,7 @@ interface EditorPanelProps {
 
 const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
   {
-    project, sections, activeSection, isPlaying, showVisualization, audioAnalyser,
+    project, sections, activeSection, activeLightingScene, activeLightingGroup, isPlaying, showVisualization, audioAnalyser, visualizationMode = 'hal', dmxVisualizationData, dmxBridgeUrl,
     onEditorReady, onAnalyserReady, onCodeChange, onEditorActivity, onPlayStateChange, onInitStateChange,
     onStrudelError, onCodeEvaluated, onSelectSection,
     onShuffleRhythm, onAddVariation, onRandomReverb, onJuxRev,
@@ -80,15 +86,15 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
         ref={editorContainerRef}
         className="min-h-0 flex-1 overflow-hidden rounded-2xl border border-zinc-800/70 bg-black/35 p-2 backdrop-blur-sm sm:p-3"
       >
-        {showVisualization && audioAnalyser ? (
+        {showVisualization ? (
           <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
-            <Suspense fallback={null}>
-              <HalVisualization
-                isPlaying={isPlaying}
-                isListening={false}
-                audioAnalyser={audioAnalyser}
-              />
-            </Suspense>
+            <VisualizationSurface
+              mode={visualizationMode}
+              isPlaying={isPlaying}
+              audioAnalyser={audioAnalyser}
+              dmxData={dmxVisualizationData}
+              dmxBridgeUrl={dmxBridgeUrl}
+            />
           </div>
         ) : null}
 
@@ -105,6 +111,7 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
             onSetCodeReady={(setCode) => onEditorReady({ setCode })}
             onMasterVolumeReady={(setMasterVolume) => onEditorReady({ setMasterVolume })}
             onCycleInfoReady={(getCycleInfo) => onEditorReady({ getCycleInfo })}
+            onTrackActivityReady={(getTrackActivity) => onEditorReady({ getTrackActivity })}
             onJumpToLineReady={(jumpToLine) => onEditorReady({ jumpToLine })}
             onAnalyserReady={onAnalyserReady}
             onPlayStateChange={onPlayStateChange}
@@ -123,6 +130,16 @@ const EditorPanel = forwardRef<HTMLDivElement, EditorPanelProps>((
             onSelect={onSelectSection}
           />
           <div className="flex flex-wrap gap-1.5">
+            {activeLightingScene ? (
+              <span className="inline-flex h-7 items-center rounded-full border border-fuchsia-800/50 bg-fuchsia-950/30 px-2.5 text-[10px] uppercase tracking-[0.16em] text-fuchsia-200">
+                Scene {activeLightingScene}
+              </span>
+            ) : null}
+            {activeLightingGroup ? (
+              <span className="inline-flex h-7 items-center rounded-full border border-cyan-800/50 bg-cyan-950/30 px-2.5 text-[10px] uppercase tracking-[0.16em] text-cyan-200">
+                Group {activeLightingGroup}
+              </span>
+            ) : null}
             <Button variant="outline" size="sm" className="h-7 border-zinc-700 bg-transparent px-2 text-xs text-zinc-200 hover:bg-zinc-900" onClick={onShuffleRhythm}>
               <Shuffle className="mr-1 h-3 w-3" /> Shuffle
             </Button>

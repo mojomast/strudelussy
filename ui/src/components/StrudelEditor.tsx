@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { parseTracks } from '@/lib/codeParser'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
 import { StrudelMirror } from '@strudel/codemirror'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
@@ -36,13 +37,14 @@ interface StrudelEditorProps {
   onEvaluateReady?: (evaluateFn: () => void) => void
   onSetCodeReady?: (setCodeFn: (code: string) => void) => void
   onMasterVolumeReady?: (setMasterVolumeFn: (volume: number) => void) => void
+  onTrackActivityReady?: (getTrackActivityFn: () => { activeTracks: string[]; cycleStart: number; cycleEnd: number }) => void
 }
 
 export interface StrudelEditorHandle {
   jumpToLine: (line: number) => void
 }
 
-const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady, onMasterVolumeReady }, ref) => {
+const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ initialCode, onCodeChange, onPlayReady, onStopReady, onGetCurrentCode, onPlayStateChange, onAnalyserReady, onInitStateChange, onUndoReady, onRedoReady, onClearReady, onStrudelError, onCodeEvaluated, onCycleInfoReady, onJumpToLineReady, onEvaluateReady, onSetCodeReady, onMasterVolumeReady, onTrackActivityReady }, ref) => {
   const [isPlaying, setIsPlaying] = useState(false)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isInitializing, setIsInitializing] = useState(false)
@@ -76,6 +78,7 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
   const lastForwardedStrudelErrorRef = useRef<string | null>(null)
   const playStartTimeRef = useRef<number>(0) // Track when playback started - fallback only
   const cpsRef = useRef<number>(0.5) // Default CPS - fallback when scheduler not accessible
+  const trackActivityRef = useRef<Map<string, number>>(new Map())
 
   const jumpToLine = (line: number) => {
     const cmEditor = strudelMirrorRef.current?.editor
@@ -191,6 +194,30 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
             transpiler,
             root: editorRef.current!,
             initialCode: initialCode,
+            editPattern: (pattern: any) => pattern.onTrigger((hap: any) => {
+              const tracks = parseTracks(strudelMirrorRef.current?.code ?? initialCode)
+                .filter((track) => !track.name.includes('-'))
+              const locations = hap?.context?.locations ?? []
+              const matchedTrack = tracks.find((track) =>
+                locations.some((location: { start?: number; end?: number }) =>
+                  typeof location.start === 'number' && typeof location.end === 'number'
+                    ? location.start >= track.start && location.end <= track.end
+                    : false,
+                ),
+              )
+
+              if (!matchedTrack) {
+                return
+              }
+
+              const endSeconds = typeof hap?.endClipped === 'number'
+                ? hap.endClipped
+                : typeof hap?.whole?.end === 'number'
+                  ? hap.whole.end
+                  : getAudioContext().currentTime + 0.25
+
+              trackActivityRef.current.set(matchedTrack.name, endSeconds)
+            }, false),
             prebake: async () => {
               initAudioOnFirstClick()
               const loadModules = evalScope(
@@ -480,6 +507,25 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
 
           if (onJumpToLineReady) {
             onJumpToLineReady(jumpToLine)
+          }
+
+          if (onTrackActivityReady) {
+            onTrackActivityReady(() => {
+              const repl = (strudelMirrorRef.current as any)?.repl
+              const scheduler = repl?.scheduler
+              if (!scheduler || typeof scheduler.now !== 'function') {
+                return { activeTracks: [], cycleStart: 0, cycleEnd: 0 }
+              }
+
+              const cycleStart = Math.floor(scheduler.now())
+              const cycleEnd = cycleStart + 1
+              const nowSeconds = getAudioContext().currentTime
+              const activeTracks = [...trackActivityRef.current.entries()]
+                .filter(([, endTime]) => endTime >= nowSeconds)
+                .map(([name]) => name)
+
+              return { activeTracks, cycleStart, cycleEnd }
+            })
           }
           
           // Listen for Strudel log events (warnings/errors/code updates)

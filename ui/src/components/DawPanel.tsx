@@ -16,16 +16,19 @@
 
 import { Link } from 'react-router-dom'
 import { useState, useEffect, useCallback, useRef, type ComponentProps } from 'react'
-import { FolderKanban, Sliders, Disc, LayoutGrid, SlidersHorizontal, Clock, ChevronDown, ChevronsUpDown } from 'lucide-react'
+import { FolderKanban, Sliders, Disc, LayoutGrid, SlidersHorizontal, Clock, ChevronDown, ChevronsUpDown, Lightbulb } from 'lucide-react'
 import ArrangePanel from '@/components/ArrangePanel'
+import DmxControlPanel from '@/components/DmxControlPanel'
 import FxRack from '@/components/FxRack'
 import RhythmGenerator from '@/components/RhythmGenerator'
 import VersionHistoryPanel from '@/components/VersionHistoryPanel'
 import { Button } from '@/components/ui/button'
+import { parseTracks, type ParsedTrack } from '@/lib/codeParser'
+import type { DmxVisualizationData, VisualizationMode } from '@/components/visualization/types'
 import { parseTrackGains } from '@/lib/codeParser'
 import type { TrackGain } from '@/lib/codeParser'
 import type { CycleInfo } from '@/components/StrudelEditor'
-import type { ExtractedParam, Project, SectionMarker } from '@/types/project'
+import type { ExtractedParam, LightingProjectState, Project, SectionMarker } from '@/types/project'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -44,12 +47,21 @@ interface DawPanelProps {
   shareError: string | null
   isSharing: boolean
   pendingPatchCount: number
+  dmxVisualizationData: DmxVisualizationData | null
+  dmxBridgeUrl: string
+  visualizationEnabled: boolean
+  visualizationMode: VisualizationMode
+  lighting: LightingProjectState
+  automationStatus: Array<{ group_id: string; track_name: string; intensity: number; remaining_ms: number }>
   onTrackGainChange: (tg: TrackGain, value: number) => void
   onTrackGainCommit: (tg: TrackGain, value: number) => void
   onTrackPanChange: (tg: TrackGain, value: number) => void
   onTrackPanCommit: (tg: TrackGain, value: number) => void
   onInjectCode: (snippet: string) => void
   onApplyCode: (code: string) => void
+  onVisualizationModeChange: (mode: VisualizationMode) => void
+  onLightingChange: (lighting: LightingProjectState) => void
+  onRefreshDmx: () => void
   versionPanel: ComponentProps<typeof VersionHistoryPanel>
 }
 
@@ -68,13 +80,14 @@ interface SectionHeaderProps {
 const STORAGE_KEY = 'strudelussy:sidebarSections'
 const FX_PATTERN = /\.(room|delay|reverb|crush|distort|lpf|hpf)\b/g
 
-type SectionId = 'mixer' | 'rhythm' | 'arrange' | 'fx' | 'versionHistory'
+type SectionId = 'mixer' | 'rhythm' | 'arrange' | 'fx' | 'dmx' | 'versionHistory'
 
 const DEFAULT_OPEN_STATE: Record<SectionId, boolean> = {
   mixer: true,
   rhythm: false,
   arrange: false,
   fx: false,
+  dmx: true,
   versionHistory: false,
 }
 
@@ -232,12 +245,21 @@ const DawPanel = ({
   shareError,
   isSharing,
   pendingPatchCount,
+  dmxVisualizationData,
+  dmxBridgeUrl,
+  visualizationEnabled,
+  visualizationMode,
+  lighting,
+  automationStatus,
   onTrackGainChange,
   onTrackGainCommit,
   onTrackPanChange,
   onTrackPanCommit,
   onInjectCode,
   onApplyCode,
+  onVisualizationModeChange,
+  onLightingChange,
+  onRefreshDmx,
   versionPanel,
 }: DawPanelProps) => {
   // ---- Section open/closed state with localStorage persistence ----
@@ -258,6 +280,7 @@ const DawPanel = ({
   const toggleRhythm = useCallback(() => toggleSection('rhythm'), [toggleSection])
   const toggleArrange = useCallback(() => toggleSection('arrange'), [toggleSection])
   const toggleFx = useCallback(() => toggleSection('fx'), [toggleSection])
+  const toggleDmx = useCallback(() => toggleSection('dmx'), [toggleSection])
   const toggleVersionHistory = useCallback(() => toggleSection('versionHistory'), [toggleSection])
 
   // Stable no-op for collapsed/onToggle props that are preserved but unused
@@ -279,6 +302,7 @@ const DawPanel = ({
 
   // ---- Derived data ----
   const trackGains = parseTrackGains(project.strudel_code)
+  const trackCandidates: ParsedTrack[] = parseTracks(project.strudel_code)
   const fxCount = (project.strudel_code.match(FX_PATTERN) || []).length
   const sectionCount = sections.length
   const versionCount = versionPanel.versions.length
@@ -466,7 +490,30 @@ const DawPanel = ({
           />
         </AnimatedSection>
 
-        {/* 5. Version History */}
+        <SectionHeader
+          icon={<Lightbulb className="h-4 w-4" />}
+          label="DMX Monitor"
+          badge={dmxVisualizationData ? dmxVisualizationData.scenes.length : undefined}
+          isOpen={openSections.dmx}
+          onToggle={toggleDmx}
+        />
+        <AnimatedSection isOpen={openSections.dmx}>
+          <DmxControlPanel
+            data={dmxVisualizationData}
+            bridgeUrl={dmxBridgeUrl}
+            visualizationEnabled={visualizationEnabled}
+            visualizationMode={visualizationMode}
+            lighting={lighting}
+            automationStatus={automationStatus}
+            sectionCandidates={sections}
+            trackCandidates={trackCandidates}
+            onVisualizationModeChange={onVisualizationModeChange}
+            onLightingChange={onLightingChange}
+            onRefresh={onRefreshDmx}
+          />
+        </AnimatedSection>
+
+        {/* 6. Version History */}
         <SectionHeader
           icon={<Clock className="h-4 w-4" />}
           label="Version History"

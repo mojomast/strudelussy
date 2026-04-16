@@ -1,0 +1,29 @@
+{
+  "universe": 1,
+  "fixtures": [
+    {
+      "id": "wash_left",
+      "label": "Wash Left",
+      "channels": [1, 2, 3, 4],
+      "group_ids": ["all_washes", "frontline"]
+    },
+    {
+      "id": "wash_right",
+      "label": "Wash Right",
+      "channels": [5, 6, 7, 8],
+      "group_ids": ["all_washes", "frontline"]
+    }
+  ],
+  "groups": [
+    {
+      "id": "all_washes",
+      "label": "All Washes",
+      "fixture_ids": ["wash_left", "wash_right"]
+    },
+    {
+      "id": "frontline",
+      "label": "Frontline",
+      "fixture_ids": ["wash_left", "wash_right"]
+    }
+  ]
+}

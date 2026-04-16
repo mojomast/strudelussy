@@ -51,6 +51,7 @@ const shortcutGroups: ShortcutGroup[] = [
         { key: 'Cmd/Ctrl+Shift+F', action: 'Toggle focus mode' },
         { key: 'Cmd/Ctrl+Shift+T', action: 'Toggle Tutorial Panel' },
         { key: 'Cmd/Ctrl+Shift+L', action: 'Toggle Legacy / Ussy UI mode' },
+        { key: 'DMX Monitor', action: 'Use the right sidebar panel for bridge status, scenes, groups, RGBW control, and bindings' },
       ],
   },
   {

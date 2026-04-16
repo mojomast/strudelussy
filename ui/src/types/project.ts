@@ -37,6 +37,24 @@ export interface ChatMessage {
   timestamp: string
 }
 
+export interface LightingSectionBinding {
+  section_label: string
+  scene_id: string
+}
+
+export interface LightingTrackBinding {
+  track_name: string
+  group_id: string
+  intensity?: number
+  hold_ms?: number
+  fade_ms?: number
+}
+
+export interface LightingProjectState {
+  cue_bindings: LightingSectionBinding[]
+  group_bindings: LightingTrackBinding[]
+}
+
 export interface Project {
   id: string
   user_id: string
@@ -45,6 +63,7 @@ export interface Project {
   strudel_code: string
   chat_history: ChatMessage[]
   versions: CodeVersion[]
+  lighting?: LightingProjectState
   bpm?: number
   key?: string
   tags: string[]

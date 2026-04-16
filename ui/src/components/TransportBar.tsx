@@ -18,6 +18,8 @@ interface TransportBarProps {
   phase: number
   error: string | null
   activeSection: string | null
+  activeLightingScene?: string | null
+  activeLightingGroup?: string | null
   onPlay: () => void
   onStop: () => void
   onSave: () => void
@@ -32,6 +34,8 @@ const TransportBar = ({
   phase,
   error,
   activeSection,
+  activeLightingScene,
+  activeLightingGroup,
   onPlay,
   onStop,
   onSave,
@@ -99,6 +103,18 @@ const TransportBar = ({
           {activeSection && (
             <span className="hidden shrink-0 items-center gap-1 rounded-full bg-[var(--ussy-surface-2)] px-2.5 py-1 text-[10px] text-[var(--ussy-text-muted)] sm:inline-flex">
               {activeSection}
+            </span>
+          )}
+
+          {activeLightingScene && (
+            <span className="hidden shrink-0 items-center gap-1 rounded-full bg-fuchsia-950/40 px-2.5 py-1 text-[10px] text-fuchsia-200 sm:inline-flex">
+              Scene: {activeLightingScene}
+            </span>
+          )}
+
+          {activeLightingGroup && (
+            <span className="hidden shrink-0 items-center gap-1 rounded-full bg-cyan-950/40 px-2.5 py-1 text-[10px] text-cyan-200 sm:inline-flex">
+              Group: {activeLightingGroup}
             </span>
           )}
 

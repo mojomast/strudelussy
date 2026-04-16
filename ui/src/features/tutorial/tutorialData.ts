@@ -141,6 +141,56 @@ const lesson = (config: Lesson): Lesson => config
 
 export const chapters: Chapter[] = [
   {
+    id: 0,
+    emoji: '💡',
+    title: 'DMX & Lighting Control',
+    description: 'Use the bridge, DMX monitor, scenes, groups, and project bindings to drive lighting from Strudelussy.',
+    lessons: [
+      lesson({
+        id: 'dmx.1',
+        title: 'DMX Monitor Basics',
+        concept: 'Use the DMX Monitor panel to arm, blackout, trigger scenes, and inspect patch state.',
+        instructions: 'Open the DMX Monitor panel, inspect the patch, and understand that the bridge owns fixture/groups/scenes while Strudelussy stores musical bindings.',
+        scaffold: '// [intro]\n$: s("bd ~ sd ~")',
+        hints: [
+          'The DMX Monitor lives in the right sidebar.',
+          'The bridge can run in simulator mode or OLA mode.',
+          'Arm and Blackout are explicit controls for safe output handling.',
+        ],
+        validator: byRule(() => true, 'Open the DMX panel and inspect the controls.'),
+      }),
+      lesson({
+        id: 'dmx.2',
+        title: 'Section to Scene Bindings',
+        concept: 'Bind `// [section]` markers to named DMX scenes so playback structure can drive lighting.',
+        instructions: 'Create or keep section markers in the editor, then bind each section to a scene in the DMX Monitor panel.',
+        scaffold: '// [intro]\n$: s("bd ~ sd ~")\n\n// [drop]\n$: s("bd hh sd hh")',
+        hints: [
+          'Section markers look like `// [intro]`.',
+          'Cue bindings live in project lighting metadata.',
+          'When playback hits an active section, the bound scene can be triggered automatically.',
+        ],
+        validator: byRegex(/\/\/\s*\[[^\]]+\]/, 'Add at least one section marker like `// [intro]`.'),
+      }),
+      lesson({
+        id: 'dmx.3',
+        title: 'Track to Group Bindings',
+        concept: 'Bind named `$:` tracks to DMX groups so musical layers can map to lighting groups.',
+        instructions: 'Use named tracks and then assign them to DMX groups in the DMX Monitor panel. Runtime group automation currently uses real trigger events plus source-location matching, and can send onset-driven pulses with per-binding intensity and hold time.',
+        scaffold: 'drums $: s("bd hh sd hh")\n\nlead $: note("c4 e4 g4")',
+        hints: [
+          'Track names come before `$:`.',
+          'Named tracks are easier to bind than anonymous tracks.',
+          'Group bindings are persisted with the project.',
+          'Runtime auto-group triggering currently works best with explicit named tracks, not anonymous fallback names.',
+          'The current mapping is onset-driven, not a full per-note lighting expression system.',
+          'Track bindings can now define intensity, hold time, and fade time for the pulse.',
+        ],
+        validator: byRegex(/^[A-Za-z][\w]*\s*\$:/m, 'Add at least one named track before `$:`.'),
+      }),
+    ],
+  },
+  {
     id: 1,
     emoji: '🥁',
     title: 'Your First Sound',

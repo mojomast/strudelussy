@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import type { SavedPromptPreset, SystemPromptMode } from '@/types/project'
+import type { VisualizationMode } from '@/components/visualization/types'
 import { Disc3, Settings, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -42,6 +43,7 @@ interface ProjectTopbarProps {
   isSharing: boolean
   approxTokenUsage: number
   showVisualization: boolean
+  visualizationMode: VisualizationMode
   bpm?: number | null
   projectKey?: string | null
   onProjectNameChange: (name: string) => void
@@ -58,6 +60,7 @@ interface ProjectTopbarProps {
   onSystemPromptModeChange: (mode: SystemPromptMode) => void
   onLoadModels: () => void
   onToggleVisualization: () => void
+  onVisualizationModeChange: (mode: VisualizationMode) => void
   onNewProject: () => void
   onLoadDemo: () => void
   onExportTxt: () => void
@@ -113,6 +116,7 @@ const ProjectTopbar = ({
   isSharing,
   approxTokenUsage,
   showVisualization,
+  visualizationMode,
   bpm,
   projectKey,
   onProjectNameChange,
@@ -129,6 +133,7 @@ const ProjectTopbar = ({
   onSystemPromptModeChange,
   onLoadModels,
   onToggleVisualization,
+  onVisualizationModeChange,
   onNewProject,
   onLoadDemo,
   onExportTxt,
@@ -390,6 +395,15 @@ const ProjectTopbar = ({
                 onClick={onToggleVisualization}
               >
                 {showVisualization ? 'Viz On' : 'Viz Off'}
+              </Button>
+
+              <Button
+                size="toolbar"
+                variant="outline"
+                className="border-[var(--ussy-divider)] bg-transparent text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]"
+                onClick={() => onVisualizationModeChange(visualizationMode === 'hal' ? 'dmx' : 'hal')}
+              >
+                {visualizationMode === 'hal' ? 'Mode: HAL' : 'Mode: DMX'}
               </Button>
 
               {modelLoadError && (
