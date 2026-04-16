@@ -487,3 +487,113 @@ body {
     animation: none;
   }
 }
+
+/* === Strudel Autocomplete === */
+
+.strudel-autocomplete-tooltip {
+  background: #0a1628 !important;
+  border: 1px solid rgba(34, 211, 238, 0.2) !important;
+  border-radius: 6px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+  font-family: monospace !important;
+  font-size: 12px !important;
+  max-height: 260px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(34, 211, 238, 0.45) rgba(10, 22, 40, 0.95);
+}
+
+.strudel-autocomplete-tooltip::-webkit-scrollbar {
+  display: block;
+  width: 8px;
+}
+
+.strudel-autocomplete-tooltip::-webkit-scrollbar-track {
+  background: rgba(10, 22, 40, 0.95);
+}
+
+.strudel-autocomplete-tooltip::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.45);
+  border-radius: 999px;
+}
+
+.strudel-autocomplete-tooltip .cm-completionList {
+  max-height: 260px;
+}
+
+.strudel-autocomplete-tooltip .cm-completionLabel {
+  color: #e2e8f0;
+  padding: 4px 10px;
+}
+
+.strudel-autocomplete-tooltip .cm-completionList li[aria-selected],
+.strudel-autocomplete-tooltip .cm-completionLabel:focus {
+  background: rgba(34, 211, 238, 0.12) !important;
+  color: #67e8f9 !important;
+}
+
+.strudel-autocomplete-tooltip .cm-completionIcon {
+  display: none;
+}
+
+.strudel-autocomplete-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.strudel-autocomplete-item-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.strudel-autocomplete-item-label {
+  color: #e2e8f0;
+}
+
+.strudel-autocomplete-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  border-radius: 999px;
+  padding: 1px 6px;
+  font-size: 10px;
+  line-height: 1.3;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.strudel-autocomplete-badge-function {
+  color: #67e8f9;
+}
+
+.strudel-autocomplete-badge-method {
+  color: #f0abfc;
+}
+
+.strudel-autocomplete-badge-keyword {
+  color: #94a3b8;
+}
+
+.strudel-autocomplete-tooltip .cm-completionDetail {
+  color: rgba(148, 163, 184, 0.7) !important;
+  font-size: 11px;
+}
+
+.strudel-autocomplete-item-info {
+  color: rgba(148, 163, 184, 0.82);
+  font-size: 11px;
+  padding-left: 64px;
+}
+
+.strudel-autocomplete-tooltip .cm-tooltip-autocomplete .cm-completionInfo,
+.strudel-autocomplete-tooltip .cm-completionInfo {
+  background: #0d1f3c !important;
+  border-left: 1px solid rgba(34, 211, 238, 0.15) !important;
+  color: rgba(203, 213, 225, 0.9) !important;
+  padding: 8px 10px !important;
+  font-size: 11px !important;
+  max-width: 280px;
+}

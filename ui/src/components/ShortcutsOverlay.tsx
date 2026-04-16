@@ -33,8 +33,10 @@ const shortcutGroups: ShortcutGroup[] = [
     label: 'Playback & Editing',
     shortcuts: [
       { key: 'Space', action: 'Play / Stop' },
+      { key: 'Tab', action: 'Accept selected autocomplete suggestion, or indent when autocomplete is closed' },
+      { key: 'Ctrl+Space', action: 'Open Strudel autocomplete suggestions at the cursor' },
       { key: 'Cmd/Ctrl+S', action: 'Save snapshot' },
-      { key: 'Escape', action: 'Close overlay / stop preview / exit focus mode' },
+      { key: 'Escape', action: 'Dismiss autocomplete or close overlay / stop preview / exit focus mode' },
     ],
   },
   {

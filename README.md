@@ -12,6 +12,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - diff-aware AI chat flow with Apply/Reject review
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
+- inline Strudel-aware autocomplete in the editor with Ctrl+Space trigger, Tab accept, and method suggestions for chained calls
 - parsed BPM, key, sections, and a per-track gain/pan mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
@@ -66,6 +67,7 @@ Highlights:
 - AI chat panel (collapsible via `[` key or header chevron button), with message count badge and session clear action
 - diff preview cards
 - center editor column with lazy-loaded HAL layered beneath the code inside the editor surface, plus a separate viz panel slot rendered via `<Suspense>`
+- editor autocomplete for core Strudel factories, time transforms, pitch helpers, effects, drum labels, and chainable methods
 - slim 44px transport bar with phase progress indicator and expanding ring pulse animation
 - collapsible right-side DAW utility panel (via `]` key or chevron button) with accordion sections:
   - Mixer (per-track gain/pan with floating value popover on drag)

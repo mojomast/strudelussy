@@ -68,6 +68,12 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 - While playback is active, reevaluate after a short trailing debounce so audio updates without requiring stop/start
 - The debounce should be short enough to feel live, but long enough to avoid audible stutter during continuous typing
 
+**Editor autocomplete:**
+- The editor surfaces static Strudel-aware completions while typing
+- `Ctrl/Cmd+Space` should open the completion list explicitly
+- `Tab` should accept the selected completion when the list is open, otherwise preserve normal indentation behavior
+- `Escape` should dismiss the autocomplete popup without overriding existing editor/playback shortcuts
+
 **Progress bar:**
 ```css
 /* Inner fill div */
