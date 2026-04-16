@@ -1,5 +1,5 @@
 import { AlertTriangle, RadioTower, Shield, ShieldOff, Zap } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Select,
@@ -56,25 +56,45 @@ const DmxControlPanel = ({
   ]
 
   const [groupControls, setGroupControls] = useState<Record<string, GroupControlState>>({})
+  const [controlError, setControlError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!controlError) {
+      return
+    }
+
+    const timer = window.setTimeout(() => setControlError(null), 4000)
+    return () => window.clearTimeout(timer)
+  }, [controlError])
 
   const postControl = async (path: string, payload?: unknown) => {
     if (!bridgeUrl) {
       return
     }
 
-    await fetch(`${bridgeUrl}${path}`, {
-      method: 'POST',
-      headers: payload ? { 'Content-Type': 'application/json' } : undefined,
-      body: payload ? JSON.stringify(payload) : undefined,
-    })
-    onRefresh()
+    try {
+      const response = await fetch(`${bridgeUrl}${path}`, {
+        method: 'POST',
+        headers: payload ? { 'Content-Type': 'application/json' } : undefined,
+        body: payload ? JSON.stringify(payload) : undefined,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Control request failed: ${response.status}`)
+      }
+
+      setControlError(null)
+      onRefresh()
+    } catch (error) {
+      setControlError(error instanceof Error ? error.message : 'Unable to send DMX control request.')
+    }
   }
 
   const handleApplyScene = async (sceneId: string) => {
     await postControl('/scenes/apply', { scene_id: sceneId })
   }
 
-  const peak = Math.max(...(data?.universe.channels.slice(0, 32) ?? [0]))
+  const peak = data ? Math.max(0, ...data.universe.channels) : 0
   const cueBindings = lighting.cue_bindings
   const groupBindings = lighting.group_bindings
 
@@ -214,6 +234,12 @@ const DmxControlPanel = ({
           Refresh
         </Button>
       </div>
+
+      {controlError ? (
+        <div className="rounded-lg border border-red-900/50 bg-red-950/20 px-3 py-2 text-xs text-red-100/90">
+          {controlError}
+        </div>
+      ) : null}
 
       <div>
         <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-cyan-300/70">Groups</div>

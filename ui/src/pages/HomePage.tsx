@@ -7,7 +7,7 @@
  * // - Added Cmd/Ctrl+Shift+T handling to toggle the Learn tab
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import ChatPanel from '@/components/ChatPanel'
@@ -21,6 +21,7 @@ import TransportBar from '@/components/TransportBar'
 import VisualizationSurface from '@/components/visualization/VisualizationSurface'
 import type { DmxVisualizationData, VisualizationMode } from '@/components/visualization/types'
 import { TutorialOverlay, useTutorial } from '@/features/tutorial'
+import { useDmxAutomation } from '@/hooks/useDmxAutomation'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
 import type { LightingProjectState } from '@/types/project'
 
@@ -38,13 +39,7 @@ const HomePage = () => {
   const [visualizationMode, setVisualizationMode] = useState<VisualizationMode>('hal')
   const [dmxVisualizationData, setDmxVisualizationData] = useState<DmxVisualizationData | null>(null)
   const [activeLightingScene, setActiveLightingScene] = useState<string | null>(null)
-  const [activeLightingGroup, setActiveLightingGroup] = useState<string | null>(null)
-  const [automationStatus, setAutomationStatus] = useState<Array<{ group_id: string; track_name: string; intensity: number; remaining_ms: number }>>([])
   const lastTriggeredSceneRef = useRef<string | null>(null)
-  const lastTriggeredGroupRef = useRef<string | null>(null)
-  const groupPulseTimersRef = useRef<Map<string, number>>(new Map())
-  const lastGroupPulseKeyRef = useRef<string | null>(null)
-  const groupPulseMetaRef = useRef<Map<string, { track_name: string; intensity: number; ends_at: number }>>(new Map())
   const dmxBridgeUrl = (import.meta.env.VITE_DMX_BRIDGE_URL as string | undefined)?.trim() || null
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
@@ -53,6 +48,8 @@ const HomePage = () => {
   const isLoadingProject = orchestrator.isLoadingProject
   const isPlaying = orchestrator.isPlaying
   const lighting = currentProject?.lighting ?? EMPTY_LIGHTING
+  const trackActivity = orchestrator.getTrackActivity()
+  const trackActivityKey = trackActivity.activeTracks.join('|')
 
   const toggleUiMode = useCallback(() => {
     setUiMode((prev) => (prev === 'ussy' ? 'legacy' : 'ussy'))
@@ -127,38 +124,12 @@ const HomePage = () => {
   }, [refreshDmxVisualization, showVisualization, visualizationMode])
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      const now = Date.now()
-      const next = [...groupPulseMetaRef.current.entries()]
-        .map(([group_id, meta]) => ({
-          group_id,
-          track_name: meta.track_name,
-          intensity: meta.intensity,
-          remaining_ms: Math.max(0, Math.round(meta.ends_at - now)),
-        }))
-        .filter((entry) => entry.remaining_ms > 0)
-      setAutomationStatus(next)
-    }, 50)
-
-    return () => window.clearInterval(interval)
-  }, [])
-
-  useEffect(() => {
     if (isPlaying) {
       return
     }
 
     lastTriggeredSceneRef.current = null
-    lastTriggeredGroupRef.current = null
-    for (const timer of groupPulseTimersRef.current.values()) {
-      window.clearTimeout(timer)
-    }
-    groupPulseTimersRef.current.clear()
-    groupPulseMetaRef.current.clear()
-    lastGroupPulseKeyRef.current = null
-    setAutomationStatus([])
     setActiveLightingScene(null)
-    setActiveLightingGroup(null)
   }, [isPlaying])
 
   useEffect(() => {
@@ -195,80 +166,15 @@ const HomePage = () => {
     }).then(() => refreshDmxVisualization()).catch(() => undefined)
   }, [dmxBridgeUrl, isPlaying, lighting.cue_bindings, orchestrator.activeSection, refreshDmxVisualization])
 
-  useEffect(() => {
-    if (!isPlaying) {
-      return
-    }
+  const stableTrackActivity = useMemo(() => trackActivity, [trackActivityKey, trackActivity.cycleEnd, trackActivity.cycleStart])
 
-    const activity = orchestrator.getTrackActivity()
-    const activeTrackName = activity.activeTracks.find((trackName) =>
-      lighting.group_bindings.some((binding) => binding.track_name === trackName),
-    )
-
-    if (!activeTrackName) {
-      setActiveLightingGroup(null)
-      return
-    }
-
-    const binding = lighting.group_bindings.find((candidate) => candidate.track_name === activeTrackName)
-    if (!binding) {
-      setActiveLightingGroup(null)
-      return
-    }
-
-    setActiveLightingGroup(binding.group_id)
-    const intensity = Math.max(0, Math.min(255, binding.intensity ?? 180))
-    const holdMs = Math.max(50, Math.min(2000, binding.hold_ms ?? 150))
-    const fadeMs = Math.max(0, Math.min(1000, binding.fade_ms ?? 30))
-    const pulseKey = `${binding.track_name}:${binding.group_id}:${activity.cycleStart}`
-    if (lastGroupPulseKeyRef.current === pulseKey) {
-      return
-    }
-
-    if (!dmxBridgeUrl) {
-      return
-    }
-
-    lastGroupPulseKeyRef.current = pulseKey
-    lastTriggeredGroupRef.current = binding.group_id
-    const pulseStart = Date.now()
-    const pulseEnd = pulseStart + holdMs
-    groupPulseMetaRef.current.set(binding.group_id, {
-      track_name: binding.track_name,
-      intensity,
-      ends_at: pulseEnd,
-    })
-    void fetch(`${dmxBridgeUrl}/control/group`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ group_id: binding.group_id, intensity }),
-    }).then(() => refreshDmxVisualization()).catch(() => undefined)
-
-    const existingTimer = groupPulseTimersRef.current.get(binding.group_id)
-    if (existingTimer) {
-      window.clearTimeout(existingTimer)
-    }
-
-    const releaseTimer = window.setTimeout(() => {
-      const fadeSteps = fadeMs > 0 ? Math.max(1, Math.round(fadeMs / 50)) : 1
-      for (let step = 1; step <= fadeSteps; step += 1) {
-        window.setTimeout(() => {
-          const nextIntensity = Math.max(0, Math.round(intensity * (1 - step / fadeSteps)))
-          void fetch(`${dmxBridgeUrl}/control/group`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ group_id: binding.group_id, intensity: nextIntensity }),
-          }).then(() => refreshDmxVisualization()).catch(() => undefined)
-          if (step === fadeSteps) {
-            groupPulseMetaRef.current.delete(binding.group_id)
-          }
-        }, step * Math.max(1, Math.floor(fadeMs / Math.max(1, fadeSteps))))
-      }
-      groupPulseTimersRef.current.delete(binding.group_id)
-    }, holdMs)
-
-    groupPulseTimersRef.current.set(binding.group_id, releaseTimer)
-  }, [dmxBridgeUrl, isPlaying, lighting.group_bindings, orchestrator.getTrackActivity, refreshDmxVisualization])
+  const { activeLightingGroup, automationStatus } = useDmxAutomation({
+    isPlaying,
+    dmxBridgeUrl,
+    lighting,
+    trackActivity: stableTrackActivity,
+    refreshDmxVisualization,
+  })
 
   if (isLoadingProject || !currentProject) {
     return (
@@ -440,7 +346,7 @@ const HomePage = () => {
         dmxBridgeUrl={dmxBridgeUrl}
         visualizationEnabled={showVisualization}
         visualizationMode={visualizationMode}
-        lighting={currentProject.lighting ?? { cue_bindings: [], group_bindings: [] }}
+        lighting={currentProject.lighting ?? EMPTY_LIGHTING}
         automationStatus={automationStatus}
         onBpmChange={orchestrator.onBpmChange}
         onKeyChange={orchestrator.onProjectKeyChange}

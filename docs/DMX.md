@@ -26,6 +26,7 @@ Current UI support:
 - `bridges/dmx-mcp` owns DMX transport, patch loading, state, and control actions.
 - Agents can use MCP tools against the bridge.
 - The frontend talks to the bridge over local HTTP for live monitoring and control.
+- UI bridge access is opt-in via `VITE_DMX_BRIDGE_URL`; when unset, the app does not poll localhost and DMX stays disabled in the UI.
 
 ## Bridge
 
@@ -47,6 +48,15 @@ cd bridges/dmx-mcp
 DMX_BACKEND=ola pnpm start
 ```
 
+Optional HTTP auth for mutating bridge routes:
+
+```bash
+cd bridges/dmx-mcp
+DMX_HTTP_TOKEN=your-token pnpm start
+```
+
+When `DMX_HTTP_TOKEN` is set, bridge `POST` routes require `Authorization: Bearer <token>`.
+
 ## Patch File
 
 Default patch file:
@@ -63,6 +73,11 @@ Patch model currently includes:
 - named fixtures
 - named groups
 
+Patch files are validated on load, and the checked-in default patch uses two 5-channel RGBW wash fixtures:
+
+- `wash_left`: channels `1-5`
+- `wash_right`: channels `6-10`
+
 ## HTTP Endpoints
 
 - `GET /health`
@@ -75,9 +90,15 @@ Patch model currently includes:
 - `POST /control/blackout`
 - `POST /control/group`
 
+Auth note:
+
+- `GET /health` and `GET /state` are always readable without a bearer token
+- if `DMX_HTTP_TOKEN` is set, all bridge `POST` routes require bearer auth
+
 ## MCP Tools
 
 - `list_scenes`
+- `list_groups`
 - `arm_output`
 - `disarm_output`
 - `blackout`
@@ -164,6 +185,8 @@ The DMX Monitor shows currently pulsing groups with:
 - blackout is explicit and always available
 - simulator mode is preferred for development
 - raw unrestricted channel writes are not the primary UI surface
+- OLA verifies connectivity during startup and fails fast if its JSON API is unreachable
+- bridge writes are throttled to `DMX_MAX_FPS`
 
 ## Live Help
 
