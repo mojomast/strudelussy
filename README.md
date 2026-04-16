@@ -12,7 +12,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - diff-aware AI chat flow with Apply/Reject review
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
-- inline Strudel-aware autocomplete in the editor with Ctrl+Space trigger, Tab accept, and method suggestions for chained calls
+- inline Strudel-aware autocomplete in the editor with Ctrl/Cmd+Space trigger, Tab accept, function signatures, method suggestions, live variables, parsed track names, and hover docs
 - parsed BPM, key, sections, and a per-track gain/pan mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI

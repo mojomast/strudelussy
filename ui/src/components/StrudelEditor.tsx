@@ -11,7 +11,7 @@ import { registerSoundfonts } from '@strudel/soundfonts'
 // @ts-expect-error - Strudel packages don't have TypeScript declarations
 import { transpiler } from '@strudel/transpiler'
 import { undo, redo } from '@codemirror/commands'
-import { strudelAutocompleteExtension } from '@/lib/strudelAutocompleteExtension'
+import { buildStrudelAutocompleteExtension } from '@/lib/strudelAutocompleteExtension'
 
 export interface CycleInfo {
   cps: number // cycles per second
@@ -366,10 +366,14 @@ const StrudelEditor = forwardRef<StrudelEditorHandle, StrudelEditorProps>(({ ini
           })
 
           strudelMirrorRef.current = editor
+          const getCode = () => strudelMirrorRef.current?.code ?? ''
 
           // Enable tab indentation in the editor
           editor.reconfigureExtension('isTabIndentationEnabled', true)
-          editor.reconfigureExtension('strudelAutocomplete', strudelAutocompleteExtension)
+          editor.reconfigureExtension(
+            'strudelAutocomplete',
+            buildStrudelAutocompleteExtension(getCode),
+          )
           
           setIsInitialized(true)
           setError(null)

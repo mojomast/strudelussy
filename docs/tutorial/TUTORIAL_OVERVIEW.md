@@ -61,7 +61,8 @@ ui/src/features/tutorial/
 | **Inject button** | Calls the shared page-level `onInjectCode(scaffold)` bridge wired through `HomePage` |
 | **Validate button** | Reads the live editor value via the shared page-level `getEditorCode()` bridge |
 | **Live typing apply** | While playback is running, manual editor typing triggers a debounced reevaluation after a short idle pause |
-| **Inline autocomplete** | The editor offers static Strudel-aware completions while typing, with `Ctrl/Cmd+Space` for explicit open and `Tab` to accept the selected completion |
+| **Inline autocomplete** | The editor offers Strudel-aware completions while typing, including static helpers plus live variables and track names, with `Ctrl/Cmd+Space` for explicit open and `Tab` to accept the selected completion |
+| **Hover docs** | Hovering a known Strudel helper in the editor shows its signature and one-line description |
 | **Spotlight overlay** | Renders at the page root as a fixed overlay sibling so it stays above all panels |
 | **Progress badge** | Show a lesson count badge on the `[Learn]` tab button using the remaining lesson total |
 | **AI Chat hook** | When user asks about a function, agent offers a deep-link: "Want to learn `.room()` interactively? → [Open Lesson 6.1]" |
@@ -75,6 +76,7 @@ ui/src/features/tutorial/
 | `Cmd/Ctrl+Shift+T` | Toggle tutorial panel (switches chat tab to Learn) |
 | `Ctrl/Cmd+Space` | Open Strudel autocomplete suggestions at the cursor |
 | `Tab` | Accept selected autocomplete suggestion, or indent when autocomplete is closed |
+| `Hover known helper` | Show a Strudel signature tooltip for recognized functions |
 
 Add to `ShortcutsOverlay.tsx`.
 

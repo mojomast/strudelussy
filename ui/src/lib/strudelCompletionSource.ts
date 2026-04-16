@@ -1,5 +1,6 @@
 import { type Completion, type CompletionContext, type CompletionResult, type CompletionSource } from '@codemirror/autocomplete'
 import { STRUDEL_COMPLETIONS } from './strudel-completions'
+import { buildLiveCompletionSource } from './strudelLiveCompletionSource'
 
 const TYPE_BADGE_CLASSNAME: Record<string, string> = {
   function: 'strudel-autocomplete-badge strudel-autocomplete-badge-function',
@@ -76,5 +77,41 @@ export const strudelCompletionSource: CompletionSource = (context: CompletionCon
     from: context.pos - typedText.length,
     options: matchedCompletions,
     validFor: /^[\w.]*$/,
+  }
+}
+
+export function buildMergedCompletionSource(getCode: () => string): CompletionSource {
+  const liveSource = buildLiveCompletionSource(getCode)
+
+  return async (context: CompletionContext): Promise<CompletionResult | null> => {
+    const [staticResult, liveResult] = await Promise.all([
+      Promise.resolve(strudelCompletionSource(context)),
+      Promise.resolve(liveSource(context)),
+    ])
+
+    if (!staticResult && !liveResult) {
+      return null
+    }
+
+    const options = [
+      ...(liveResult?.options ?? []),
+      ...(staticResult?.options ?? []),
+    ]
+
+    const seen = new Set<string>()
+    const deduped = options.filter((option) => {
+      if (seen.has(option.label)) {
+        return false
+      }
+
+      seen.add(option.label)
+      return true
+    })
+
+    return {
+      from: liveResult?.from ?? staticResult?.from ?? context.pos,
+      options: deduped,
+      validFor: /^[\w.]*/,
+    }
   }
 }

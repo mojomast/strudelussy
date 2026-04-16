@@ -597,3 +597,23 @@ body {
   font-size: 11px !important;
   max-width: 280px;
 }
+
+.strudel-hover-tooltip {
+  background: #0a1628;
+  border: 1px solid rgba(34, 211, 238, 0.2);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+  padding: 8px 12px;
+}
+
+.strudel-hover-sig {
+  color: #67e8f9;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.strudel-hover-desc {
+  color: rgba(148, 163, 184, 0.9);
+  font-size: 11px;
+  margin-top: 4px;
+}
