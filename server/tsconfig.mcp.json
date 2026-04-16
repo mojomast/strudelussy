@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/index.ts",
+    "src/routes/mcp.ts",
+    "src/lib/mcp-tools/**/*.ts",
+    "src/lib/projectStore.ts",
+    "src/lib/aiContract.ts",
+    "src/lib/strudel-docs.ts"
+  ]
+}

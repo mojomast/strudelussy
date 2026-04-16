@@ -4,6 +4,7 @@ import { generateRoute } from './routes/generate'
 import { shareRoute } from './routes/share'
 import { chatRoute } from './routes/chat'
 import { projectsRoute } from './routes/projects'
+import { buildMcpHandler } from './routes/mcp'
 import { setEnvContext, isDevelopment } from './lib/env'
 
 export type Env = {
@@ -11,6 +12,7 @@ export type Env = {
   OPENROUTER_API_KEY: string
   OPENROUTER_MODEL?: string
   APP_URL?: string
+  MCP_SECRET?: string
   NODE_ENV?: string
   // KV namespace for shared patterns
   SHARES_KV: KVNamespace
@@ -80,5 +82,17 @@ app.route('/api/generate', generateRoute)
 app.route('/api/chat', chatRoute)
 app.route('/api/projects', projectsRoute)
 app.route('/api/share', shareRoute)
+
+app.all('/mcp', async (c) => {
+  const secret = c.env.MCP_SECRET
+  if (secret) {
+    const auth = c.req.header('authorization') ?? ''
+    if (!auth.startsWith('Bearer ') || auth.slice(7) !== secret) {
+      return c.json({ error: 'Unauthorized' }, 401)
+    }
+  }
+
+  return buildMcpHandler(c)
+})
 
 export default app

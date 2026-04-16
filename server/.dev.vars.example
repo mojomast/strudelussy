@@ -13,3 +13,6 @@ OPENROUTER_API_KEY=your-openrouter-api-key-here
 
 # Optional: Frontend URL used in share links and OpenRouter headers
 # APP_URL=http://localhost:5173
+
+# Optional: Bearer token required by /mcp in deployed environments
+MCP_SECRET=local-dev-secret

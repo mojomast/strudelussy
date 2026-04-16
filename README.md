@@ -40,6 +40,20 @@ The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementati
 - `server/` Cloudflare Workers + Hono API
 - `docs/` specs and implementation notes
 
+## MCP
+
+The server now includes a native MCP endpoint at `/mcp` for external MCP-capable agents.
+
+- implementation guide: `docs/MCP.md`
+- original design spec: `docs/SPEC_MCP.md`
+
+Highlights:
+
+- Streamable HTTP transport via Hono
+- bearer-token protection via `MCP_SECRET`
+- pattern editing, transport, project, and resource tools
+- server-native KV-backed behavior with no browser automation
+
 ## Implemented MVP
 
 ### Frontend
@@ -169,6 +183,7 @@ Backend `server/.dev.vars`:
 OPENROUTER_API_KEY=...
 OPENROUTER_MODEL=google/gemini-2.5-flash
 APP_URL=http://localhost:5173
+MCP_SECRET=local-dev-secret
 ```
 
 For persistent projects in the worker, also configure `PROJECTS_KV` and `SHARES_KV` in `server/wrangler.toml`.
@@ -192,6 +207,8 @@ pnpm exec tsc --noEmit
 ## Docs
 
 - `docs/SPEC_TOASTER_DAW.md` - source spec
+- `docs/MCP.md` - current MCP implementation guide
+- `docs/SPEC_MCP.md` - MCP design/spec document
 - `docs/STRUDEL_SOURCE_DISCLOSURE.md` - AGPL/source disclosure for the live site and embedded Strudel prompt docs
 - `server/src/lib/strudel-docs/` - checked-in Strudel reference sections used by the chat system prompt
 
