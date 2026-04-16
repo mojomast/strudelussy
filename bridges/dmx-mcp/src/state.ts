@@ -16,6 +16,8 @@ interface IdempotentOperation {
 }
 
 const createUniverseFrame = () => new Uint8Array(512)
+const IDEMPOTENT_OPERATION_LIMIT = 1000
+const IDEMPOTENT_OPERATION_EVICT_COUNT = 100
 
 const frameToArray = (frame: Uint8Array) => Array.from(frame)
 
@@ -78,6 +80,10 @@ export class DmxStateStore {
     return this.armed
   }
 
+  getLastWriteAt() {
+    return this.lastWriteAt
+  }
+
   arm(idempotencyKey: string, dryRun: boolean) {
     return this.commitOperation('arm', idempotencyKey, { dryRun }, () => {
       this.armed = true
@@ -96,7 +102,6 @@ export class DmxStateStore {
         this.desiredUniverses.set(universe, createUniverseFrame())
         this.observedUniverses.set(universe, createUniverseFrame())
       }
-      this.lastWriteAt = Date.now()
     }, dryRun)
   }
 
@@ -133,7 +138,7 @@ export class DmxStateStore {
       safe_to_retry: true,
     }
 
-    this.idempotentOperations.set(idempotencyKey, { signature, receipt })
+    this.storeIdempotentOperation(idempotencyKey, { signature, receipt })
     return receipt
   }
 
@@ -167,8 +172,19 @@ export class DmxStateStore {
       safe_to_retry: true,
     }
 
-    this.idempotentOperations.set(idempotencyKey, { signature, receipt })
+    this.storeIdempotentOperation(idempotencyKey, { signature, receipt })
     return receipt
+  }
+
+  private storeIdempotentOperation(idempotencyKey: string, operation: IdempotentOperation) {
+    if (this.idempotentOperations.size >= IDEMPOTENT_OPERATION_LIMIT) {
+      const keysToDelete = [...this.idempotentOperations.keys()].slice(0, IDEMPOTENT_OPERATION_EVICT_COUNT)
+      for (const key of keysToDelete) {
+        this.idempotentOperations.delete(key)
+      }
+    }
+
+    this.idempotentOperations.set(idempotencyKey, operation)
   }
 
   private getDesiredFrame(universe: number) {

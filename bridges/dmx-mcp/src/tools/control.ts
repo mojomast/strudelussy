@@ -35,6 +35,14 @@ export const registerControlTools = (server: McpServer, service: DmxBridgeServic
   )
 
   server.registerTool(
+    'list_groups',
+    {
+      description: 'Lists named groups from the active patch.',
+    },
+    async () => mcpText(JSON.stringify({ groups: service.listGroups() })),
+  )
+
+  server.registerTool(
     'arm_output',
     {
       description: 'Arms DMX output for future non-simulated writes.',

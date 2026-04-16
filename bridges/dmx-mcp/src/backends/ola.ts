@@ -20,7 +20,15 @@ export class OlaBackend implements DmxBackend {
   }
 
   async initialize() {
-    return
+    try {
+      const response = await this.fetchImpl(`${this.baseUrl}/get_dmx?u=1`)
+      if (!response.ok) {
+        throw new Error(`status ${response.status}`)
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'unknown error'
+      throw new Error(`Unable to reach OLA at ${this.baseUrl}. Check that olad is running and the JSON API is reachable (${message}).`)
+    }
   }
 
   async shutdown() {

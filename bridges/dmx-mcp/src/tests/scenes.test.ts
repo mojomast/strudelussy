@@ -23,6 +23,7 @@ describe('demo scenes', () => {
     const observed = await service.getObservedUniverse(1)
 
     expect(receipt.scene_id).toBe('pulse_blue')
-    expect(observed.channels.slice(0, 4)).toEqual([0, 0, 255, 180])
+    expect(observed.channels.slice(0, 5)).toEqual([180, 0, 0, 200, 0])
+    expect(observed.channels.slice(5, 10)).toEqual([180, 0, 0, 200, 0])
   })
 })

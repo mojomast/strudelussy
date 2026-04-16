@@ -1,4 +1,5 @@
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
+import { randomUUID } from 'node:crypto'
 import type { DmxMcpConfig } from './config'
 import { DmxBridgeService } from './service'
 
@@ -16,6 +17,16 @@ const writeJson = (res: ServerResponse, status: number, payload: unknown) => {
   res.setHeader('Content-Type', 'application/json')
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.end(JSON.stringify(payload))
+}
+
+const isAuthorized = (req: IncomingMessage) => {
+  const token = process.env.DMX_HTTP_TOKEN?.trim()
+  if (!token) {
+    return true
+  }
+
+  const header = req.headers.authorization
+  return header === `Bearer ${token}`
 }
 
 export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig): Promise<Server> => new Promise((resolve, reject) => {
@@ -42,6 +53,11 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
         return
       }
 
+      if (req.method === 'POST' && !isAuthorized(req)) {
+        writeJson(res, 401, { error: 'Unauthorized' })
+        return
+      }
+
       if (url.pathname === '/patch' && req.method === 'GET') {
         writeJson(res, 200, service.getPatch())
         return
@@ -60,23 +76,23 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
           return
         }
 
-        const receipt = await service.applyScene(payload.scene_id, `http-${Date.now()}`, false)
+        const receipt = await service.applyScene(payload.scene_id, `http-${randomUUID()}`, false)
         writeJson(res, 200, receipt)
         return
       }
 
       if (url.pathname === '/control/arm' && req.method === 'POST') {
-        writeJson(res, 200, await service.arm(`http-arm-${Date.now()}`, false))
+        writeJson(res, 200, await service.arm(`http-arm-${randomUUID()}`, false))
         return
       }
 
       if (url.pathname === '/control/disarm' && req.method === 'POST') {
-        writeJson(res, 200, await service.disarm(`http-disarm-${Date.now()}`, false))
+        writeJson(res, 200, await service.disarm(`http-disarm-${randomUUID()}`, false))
         return
       }
 
       if (url.pathname === '/control/blackout' && req.method === 'POST') {
-        writeJson(res, 200, await service.blackout(`http-blackout-${Date.now()}`, false))
+        writeJson(res, 200, await service.blackout(`http-blackout-${randomUUID()}`, false))
         return
       }
 
@@ -106,7 +122,7 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
             blue: payload.blue,
             white: payload.white,
           },
-          `http-group-${Date.now()}`,
+          `http-group-${randomUUID()}`,
           false,
         )
         writeJson(res, 200, receipt)

@@ -1,8 +1,10 @@
 import type { DmxBackend } from './backends/types'
 import type { DmxMcpConfig } from './config'
 import { DEFAULT_PATCH, type DmxGroup, type DmxPatch, loadPatchFromFile } from './patch'
-import { buildSceneFrame, DEMO_SCENES } from './scenes'
+import { DEMO_SCENES } from './scenes'
 import { DmxStateStore } from './state'
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
 export class DmxBridgeService {
   readonly state: DmxStateStore
@@ -91,9 +93,9 @@ export class DmxBridgeService {
     if (!dryRun) {
       for (const universe of this.config.allowedUniverses) {
         const zeroFrame = new Uint8Array(512)
+        await this.throttleWrite()
         await this.backend.writeUniverse(universe, zeroFrame)
-        const observed = await this.backend.readObservedUniverse?.(universe)
-        this.state.applyObservedWrite(universe, observed ?? zeroFrame)
+        this.state.applyObservedWrite(universe, zeroFrame)
       }
     }
     return receipt
@@ -109,7 +111,12 @@ export class DmxBridgeService {
       throw new Error('Output is disarmed. Arm the bridge before writing to a live backend.')
     }
 
-    const frame = buildSceneFrame(scene.channels)
+    const group = this.patch.groups.find((candidate) => candidate.id === scene.target_group_id)
+    if (!group) {
+      throw new Error(`Scene ${scene.id} targets unknown group ${scene.target_group_id}.`)
+    }
+
+    const frame = this.renderGroupFrame(group, scene.values)
     const universe = this.patch.universe
     const payload = { scene_id: scene.id, dry_run: dryRun, universe }
 
@@ -128,6 +135,7 @@ export class DmxBridgeService {
     }
 
     const revision = this.state.recordDesiredWrite(universe, frame)
+    await this.throttleWrite()
     await this.backend.writeUniverse(universe, frame)
     const observed = await this.backend.readObservedUniverse?.(universe)
     this.state.applyObservedWrite(universe, observed ?? frame)
@@ -177,6 +185,7 @@ export class DmxBridgeService {
     }
 
     const revision = this.state.recordDesiredWrite(universe, frame)
+    await this.throttleWrite()
     await this.backend.writeUniverse(universe, frame)
     const observed = await this.backend.readObservedUniverse?.(universe)
     this.state.applyObservedWrite(universe, observed ?? frame)
@@ -208,6 +217,11 @@ export class DmxBridgeService {
     for (const fixtureId of group.fixture_ids) {
       const fixture = this.patch.fixtures.find((candidate) => candidate.id === fixtureId)
       if (!fixture) {
+        const warning = `Group ${group.id} references unknown fixture ${fixtureId}.`
+        console.warn(warning)
+        if (this.config.safeMode) {
+          throw new Error(warning)
+        }
         continue
       }
 
@@ -229,5 +243,13 @@ export class DmxBridgeService {
     }
 
     return frame
+  }
+
+  private async throttleWrite() {
+    const minimumIntervalMs = 1000 / this.config.maxFps
+    const elapsedMs = Date.now() - this.state.getLastWriteAt()
+    if (elapsedMs < minimumIntervalMs) {
+      await sleep(Math.ceil(minimumIntervalMs - elapsedMs))
+    }
   }
 }
