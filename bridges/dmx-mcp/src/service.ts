@@ -10,6 +10,9 @@ export class DmxBridgeService {
   readonly state: DmxStateStore
   private patch: DmxPatch
   private backendConnected = false
+  private static readonly valueChannelMap: Record<string, string[]> = {
+    intensity: ['intensity', 'dimmer'],
+  }
 
   constructor(
     private readonly config: DmxMcpConfig,
@@ -210,7 +213,7 @@ export class DmxBridgeService {
 
   private renderGroupFrame(
     group: DmxGroup,
-    values: { intensity?: number; red?: number; green?: number; blue?: number; white?: number },
+    values: Record<string, number | undefined>,
   ) {
     const frame = Uint8Array.from(this.state.getDesiredUniverse(this.patch.universe).channels)
 
@@ -225,19 +228,20 @@ export class DmxBridgeService {
         continue
       }
 
-      const [dimmerChannel, redChannel, greenChannel, blueChannel, whiteChannel] = fixture.channels
-      const entries: Array<[number | undefined, number | undefined]> = [
-        [dimmerChannel, values.intensity],
-        [redChannel, values.red],
-        [greenChannel, values.green],
-        [blueChannel, values.blue],
-        [whiteChannel, values.white],
-      ]
-
-      for (const [channel, value] of entries) {
-        if (!channel || value === undefined) {
+      for (const [valueKey, value] of Object.entries(values)) {
+        if (value === undefined) {
           continue
         }
+
+        const candidateChannelNames = DmxBridgeService.valueChannelMap[valueKey] ?? [valueKey]
+        const channel = candidateChannelNames
+          .map((channelName) => fixture.personality[channelName])
+          .find((personalityChannel) => personalityChannel !== undefined)
+
+        if (!channel) {
+          continue
+        }
+
         frame[channel - 1] = Math.max(0, Math.min(255, Math.round(value)))
       }
     }

@@ -20,6 +20,8 @@ interface GroupControlState {
   white: number
 }
 
+const RGBW_CHANNEL_KEYS = ['red', 'green', 'blue', 'white'] as const
+
 interface DmxControlPanelProps {
   data: DmxVisualizationData | null
   bridgeUrl: string | null
@@ -131,6 +133,9 @@ const DmxControlPanel = ({
     }
     onLightingChange({ ...lighting, group_bindings: nextBindings })
   }
+
+  const fixtures = data?.patch.fixtures ?? []
+  const groups = data?.patch.groups ?? []
 
   return (
     <div className="space-y-3 rounded-xl border border-cyan-900/60 bg-[linear-gradient(180deg,rgba(8,20,40,0.92),rgba(2,6,23,0.98))] p-3 text-cyan-50 shadow-[inset_0_1px_0_rgba(34,211,238,0.08)]">
@@ -244,75 +249,85 @@ const DmxControlPanel = ({
       <div>
         <div className="mb-2 text-[10px] uppercase tracking-[0.2em] text-cyan-300/70">Groups</div>
         <div className="space-y-2">
-          {(data?.patch.groups ?? []).map((group) => (
+          {groups.map((group) => (
             <div key={group.id} className="rounded-lg border border-cyan-900/50 bg-black/20 px-2 py-2 text-xs">
               {(() => {
                 const control = getGroupControl(group.id)
+                const groupFixtures = fixtures.filter((fixture) => group.fixture_ids.includes(fixture.id))
+                const availableChannels = new Set(groupFixtures.flatMap((fixture) => Object.keys(fixture.personality)))
+                const showIntensity = availableChannels.has('intensity') || availableChannels.has('dimmer')
+                const visibleRgbwChannels = RGBW_CHANNEL_KEYS.filter((channelKey) => availableChannels.has(channelKey))
+                const hasRgbwControls = visibleRgbwChannels.length > 0
                 return (
                   <>
-              <div className="flex items-center justify-between gap-2 text-cyan-50">
-                <span className="font-medium">{group.label}</span>
-                <span className="text-cyan-300/70">{group.fixture_ids.length} fixtures</span>
-              </div>
-              <div className="mt-2 flex items-center gap-2">
-                <input
-                  type="range"
-                  min={0}
-                  max={255}
-                  step={1}
-                  value={control.intensity}
-                  onChange={(event) => updateGroupControl(group.id, { intensity: Number(event.target.value) })}
-                  className="flex-1 accent-cyan-400"
-                />
-                <span className="w-8 text-right tabular-nums text-cyan-100">{control.intensity}</span>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 border-cyan-700/60 bg-transparent px-2 text-xs text-cyan-100 hover:bg-cyan-900/30"
-                  onClick={() => void postControl('/control/group', { group_id: group.id, intensity: control.intensity })}
-                >
-                  Set
-                </Button>
-              </div>
-              <div className="mt-2 grid grid-cols-2 gap-2">
-                {[
-                  { label: 'R', value: control.red, key: 'red' as const },
-                  { label: 'G', value: control.green, key: 'green' as const },
-                  { label: 'B', value: control.blue, key: 'blue' as const },
-                  { label: 'W', value: control.white, key: 'white' as const },
-                ].map(({ label, value, key }) => (
-                  <label key={label} className="flex items-center gap-2 rounded-md border border-cyan-900/40 bg-cyan-950/15 px-2 py-1.5 text-[10px] text-cyan-100">
-                    <span className="w-3 shrink-0">{label}</span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={255}
-                      step={1}
-                      value={value}
-                      onChange={(event) => updateGroupControl(group.id, { [key]: Number(event.target.value) })}
-                      className="flex-1 accent-cyan-400"
-                    />
-                    <span className="w-8 text-right tabular-nums">{value}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="mt-2 flex justify-end">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-7 border-fuchsia-700/60 bg-transparent px-2 text-xs text-fuchsia-100 hover:bg-fuchsia-900/30"
-                  onClick={() => void postControl('/control/group', {
-                    group_id: group.id,
-                    intensity: control.intensity,
-                    red: control.red,
-                    green: control.green,
-                    blue: control.blue,
-                    white: control.white,
-                  })}
-                >
-                  Set RGBW
-                </Button>
-              </div>
+                    <div className="flex items-center justify-between gap-2 text-cyan-50">
+                      <span className="font-medium">{group.label}</span>
+                      <span className="text-cyan-300/70">{group.fixture_ids.length} fixtures</span>
+                    </div>
+                    {showIntensity ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <input
+                          type="range"
+                          min={0}
+                          max={255}
+                          step={1}
+                          value={control.intensity}
+                          onChange={(event) => updateGroupControl(group.id, { intensity: Number(event.target.value) })}
+                          className="flex-1 accent-cyan-400"
+                        />
+                        <span className="w-8 text-right tabular-nums text-cyan-100">{control.intensity}</span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 border-cyan-700/60 bg-transparent px-2 text-xs text-cyan-100 hover:bg-cyan-900/30"
+                          onClick={() => void postControl('/control/group', { group_id: group.id, intensity: control.intensity })}
+                        >
+                          Set
+                        </Button>
+                      </div>
+                    ) : null}
+                    {hasRgbwControls ? (
+                      <div className="mt-2 grid grid-cols-2 gap-2">
+                        {visibleRgbwChannels.map((key) => {
+                          const label = key === 'red' ? 'R' : key === 'green' ? 'G' : key === 'blue' ? 'B' : 'W'
+                          const value = control[key]
+                          return (
+                            <label key={label} className="flex items-center gap-2 rounded-md border border-cyan-900/40 bg-cyan-950/15 px-2 py-1.5 text-[10px] text-cyan-100">
+                              <span className="w-3 shrink-0">{label}</span>
+                              <input
+                                type="range"
+                                min={0}
+                                max={255}
+                                step={1}
+                                value={value}
+                                onChange={(event) => updateGroupControl(group.id, { [key]: Number(event.target.value) })}
+                                className="flex-1 accent-cyan-400"
+                              />
+                              <span className="w-8 text-right tabular-nums">{value}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    ) : null}
+                    {showIntensity || hasRgbwControls ? (
+                      <div className="mt-2 flex justify-end">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 border-fuchsia-700/60 bg-transparent px-2 text-xs text-fuchsia-100 hover:bg-fuchsia-900/30"
+                          onClick={() => void postControl('/control/group', {
+                            group_id: group.id,
+                            ...(showIntensity ? { intensity: control.intensity } : {}),
+                            ...(availableChannels.has('red') ? { red: control.red } : {}),
+                            ...(availableChannels.has('green') ? { green: control.green } : {}),
+                            ...(availableChannels.has('blue') ? { blue: control.blue } : {}),
+                            ...(availableChannels.has('white') ? { white: control.white } : {}),
+                          })}
+                        >
+                          {hasRgbwControls ? 'Set Channels' : 'Set'}
+                        </Button>
+                      </div>
+                    ) : null}
                   </>
                 )
               })()}
@@ -482,7 +497,7 @@ const DmxControlPanel = ({
             <div key={fixture.id} className="rounded-lg border border-cyan-900/50 bg-black/20 px-2 py-2 text-xs">
               <div className="flex items-center justify-between gap-2 text-cyan-50">
                 <span className="font-medium">{fixture.label}</span>
-                <span className="text-cyan-300/70">ch {fixture.channels.join('-')}</span>
+                <span className="text-cyan-300/70">{Object.entries(fixture.personality).map(([key, channel]) => `${key}:${channel}`).join(' ')}</span>
               </div>
               <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-cyan-300/60">
                 {fixture.group_ids.join(' • ')}

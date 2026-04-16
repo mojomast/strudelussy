@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs'
 import { z } from 'zod'
 
+export type FixturePersonality = Record<string, number>
+
 export interface DmxFixture {
   id: string
   label: string
-  channels: number[]
+  personality: FixturePersonality
   group_ids: string[]
+  readonly channels?: number[]
 }
 
 export interface DmxGroup {
@@ -23,7 +26,7 @@ export interface DmxPatch {
 export const DmxFixtureSchema = z.object({
   id: z.string().min(1),
   label: z.string().min(1),
-  channels: z.array(z.number().int().min(1).max(512)).min(1),
+  personality: z.record(z.string(), z.number().int().min(1).max(512)),
   group_ids: z.array(z.string().min(1)),
 })
 
@@ -39,19 +42,41 @@ export const DmxPatchSchema = z.object({
   groups: z.array(DmxGroupSchema).min(1),
 })
 
-export const DEFAULT_PATCH: DmxPatch = {
+const addDerivedChannels = (patch: DmxPatch): DmxPatch => ({
+  ...patch,
+  fixtures: patch.fixtures.map((fixture) => ({
+    ...fixture,
+    get channels() {
+      return Object.values(fixture.personality).sort((left, right) => left - right)
+    },
+  })),
+})
+
+export const DEFAULT_PATCH: DmxPatch = addDerivedChannels({
   universe: 1,
   fixtures: [
     {
       id: 'wash_left',
       label: 'Wash Left',
-      channels: [1, 2, 3, 4, 5],
+      personality: {
+        intensity: 1,
+        red: 2,
+        green: 3,
+        blue: 4,
+        white: 5,
+      },
       group_ids: ['all_washes', 'frontline'],
     },
     {
       id: 'wash_right',
       label: 'Wash Right',
-      channels: [6, 7, 8, 9, 10],
+      personality: {
+        intensity: 6,
+        red: 7,
+        green: 8,
+        blue: 9,
+        white: 10,
+      },
       group_ids: ['all_washes', 'frontline'],
     },
   ],
@@ -67,7 +92,7 @@ export const DEFAULT_PATCH: DmxPatch = {
       fixture_ids: ['wash_left', 'wash_right'],
     },
   ],
-}
+})
 
 DmxPatchSchema.parse(DEFAULT_PATCH)
 
@@ -75,7 +100,7 @@ export const loadPatchFromFile = (filePath: string): DmxPatch => {
   try {
     const raw = readFileSync(filePath, 'utf8')
     const parsed = JSON.parse(raw) as unknown
-    return DmxPatchSchema.parse(parsed)
+    return addDerivedChannels(DmxPatchSchema.parse(parsed))
   } catch (error) {
     if (error instanceof z.ZodError) {
       const details = error.errors.map((issue) => `${issue.path.join('.') || '<root>'}: ${issue.message}`).join('; ')
@@ -89,3 +114,5 @@ export const loadPatchFromFile = (filePath: string): DmxPatch => {
     throw new Error(`Unable to load DMX patch file at ${filePath}: unknown error`)
   }
 }
+
+export const getPatchFixtureChannels = (fixture: DmxFixture) => Object.values(fixture.personality).sort((left, right) => left - right)

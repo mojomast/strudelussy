@@ -4,13 +4,25 @@
     {
       "id": "wash_left",
       "label": "Wash Left",
-      "channels": [1, 2, 3, 4, 5],
+      "personality": {
+        "intensity": 1,
+        "red": 2,
+        "green": 3,
+        "blue": 4,
+        "white": 5
+      },
       "group_ids": ["all_washes", "frontline"]
     },
     {
       "id": "wash_right",
       "label": "Wash Right",
-      "channels": [6, 7, 8, 9, 10],
+      "personality": {
+        "intensity": 6,
+        "red": 7,
+        "green": 8,
+        "blue": 9,
+        "white": 10
+      },
       "group_ids": ["all_washes", "frontline"]
     }
   ],

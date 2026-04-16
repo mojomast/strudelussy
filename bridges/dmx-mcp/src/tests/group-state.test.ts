@@ -31,6 +31,28 @@ describe('group state', () => {
     expect(desired.channels[5]).toBe(90)
   })
 
+  it('skips unsupported color channels for fixtures without that personality key', async () => {
+    const config = loadConfig({
+      DMX_PATCH_PATH: new URL('../../config/patch.json', import.meta.url).pathname,
+    })
+    const service = new DmxBridgeService(config, new SimulatorBackend())
+    await service.initialize()
+
+    const patch = service.getPatch()
+    patch.fixtures[0] = {
+      ...patch.fixtures[0],
+      personality: { dimmer: 1 },
+    } as typeof patch.fixtures[number]
+
+    await service.setGroupState('frontline', { intensity: 120, blue: 200 }, 'group-3', false)
+    const desired = await service.getDesiredUniverse(1)
+
+    expect(desired.channels[0]).toBe(120)
+    expect(desired.channels[3]).toBe(0)
+    expect(desired.channels[5]).toBe(120)
+    expect(desired.channels[8]).toBe(200)
+  })
+
   it('registers a list_groups MCP tool that returns patch groups', async () => {
     const service = new DmxBridgeService(loadConfig({}), new SimulatorBackend())
     await service.initialize()

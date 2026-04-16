@@ -16,7 +16,8 @@ export interface DmxVisualizationScene {
 export interface DmxVisualizationFixture {
   id: string
   label: string
-  channels: number[]
+  personality: Record<string, number>
+  channels?: number[]
   group_ids: string[]
 }
 

@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { BackendName } from './backends/types'
 
 export interface DmxMcpConfig {
@@ -46,14 +48,45 @@ const parseUniverses = (value: string | undefined) => {
   return parsed.length > 0 ? parsed : [1]
 }
 
-export const loadConfig = (env: NodeJS.ProcessEnv = process.env): DmxMcpConfig => ({
-  host: env.DMX_MCP_HOST ?? '127.0.0.1',
-  port: parseNumber(env.DMX_MCP_PORT, 3334),
-  olaBaseUrl: env.OLA_BASE_URL ?? 'http://127.0.0.1:9090',
-  patchPath: env.DMX_PATCH_PATH ?? new URL('../config/patch.json', import.meta.url).pathname,
-  backend: parseBackend(env.DMX_BACKEND),
-  safeMode: parseBoolean(env.DMX_SAFE_MODE, true),
-  outputArmed: parseBoolean(env.DMX_OUTPUT_ARMED, false),
-  allowedUniverses: parseUniverses(env.DMX_ALLOWED_UNIVERSES),
-  maxFps: Math.max(1, parseNumber(env.DMX_MAX_FPS, 30)),
-})
+const loadDotEnvFile = (filePath: string) => {
+  if (!existsSync(filePath)) {
+    return {}
+  }
+
+  const raw = readFileSync(filePath, 'utf8')
+  const entries = raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith('#'))
+    .map((line) => {
+      const separatorIndex = line.indexOf('=')
+      if (separatorIndex < 0) {
+        return null
+      }
+
+      const key = line.slice(0, separatorIndex).trim()
+      const value = line.slice(separatorIndex + 1).trim().replace(/^['"]|['"]$/g, '')
+      return key ? [key, value] : null
+    })
+    .filter((entry): entry is [string, string] => entry !== null)
+
+  return Object.fromEntries(entries)
+}
+
+export const loadConfig = (env: NodeJS.ProcessEnv = process.env): DmxMcpConfig => {
+  const mergedEnv = env === process.env
+    ? { ...loadDotEnvFile(resolve(process.cwd(), '.env')), ...process.env }
+    : env
+
+  return {
+    host: mergedEnv.DMX_MCP_HOST ?? '127.0.0.1',
+    port: parseNumber(mergedEnv.DMX_MCP_PORT, 3334),
+    olaBaseUrl: mergedEnv.OLA_BASE_URL ?? 'http://127.0.0.1:9090',
+    patchPath: mergedEnv.DMX_PATCH_PATH ?? new URL('../config/patch.json', import.meta.url).pathname,
+    backend: parseBackend(mergedEnv.DMX_BACKEND),
+    safeMode: parseBoolean(mergedEnv.DMX_SAFE_MODE, true),
+    outputArmed: parseBoolean(mergedEnv.DMX_OUTPUT_ARMED, false),
+    allowedUniverses: parseUniverses(mergedEnv.DMX_ALLOWED_UNIVERSES),
+    maxFps: Math.max(1, parseNumber(mergedEnv.DMX_MAX_FPS, 30)),
+  }
+}

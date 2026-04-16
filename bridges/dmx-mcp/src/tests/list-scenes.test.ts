@@ -19,5 +19,7 @@ describe('scene and patch metadata', () => {
     expect(patch.universe).toBe(1)
     expect(patch.fixtures.length).toBeGreaterThan(0)
     expect(patch.groups.length).toBeGreaterThan(0)
+    expect(patch.fixtures[0]).toHaveProperty('personality')
+    expect(patch.fixtures[0]?.channels).toEqual([1, 2, 3, 4, 5])
   })
 })

@@ -38,7 +38,7 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
         res.statusCode = 204
         res.setHeader('Access-Control-Allow-Origin', '*')
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
         res.end()
         return
       }
@@ -70,29 +70,35 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
 
       if (url.pathname === '/scenes/apply' && req.method === 'POST') {
         const rawBody = await readBody(req)
-        const payload = rawBody ? JSON.parse(rawBody) as { scene_id?: string } : {}
+        const payload = rawBody ? JSON.parse(rawBody) as { scene_id?: string; idempotency_key?: string } : {}
         if (!payload.scene_id) {
           writeJson(res, 400, { error: 'scene_id is required' })
           return
         }
 
-        const receipt = await service.applyScene(payload.scene_id, `http-${randomUUID()}`, false)
+        const receipt = await service.applyScene(payload.scene_id, payload.idempotency_key ?? `http-${randomUUID()}`, false)
         writeJson(res, 200, receipt)
         return
       }
 
       if (url.pathname === '/control/arm' && req.method === 'POST') {
-        writeJson(res, 200, await service.arm(`http-arm-${randomUUID()}`, false))
+        const rawBody = await readBody(req)
+        const payload = rawBody ? JSON.parse(rawBody) as { idempotency_key?: string } : {}
+        writeJson(res, 200, await service.arm(payload.idempotency_key ?? `http-arm-${randomUUID()}`, false))
         return
       }
 
       if (url.pathname === '/control/disarm' && req.method === 'POST') {
-        writeJson(res, 200, await service.disarm(`http-disarm-${randomUUID()}`, false))
+        const rawBody = await readBody(req)
+        const payload = rawBody ? JSON.parse(rawBody) as { idempotency_key?: string } : {}
+        writeJson(res, 200, await service.disarm(payload.idempotency_key ?? `http-disarm-${randomUUID()}`, false))
         return
       }
 
       if (url.pathname === '/control/blackout' && req.method === 'POST') {
-        writeJson(res, 200, await service.blackout(`http-blackout-${randomUUID()}`, false))
+        const rawBody = await readBody(req)
+        const payload = rawBody ? JSON.parse(rawBody) as { idempotency_key?: string } : {}
+        writeJson(res, 200, await service.blackout(payload.idempotency_key ?? `http-blackout-${randomUUID()}`, false))
         return
       }
 
@@ -106,6 +112,7 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
               green?: number
               blue?: number
               white?: number
+              idempotency_key?: string
             }
           : {}
         if (!payload.group_id) {
@@ -122,7 +129,7 @@ export const startHttpServer = (service: DmxBridgeService, config: DmxMcpConfig)
             blue: payload.blue,
             white: payload.white,
           },
-          `http-group-${randomUUID()}`,
+          payload.idempotency_key ?? `http-group-${randomUUID()}`,
           false,
         )
         writeJson(res, 200, receipt)
