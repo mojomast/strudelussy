@@ -3,15 +3,19 @@ import type { DmxVisualizationData } from './types'
 
 interface DmxVisualizationProps {
   data?: DmxVisualizationData | null
-  bridgeUrl?: string
+  bridgeUrl?: string | null
 }
 
-const DmxVisualization = ({ data, bridgeUrl = 'http://127.0.0.1:3334' }: DmxVisualizationProps) => {
+const DmxVisualization = ({ data, bridgeUrl }: DmxVisualizationProps) => {
   const [isApplying, setIsApplying] = useState(false)
   const channels = data?.universe.channels ?? Array.from({ length: 32 }, () => 0)
   const previewChannels = channels.slice(0, 32)
 
   const handleApplyScene = async (sceneId: string) => {
+    if (!bridgeUrl) {
+      return
+    }
+
     setIsApplying(true)
     try {
       await fetch(`${bridgeUrl}/scenes/apply`, {
@@ -34,7 +38,9 @@ const DmxVisualization = ({ data, bridgeUrl = 'http://127.0.0.1:3334' }: DmxVisu
       </div>
       {!data ? (
         <div className="mb-3 rounded-lg border border-cyan-900/70 bg-cyan-950/20 px-3 py-2 text-xs text-cyan-100/80">
-          Waiting for local bridge state on `http://127.0.0.1:3334/state`.
+          {bridgeUrl
+            ? `Waiting for local bridge state on \`${bridgeUrl}/state\`.`
+            : 'DMX bridge not configured. Set `VITE_DMX_BRIDGE_URL` to enable bridge polling.'}
         </div>
       ) : null}
       {data?.scenes?.length ? (

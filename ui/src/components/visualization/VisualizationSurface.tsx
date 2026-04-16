@@ -7,7 +7,7 @@ interface VisualizationSurfaceProps {
   isPlaying: boolean
   audioAnalyser?: AnalyserNode | null
   dmxData?: DmxVisualizationData | null
-  dmxBridgeUrl?: string
+  dmxBridgeUrl?: string | null
 }
 
 const VisualizationSurface = ({

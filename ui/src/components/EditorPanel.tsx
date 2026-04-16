@@ -39,7 +39,7 @@ interface EditorPanelProps {
   audioAnalyser?: AnalyserNode | null
   visualizationMode?: VisualizationMode
   dmxVisualizationData?: DmxVisualizationData | null
-  dmxBridgeUrl?: string
+  dmxBridgeUrl?: string | null
   isEditorInitialized: boolean
   isEditorInitializing: boolean
   cycleInfo: CycleInfo | null

@@ -45,7 +45,7 @@ const HomePage = () => {
   const groupPulseTimersRef = useRef<Map<string, number>>(new Map())
   const lastGroupPulseKeyRef = useRef<string | null>(null)
   const groupPulseMetaRef = useRef<Map<string, { track_name: string; intensity: number; ends_at: number }>>(new Map())
-  const dmxBridgeUrl = (import.meta.env.VITE_DMX_BRIDGE_URL as string | undefined) ?? 'http://127.0.0.1:3334'
+  const dmxBridgeUrl = (import.meta.env.VITE_DMX_BRIDGE_URL as string | undefined)?.trim() || null
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
   const tutorial = useTutorial()
@@ -80,6 +80,11 @@ const HomePage = () => {
   }, [toggleUiMode, tutorial])
 
   const refreshDmxVisualization = useCallback(async () => {
+    if (!dmxBridgeUrl) {
+      setDmxVisualizationData(null)
+      return
+    }
+
     try {
       const response = await fetch(`${dmxBridgeUrl}/state`)
       if (!response.ok) {
@@ -93,6 +98,11 @@ const HomePage = () => {
   }, [dmxBridgeUrl])
 
   useEffect(() => {
+    if (!dmxBridgeUrl) {
+      setDmxVisualizationData(null)
+      return
+    }
+
     if (!showVisualization && visualizationMode !== 'dmx') {
       return
     }
@@ -173,6 +183,10 @@ const HomePage = () => {
       return
     }
 
+    if (!dmxBridgeUrl) {
+      return
+    }
+
     lastTriggeredSceneRef.current = cueBinding.scene_id
     void fetch(`${dmxBridgeUrl}/scenes/apply`, {
       method: 'POST',
@@ -208,6 +222,10 @@ const HomePage = () => {
     const fadeMs = Math.max(0, Math.min(1000, binding.fade_ms ?? 30))
     const pulseKey = `${binding.track_name}:${binding.group_id}:${activity.cycleStart}`
     if (lastGroupPulseKeyRef.current === pulseKey) {
+      return
+    }
+
+    if (!dmxBridgeUrl) {
       return
     }
 

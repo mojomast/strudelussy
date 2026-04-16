@@ -48,7 +48,7 @@ interface DawPanelProps {
   isSharing: boolean
   pendingPatchCount: number
   dmxVisualizationData: DmxVisualizationData | null
-  dmxBridgeUrl: string
+  dmxBridgeUrl: string | null
   visualizationEnabled: boolean
   visualizationMode: VisualizationMode
   lighting: LightingProjectState

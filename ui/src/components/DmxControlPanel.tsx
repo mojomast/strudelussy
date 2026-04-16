@@ -22,7 +22,7 @@ interface GroupControlState {
 
 interface DmxControlPanelProps {
   data: DmxVisualizationData | null
-  bridgeUrl: string
+  bridgeUrl: string | null
   visualizationEnabled: boolean
   visualizationMode: VisualizationMode
   lighting: LightingProjectState
@@ -58,6 +58,10 @@ const DmxControlPanel = ({
   const [groupControls, setGroupControls] = useState<Record<string, GroupControlState>>({})
 
   const postControl = async (path: string, payload?: unknown) => {
+    if (!bridgeUrl) {
+      return
+    }
+
     await fetch(`${bridgeUrl}${path}`, {
       method: 'POST',
       headers: payload ? { 'Content-Type': 'application/json' } : undefined,
@@ -114,7 +118,7 @@ const DmxControlPanel = ({
         <div>
           <div className="text-[10px] uppercase tracking-[0.24em] text-cyan-300/80">DMX Monitor</div>
           <div className="mt-1 text-sm font-semibold text-cyan-50">
-            {data ? `${data.backend.toUpperCase()} Universe ${data.universe.universe}` : 'Bridge offline'}
+            {data ? `${data.backend.toUpperCase()} Universe ${data.universe.universe}` : bridgeUrl ? 'Bridge offline' : 'Bridge not configured'}
           </div>
         </div>
         <div className="flex items-center gap-1 rounded-full border border-cyan-800/70 bg-cyan-950/30 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-200/80">
@@ -126,7 +130,7 @@ const DmxControlPanel = ({
       <div className="grid grid-cols-3 gap-2 text-xs">
         <div className="rounded-lg border border-cyan-900/50 bg-black/20 px-2 py-2">
           <div className="text-cyan-300/70">Bridge</div>
-          <div className="mt-1 font-medium text-cyan-50">{data?.connection.connected ? 'Connected' : 'Waiting'}</div>
+          <div className="mt-1 font-medium text-cyan-50">{bridgeUrl ? (data?.connection.connected ? 'Connected' : 'Waiting') : 'Disabled'}</div>
         </div>
         <div className="rounded-lg border border-cyan-900/50 bg-black/20 px-2 py-2">
           <div className="text-cyan-300/70">Output</div>
@@ -465,7 +469,9 @@ const DmxControlPanel = ({
       {!data ? (
         <div className="flex items-start gap-2 rounded-lg border border-amber-800/50 bg-amber-950/20 px-3 py-2 text-xs text-amber-100/85">
           <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          Start `bridges/dmx-mcp` to enable DMX control and monitoring.
+          {bridgeUrl
+            ? 'Start `bridges/dmx-mcp` to enable DMX control and monitoring.'
+            : 'Set `VITE_DMX_BRIDGE_URL` to enable local DMX control and monitoring.'}
         </div>
       ) : null}
     </div>
