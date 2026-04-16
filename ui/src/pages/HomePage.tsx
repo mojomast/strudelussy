@@ -180,7 +180,10 @@ const HomePage = () => {
         onCodeChange={(code) => {
           orchestrator.onEditorCodeChange(code)
         }}
-        onEditorActivity={tutorial.resetActivityTimer}
+        onEditorActivity={() => {
+          tutorial.resetActivityTimer()
+          orchestrator.onEditorActivity()
+        }}
         onPlayStateChange={orchestrator.onEditorPlayStateChange}
         onInitStateChange={orchestrator.setEditorInitState}
         onStrudelError={orchestrator.onEditorStrudelError}

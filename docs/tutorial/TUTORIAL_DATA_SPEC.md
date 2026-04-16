@@ -176,6 +176,12 @@ useEffect(() => {
 }, [state.lastActivity, state.hintLevel, currentLesson])
 ```
 
+### Editor Activity Note
+
+`lastActivity` should be reset from real editor input events.
+
+When playback is already running, editor input may also trigger a separate debounced live re-evaluation path so typed changes become audible without requiring a manual stop/start cycle.
+
 ---
 
 ## index.ts — Barrel Export

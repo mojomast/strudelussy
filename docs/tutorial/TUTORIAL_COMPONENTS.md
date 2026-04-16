@@ -60,8 +60,13 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 **Hint system:**
 - Hints hidden by default
 - Reveal via `💡 Show hint` link (on demand)
-- Auto-reveal after 30 seconds of no editor activity (tracked by `lastActivity` timestamp in `useTutorial`)
+- Auto-reveal after 30 seconds of no editor activity (tracked by `lastActivity` timestamp in `useTutorial`, reset from manual editor input)
 - Progressive: hint 1 is vague, hint 2 is more specific, hint 3 shows the answer
+
+**Live playback apply while typing:**
+- Manual editor typing does not re-evaluate on every keystroke
+- While playback is active, reevaluate after a short trailing debounce so audio updates without requiring stop/start
+- The debounce should be short enough to feel live, but long enough to avoid audible stutter during continuous typing
 
 **Progress bar:**
 ```css

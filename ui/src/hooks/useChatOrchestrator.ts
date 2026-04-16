@@ -234,6 +234,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   const masterVolumeRef = useRef(0.85)
   const autoSaveTimerRef = useRef<number | null>(null)
   const paramEvaluateTimerRef = useRef<number | null>(null)
+  const typingEvaluateTimerRef = useRef<number | null>(null)
   const previewSnapshotRef = useRef<string | null>(null)
   const previewMessageIdRef = useRef<string | null>(null)
   const editorContainerRef = useRef<HTMLDivElement | null>(null)
@@ -559,6 +560,9 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
   useEffect(() => () => {
     if (paramEvaluateTimerRef.current) {
       window.clearTimeout(paramEvaluateTimerRef.current)
+    }
+    if (typingEvaluateTimerRef.current) {
+      window.clearTimeout(typingEvaluateTimerRef.current)
     }
     if (flushStreamFrameRef.current) {
       window.cancelAnimationFrame(flushStreamFrameRef.current)
@@ -1130,6 +1134,20 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     setAudioAnalyser(analyser)
   }, [])
   const onEditorCodeChange = useCallback((code: string) => actions.setCode(code), [actions])
+  const onEditorActivity = useCallback(() => {
+    if (!useProjectStore.getState().isPlaying) {
+      return
+    }
+
+    if (typingEvaluateTimerRef.current) {
+      window.clearTimeout(typingEvaluateTimerRef.current)
+    }
+
+    typingEvaluateTimerRef.current = window.setTimeout(() => {
+      editorBridgeRef.current.evaluate?.()
+      typingEvaluateTimerRef.current = null
+    }, 300)
+  }, [])
   const onEditorPlayStateChange = useCallback((playing: boolean) => actions.setPlaying(playing), [actions])
   const onEditorStrudelError = useCallback((error: string | null) => actions.setStrudelError(error), [actions])
   const onEditorCodeEvaluated = useCallback(() => actions.setStrudelError(null), [actions])
@@ -1229,6 +1247,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     setYoloMode,
     onEditorAnalyserReady,
     onEditorCodeChange,
+    onEditorActivity,
     loadVersions,
     onEditorPlayStateChange,
     onEditorStrudelError,

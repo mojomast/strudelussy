@@ -60,6 +60,7 @@ ui/src/features/tutorial/
 | **Left panel tab bar** | Add `[Chat] [Learn]` tab to `ChatPanel`'s header — `Learn` renders `<TutorialPanel />` |
 | **Inject button** | Calls the shared page-level `onInjectCode(scaffold)` bridge wired through `HomePage` |
 | **Validate button** | Reads the live editor value via the shared page-level `getEditorCode()` bridge |
+| **Live typing apply** | While playback is running, manual editor typing triggers a debounced reevaluation after a short idle pause |
 | **Spotlight overlay** | Renders at the page root as a fixed overlay sibling so it stays above all panels |
 | **Progress badge** | Show a lesson count badge on the `[Learn]` tab button using the remaining lesson total |
 | **AI Chat hook** | When user asks about a function, agent offers a deep-link: "Want to learn `.room()` interactively? → [Open Lesson 6.1]" |
