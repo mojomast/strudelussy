@@ -7,7 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import TutorialProgress from './TutorialProgress'
-import type { Chapter, ChapterId, Lesson, LessonId, ValidationResult } from './tutorialData'
+import { UNLOCK_THRESHOLD, chapters, type Chapter, type ChapterId, type Lesson, type LessonId, type ValidationResult } from './tutorialData'
 
 interface TutorialPanelProps {
   onInjectCode: (code: string) => void
@@ -20,6 +20,7 @@ interface TutorialPanelProps {
   }
   currentLesson: Lesson
   currentChapter: Chapter
+  validationResult: ValidationResult | null
   chapterProgress: { completed: number; total: number }
   isChapterUnlocked: (chapterId: ChapterId) => boolean
   incompleteCount: number
@@ -43,6 +44,7 @@ const TutorialPanel = ({
   state,
   currentLesson,
   currentChapter,
+  validationResult,
   chapterProgress,
   isChapterUnlocked,
   nextLesson,
@@ -95,6 +97,23 @@ const TutorialPanel = ({
   const isFirstLesson = currentChapter.id === 1 && currentLessonIndex === 0
   const isLastLesson = currentLessonIndex === currentChapter.lessons.length - 1 && !isChapterUnlocked(currentChapter.id + 1)
   const progressWidth = `${(chapterProgress.completed / chapterProgress.total) * 100}%`
+
+  const chapterCards = chapters.map((chapter) => {
+    const previousChapter = chapters.find((entry) => entry.id === chapter.id - 1)
+    const previousCompleted = previousChapter
+      ? previousChapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
+      : 0
+    const previousRatio = previousChapter ? previousCompleted / previousChapter.lessons.length : 1
+    const unlocked = chapter.id <= 1 || isChapterUnlocked(chapter.id)
+    return {
+      chapter,
+      unlocked,
+      unlockMessage: previousChapter
+        ? `Complete ${Math.round(UNLOCK_THRESHOLD * 100)}% of ${previousChapter.title} to unlock`
+        : null,
+      previousRatio,
+    }
+  })
 
   const injectScaffold = () => {
     onInjectCode(currentLesson.scaffold)
@@ -172,6 +191,13 @@ const TutorialPanel = ({
         <div>
           <h2 className="text-lg font-semibold text-[var(--ussy-text)]">{currentLesson.id} — {currentLesson.title}</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--ussy-text-muted)]">{currentLesson.instructions}</p>
+          {validationResult ? (
+            validationResult.pass ? (
+              <p className="mt-2 text-xs text-emerald-400">✓ Looks good!</p>
+            ) : validationResult.hint ? (
+              <p className="mt-2 text-xs text-amber-300">⚠ {validationResult.hint}</p>
+            ) : null
+          ) : null}
         </div>
 
         <pre className="overflow-auto rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] p-3 text-sm text-[var(--ussy-text)]">{currentLesson.scaffold}</pre>
@@ -248,6 +274,41 @@ const TutorialPanel = ({
             ) : null}
           </div>
         ) : null}
+
+        <div className="rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] p-3">
+          <p className="text-xs uppercase tracking-[0.18em] text-[var(--ussy-text-muted)]">Chapters</p>
+          <div className="mt-3 grid gap-2">
+            {chapterCards.map(({ chapter, unlocked, unlockMessage, previousRatio }) => {
+              const isCurrentChapter = chapter.id === currentChapter.id
+              const completed = chapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
+              const isLocked = !unlocked
+              return (
+                <button
+                  key={chapter.id}
+                  type="button"
+                  title={isLocked ? unlockMessage ?? undefined : undefined}
+                  onClick={(event) => {
+                    if (isLocked) {
+                      event.preventDefault()
+                      return
+                    }
+                    openTutorial(chapter.lessons[0]?.id)
+                  }}
+                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${isCurrentChapter ? 'border-[var(--ussy-accent)] bg-[var(--ussy-accent-glow)]' : 'border-[var(--ussy-divider)] bg-[var(--ussy-surface-3)]'} ${isLocked ? 'cursor-not-allowed opacity-45' : 'hover:border-[var(--ussy-accent)] hover:bg-[var(--ussy-surface)]'}`}
+                >
+                  <span className="flex items-center gap-2 text-sm text-[var(--ussy-text)]">
+                    <span>{isLocked ? '🔒' : chapter.emoji}</span>
+                    <span>Ch {chapter.id} · {chapter.title}</span>
+                  </span>
+                  <span className="text-xs text-[var(--ussy-text-muted)]">
+                    {completed}/{chapter.lessons.length}
+                    {isLocked && unlockMessage ? ` · ${Math.round(previousRatio * 100)}%` : ''}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
 
         <div className="border-t border-[var(--ussy-divider)] pt-4">
           <div className="flex items-center justify-between">

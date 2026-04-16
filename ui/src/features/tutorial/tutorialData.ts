@@ -803,6 +803,12 @@ export const getLessonById = (lessonId: LessonId): Lesson => {
   }
   return found
 }
+
+export const getLessonByFunctionToken = (label: string): Lesson | null => {
+  const lessonId = FUNCTION_LESSON_MAP[`${label}(`] ?? FUNCTION_LESSON_MAP[label]
+  return lessonId && hasLessonId(lessonId) ? getLessonById(lessonId) : null
+}
+
 export const getChapterByLessonId = (lessonId: LessonId): Chapter => {
   const found = chapters.find((chapter) => chapter.lessons.some((entry) => entry.id === lessonId))
   if (!found) {

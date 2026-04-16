@@ -43,7 +43,12 @@ const HomePage = () => {
   const dmxBridgeUrl = (import.meta.env.VITE_DMX_BRIDGE_URL as string | undefined)?.trim() || null
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
-  const tutorial = useTutorial()
+  const tutorial = useTutorial({
+    getCode: () => orchestrator.getCurrentCode(),
+    onLessonLoad: (code) => {
+      orchestrator.setEditorCode(code)
+    },
+  })
   const currentProject = orchestrator.currentProject
   const isLoadingProject = orchestrator.isLoadingProject
   const isPlaying = orchestrator.isPlaying
@@ -263,6 +268,7 @@ const HomePage = () => {
           state: tutorial.state,
           currentLesson: tutorial.currentLesson,
           currentChapter: tutorial.currentChapter,
+          validationResult: tutorial.validationResult,
           chapterProgress: tutorial.chapterProgress,
           isChapterUnlocked: tutorial.isChapterUnlocked,
           incompleteCount: tutorial.incompleteCount,

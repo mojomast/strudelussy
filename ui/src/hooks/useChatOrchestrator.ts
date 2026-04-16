@@ -998,6 +998,11 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     }
   }, [actions, isPlaying])
 
+  const setEditorCode = useCallback((code: string) => {
+    editorBridgeRef.current.setCode?.(code)
+    actions.setCode(code)
+  }, [actions])
+
   const onInjectCode = useCallback((snippet: string) => {
     const currentCode = getCurrentCode().trimEnd()
     const nextCode = `${currentCode}\n\n${snippet.trim()}\n`
@@ -1227,6 +1232,7 @@ export const useChatOrchestrator = ({ searchParams, setSearchParams }: UseChatOr
     onManualSave,
     onSelectSection,
     onBpmChange,
+    setEditorCode,
     onInjectCode,
     onApplyGeneratedCode,
     onShuffleRhythm,

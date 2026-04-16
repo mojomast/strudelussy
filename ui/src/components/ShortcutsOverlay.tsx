@@ -36,7 +36,7 @@ const shortcutGroups: ShortcutGroup[] = [
       { key: 'Tab', action: 'Accept selected autocomplete suggestion, or indent when autocomplete is closed' },
       { key: 'Ctrl/Cmd+Space', action: 'Open Strudel autocomplete suggestions with live variables and track names' },
       { key: 'Cmd/Ctrl+S', action: 'Save snapshot' },
-      { key: 'Hover known functions', action: 'Show Strudel signature and description tooltips inline in the editor' },
+      { key: 'Hover known functions', action: 'Show Strudel signature, description, and linked lesson tooltips inline in the editor' },
       { key: 'Escape', action: 'Dismiss autocomplete or close overlay / stop preview / exit focus mode' },
     ],
   },

@@ -617,3 +617,16 @@ body {
   font-size: 11px;
   margin-top: 4px;
 }
+
+.strudel-hover-lesson-ref {
+  color: #5eead4;
+  font-size: 11px;
+  margin-top: 6px;
+  cursor: default;
+}
+
+.lesson-complete {
+  border-left: 3px solid rgba(74, 222, 128, 0.8) !important;
+  color: rgba(187, 247, 208, 0.95) !important;
+  padding-left: 9px;
+}

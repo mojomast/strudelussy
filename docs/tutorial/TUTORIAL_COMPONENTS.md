@@ -46,11 +46,13 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 - Calls shared `onInjectCode(lesson.scaffold)` passed down from `HomePage`
 - On first use, show inline confirm prompt: `"Replace current code? [Yes] [Cancel]"` — NOT a browser `confirm()` dialog
 - After injecting, show a small toast: `"Loaded into editor!"`
+- Selecting a lesson can also auto-load that lesson scaffold into the editor without auto-evaluating it
 
 **Validate button (✓ Check my code):**
 - Calls `validateLesson(lessonId, currentEditorCode)`
 - **On pass:** Green checkmark animation + `"🎉 Nice! You nailed it."` message + `"Next lesson →"` button appears
 - **On fail:** Horizontal shake animation (`@keyframes shake`) + reveal next hint level
+- The current lesson also shows debounced live validation inline while the user types, without requiring a button press
 
 **Pass animation sequence:**
 1. Flash validate button to green for 600ms
@@ -73,6 +75,11 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 - `Ctrl/Cmd+Space` should open the completion list explicitly
 - `Tab` should accept the selected completion when the list is open, otherwise preserve normal indentation behavior
 - `Escape` should dismiss the autocomplete popup without overriding existing editor/playback shortcuts
+- Hovering a known Strudel helper should also show its lesson reference when one exists in `FUNCTION_LESSON_MAP`
+
+**Chapter gating:**
+- Later chapters stay visually locked until the previous chapter reaches the unlock threshold
+- Locked chapters should show a lock icon, reduced opacity, and an explanatory hover tooltip
 
 **Progress bar:**
 ```css

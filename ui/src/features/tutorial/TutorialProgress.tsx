@@ -71,6 +71,16 @@ const TutorialProgress = ({ open, completedLessons, isChapterUnlocked, openTutor
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-[var(--ussy-surface-3)]">
                   <div className="h-full bg-[var(--ussy-accent)] transition-all duration-300" style={{ width: `${done ? 100 : progress}%` }} />
                 </div>
+                <div className="mt-3 space-y-1">
+                  {chapter.lessons.map((lesson) => (
+                    <div
+                      key={lesson.id}
+                      className={`rounded-md border border-[var(--ussy-divider)] px-2 py-1 text-xs text-[var(--ussy-text-muted)] ${completedLessons.has(lesson.id) ? 'lesson-complete' : ''}`}
+                    >
+                      {lesson.id} · {lesson.title}
+                    </div>
+                  ))}
+                </div>
                 {unlocked ? (
                   <Button
                     type="button"

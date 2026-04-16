@@ -20,6 +20,11 @@ import {
   type ValidationResult,
 } from './tutorialData'
 
+interface UseTutorialOptions {
+  getCode: () => string
+  onLessonLoad?: (scaffold: string) => void
+}
+
 interface TutorialState {
   isOpen: boolean
   activeTab: 'chat' | 'learn'
@@ -42,6 +47,7 @@ interface UseTutorialReturn {
   state: TutorialState
   currentLesson: Lesson
   currentChapter: Chapter
+  validationResult: ValidationResult | null
   chapterProgress: { completed: number; total: number }
   isChapterUnlocked: (chapterId: ChapterId) => boolean
   incompleteCount: number
@@ -84,9 +90,10 @@ const readPersistedState = (): PersistedState | null => {
   }
 }
 
-export const useTutorial = (): UseTutorialReturn => {
+export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseTutorialReturn => {
   const persistedRef = useRef<PersistedState | null>(readPersistedState())
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const validationDebounceRef = useRef<ReturnType<typeof setTimeout>>()
 
   const [state, setState] = useState<TutorialState>(() => ({
     isOpen: false,
@@ -98,6 +105,7 @@ export const useTutorial = (): UseTutorialReturn => {
     hintLevel: 0,
     lastActivity: Date.now(),
   }))
+  const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
 
   const currentLesson = useMemo(() => getLessonById(state.activeLessonId), [state.activeLessonId])
   const currentChapter = useMemo(() => getChapterByLessonId(state.activeLessonId), [state.activeLessonId])
@@ -118,6 +126,22 @@ export const useTutorial = (): UseTutorialReturn => {
 
   const currentChapterLessons = useMemo(() => currentChapter.lessons, [currentChapter])
   const currentLessonIndex = useMemo(() => currentChapterLessons.findIndex((lesson) => lesson.id === state.activeLessonId), [currentChapterLessons, state.activeLessonId])
+
+  const setLesson = useCallback((lessonId: LessonId) => {
+    const lesson = getLessonById(lessonId)
+    const chapter = getChapterByLessonId(lessonId)
+
+    setState((current) => ({
+      ...current,
+      activeLessonId: lessonId,
+      activeChapterId: chapter.id,
+      hintLevel: 0,
+    }))
+
+    if (lesson.scaffold && onLessonLoad) {
+      onLessonLoad(lesson.scaffold)
+    }
+  }, [onLessonLoad])
 
   const chapterProgress = useMemo(() => {
     const completed = currentChapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
@@ -163,7 +187,26 @@ export const useTutorial = (): UseTutorialReturn => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
+    if (validationDebounceRef.current) {
+      clearTimeout(validationDebounceRef.current)
+    }
   }, [])
+
+  useEffect(() => {
+    if (validationDebounceRef.current) {
+      clearTimeout(validationDebounceRef.current)
+    }
+
+    validationDebounceRef.current = setTimeout(() => {
+      setValidationResult(currentLesson.validator(getCode()))
+    }, 400)
+
+    return () => {
+      if (validationDebounceRef.current) {
+        clearTimeout(validationDebounceRef.current)
+      }
+    }
+  }, [currentLesson, getCode, state.lastActivity])
 
   const setActiveTab = useCallback((tab: 'chat' | 'learn') => {
     setState((current) => ({
@@ -179,10 +222,17 @@ export const useTutorial = (): UseTutorialReturn => {
       const requestedChapter = getChapterByLessonId(requestedLessonId)
 
       if (!isChapterUnlocked(requestedChapter.id)) {
-        return {
-          ...current,
-          isOpen: true,
-          activeTab: 'learn',
+       if (requestedLessonId !== current.activeLessonId) {
+         const lesson = getLessonById(requestedLessonId)
+         if (lesson.scaffold && onLessonLoad) {
+           onLessonLoad(lesson.scaffold)
+         }
+       }
+
+       return {
+         ...current,
+         isOpen: true,
+         activeTab: 'learn',
         }
       }
 
@@ -208,23 +258,13 @@ export const useTutorial = (): UseTutorialReturn => {
         return
       }
 
-      setState((current) => ({
-        ...current,
-        activeChapterId: nextChapter.id,
-        activeLessonId: nextChapter.lessons[0].id,
-        hintLevel: 0,
-      }))
-      return
-    }
+       setLesson(nextChapter.lessons[0].id)
+       return
+     }
 
-    const next = currentChapterLessons[currentLessonIndex + 1]
-    setState((current) => ({
-      ...current,
-      activeLessonId: next.id,
-      activeChapterId: currentChapter.id,
-      hintLevel: 0,
-    }))
-  }, [currentChapter.id, currentChapterLessons, currentLessonIndex, isChapterUnlocked])
+     const next = currentChapterLessons[currentLessonIndex + 1]
+     setLesson(next.id)
+   }, [currentChapterLessons, currentLessonIndex, isChapterUnlocked, setLesson])
 
   const prevLesson = useCallback(() => {
     if (currentLessonIndex <= 0) {
@@ -234,23 +274,13 @@ export const useTutorial = (): UseTutorialReturn => {
       }
 
       const previousLesson = previousChapter.lessons[previousChapter.lessons.length - 1]
-      setState((current) => ({
-        ...current,
-        activeChapterId: previousChapter.id,
-        activeLessonId: previousLesson.id,
-        hintLevel: 0,
-      }))
-      return
-    }
+       setLesson(previousLesson.id)
+       return
+     }
 
-    const previous = currentChapterLessons[currentLessonIndex - 1]
-    setState((current) => ({
-      ...current,
-      activeLessonId: previous.id,
-      activeChapterId: currentChapter.id,
-      hintLevel: 0,
-    }))
-  }, [currentChapter.id, currentChapterLessons, currentLessonIndex, isChapterUnlocked])
+     const previous = currentChapterLessons[currentLessonIndex - 1]
+     setLesson(previous.id)
+   }, [currentChapterLessons, currentLessonIndex, isChapterUnlocked, setLesson])
 
   const completeLesson = useCallback((lessonId: LessonId) => {
     setState((current) => {
@@ -319,7 +349,11 @@ export const useTutorial = (): UseTutorialReturn => {
       hintLevel: 0,
       lastActivity: Date.now(),
     })
-  }, [])
+    const lesson = getLessonById(DEFAULT_LESSON_ID)
+    if (lesson.scaffold && onLessonLoad) {
+      onLessonLoad(lesson.scaffold)
+    }
+  }, [onLessonLoad])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -335,6 +369,7 @@ export const useTutorial = (): UseTutorialReturn => {
     state,
     currentLesson,
     currentChapter,
+    validationResult,
     chapterProgress,
     isChapterUnlocked,
     incompleteCount,

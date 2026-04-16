@@ -1,4 +1,5 @@
 import { hoverTooltip } from '@codemirror/view'
+import { FUNCTION_LESSON_MAP, getLessonById } from '@/features/tutorial/tutorialData'
 import { STRUDEL_COMPLETIONS } from './strudel-completions'
 
 const completionMap = new Map(STRUDEL_COMPLETIONS.map((completion) => [completion.label, completion]))
@@ -33,6 +34,15 @@ export const strudelHoverExtension = hoverTooltip((view, pos) => {
         desc.className = 'strudel-hover-desc'
         desc.textContent = completion.info
         dom.append(desc)
+      }
+
+      const lessonId = FUNCTION_LESSON_MAP[`${label}(`] ?? FUNCTION_LESSON_MAP[label]
+      if (lessonId) {
+        const lesson = getLessonById(lessonId)
+        const ref = document.createElement('div')
+        ref.className = 'strudel-hover-lesson-ref'
+        ref.textContent = `📖 Covered in: ${lesson.title}`
+        dom.append(ref)
       }
 
       return { dom }
