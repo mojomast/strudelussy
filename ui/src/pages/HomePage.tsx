@@ -22,8 +22,14 @@ import VisualizationSurface from '@/components/visualization/VisualizationSurfac
 import type { DmxVisualizationData, VisualizationMode } from '@/components/visualization/types'
 import { TutorialOverlay, useTutorial } from '@/features/tutorial'
 import { useChatOrchestrator } from '@/hooks/useChatOrchestrator'
+import type { LightingProjectState } from '@/types/project'
 
 type UIMode = 'ussy' | 'legacy'
+
+const EMPTY_LIGHTING: LightingProjectState = {
+  cue_bindings: [],
+  group_bindings: [],
+}
 
 const HomePage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
@@ -43,6 +49,10 @@ const HomePage = () => {
 
   const orchestrator = useChatOrchestrator({ searchParams, setSearchParams })
   const tutorial = useTutorial()
+  const currentProject = orchestrator.currentProject
+  const isLoadingProject = orchestrator.isLoadingProject
+  const isPlaying = orchestrator.isPlaying
+  const lighting = currentProject?.lighting ?? EMPTY_LIGHTING
 
   const toggleUiMode = useCallback(() => {
     setUiMode((prev) => (prev === 'ussy' ? 'legacy' : 'ussy'))
@@ -68,18 +78,6 @@ const HomePage = () => {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [toggleUiMode, tutorial])
-
-  if (orchestrator.isLoadingProject || !orchestrator.currentProject) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-[var(--ussy-bg)] text-[var(--ussy-text-muted)]">
-        Loading project...
-      </main>
-    )
-  }
-
-  const { currentProject, sections, params, pendingDiffs, isPlaying } = orchestrator
-  const pendingPatchCount = pendingDiffs.size
-  const lighting = currentProject.lighting ?? { cue_bindings: [], group_bindings: [] }
 
   const refreshDmxVisualization = useCallback(async () => {
     try {
@@ -254,6 +252,17 @@ const HomePage = () => {
     groupPulseTimersRef.current.set(binding.group_id, releaseTimer)
   }, [dmxBridgeUrl, isPlaying, lighting.group_bindings, orchestrator.getTrackActivity, refreshDmxVisualization])
 
+  if (isLoadingProject || !currentProject) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[var(--ussy-bg)] text-[var(--ussy-text-muted)]">
+        Loading project...
+      </main>
+    )
+  }
+
+  const { sections, params, pendingDiffs } = orchestrator
+  const pendingPatchCount = pendingDiffs.size
+
   const versionPanelProps = {
     versions: currentProject.versions,
     isLoading: orchestrator.isLoadingVersions,
@@ -267,7 +276,7 @@ const HomePage = () => {
   const shellProps = {
     topbar: (
       <ProjectTopbar
-        projectName={orchestrator.currentProject.name}
+        projectName={currentProject.name}
         masterVolume={orchestrator.masterVolume}
         customApiEndpoint={orchestrator.customApiEndpoint}
         customApiKey={orchestrator.customApiKey}
