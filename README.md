@@ -13,6 +13,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
 - inline Strudel-aware autocomplete in the editor with Ctrl/Cmd+Space trigger, Tab accept, function signatures, method suggestions, live variables, parsed track names, hover docs, and tutorial lesson references
+- the function-to-lesson hover mapping is kept in `ui/src/lib/functionLessonMap.ts` so editor extensions do not need to eagerly load the full tutorial curriculum module in production
 - tutorial lessons can auto-load their scaffold into the editor without auto-evaluating, persist progress locally, auto-complete lessons when validation passes, show live validation feedback while you type, and visually gate later chapters until earlier progress thresholds are met
 - parsed BPM, key, sections, and a per-track gain/pan mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence

@@ -63,6 +63,7 @@ ui/src/features/tutorial/
 | **Live typing apply** | While playback is running, manual editor typing triggers a debounced reevaluation after a short idle pause |
 | **Inline autocomplete** | The editor offers Strudel-aware completions while typing, including static helpers plus live variables and track names, with `Ctrl/Cmd+Space` for explicit open and `Tab` to accept the selected completion |
 | **Hover docs** | Hovering a known Strudel helper in the editor shows its signature, one-line description, and linked lesson reference when available |
+| **Lesson token map** | The function-to-lesson token map lives in `ui/src/lib/functionLessonMap.ts` so editor extensions do not need to eagerly evaluate the full tutorial curriculum module |
 | **Lesson scaffold sync** | Selecting a lesson replaces the editor contents with that lesson scaffold without auto-evaluating it |
 | **Tutorial progress persistence** | `useTutorial.ts` persists completed lessons, the current lesson, and revealed hint count through `projectStorage.ts` localStorage helpers |
 | **Spotlight overlay** | Renders at the page root as a fixed overlay sibling so it stays above all panels |

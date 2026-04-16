@@ -1,4 +1,4 @@
-import { acceptCompletion, autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, completionStatus } from '@codemirror/autocomplete'
+import { acceptCompletion, autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap, completionStatus, type Completion } from '@codemirror/autocomplete'
 import type { KeyBinding } from '@codemirror/view'
 import { keymap } from '@codemirror/view'
 import { indentWithTab } from '@codemirror/commands'
@@ -17,29 +17,45 @@ const tabCompletionKeymap: KeyBinding = {
 }
 
 export function buildStrudelAutocompleteExtension(getCode: () => string) {
-  const mergedSource = buildMergedCompletionSource(getCode)
+  const baseKeymap = keymap.of([
+    tabCompletionKeymap,
+    ...closeBracketsKeymap,
+    ...completionKeymap,
+  ])
 
-  return [
-    closeBrackets(),
-    autocompletion({
-      override: [mergedSource],
-      activateOnTyping: true,
-      selectOnOpen: true,
-      closeOnBlur: false,
-      maxRenderedOptions: 12,
-      tooltipClass: () => 'strudel-autocomplete-tooltip',
-      addToOptions: [
-        {
-          render: (completion) => renderStrudelCompletion(completion),
-          position: 20,
-        },
-      ],
-    }),
-    keymap.of([
-      tabCompletionKeymap,
-      ...closeBracketsKeymap,
-      ...completionKeymap,
-    ]),
-    strudelHoverExtension,
-  ]
+  const autocompleteConfig = {
+    activateOnTyping: true,
+    selectOnOpen: true,
+    closeOnBlur: false,
+    maxRenderedOptions: 12,
+    tooltipClass: () => 'strudel-autocomplete-tooltip',
+    addToOptions: [
+      {
+        render: (completion: Completion) => renderStrudelCompletion(completion),
+        position: 20,
+      },
+    ],
+  }
+
+  try {
+    const mergedSource = buildMergedCompletionSource(getCode)
+
+    return [
+      closeBrackets(),
+      autocompletion({
+        ...autocompleteConfig,
+        override: [mergedSource],
+      }),
+      baseKeymap,
+      strudelHoverExtension,
+    ]
+  } catch (error) {
+    console.error('[strudelAutocomplete] failed to build extension:', error)
+
+    return [
+      closeBrackets(),
+      autocompletion(autocompleteConfig),
+      baseKeymap,
+    ]
+  }
 }

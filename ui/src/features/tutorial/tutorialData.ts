@@ -1,3 +1,5 @@
+import { FUNCTION_LESSON_MAP } from '@/lib/functionLessonMap'
+
 /**
  * // What changed:
  * // - Added the complete in-app tutorial curriculum data layer
@@ -771,20 +773,6 @@ export const chapters: Chapter[] = [
     ],
   },
 ]
-
-export const FUNCTION_LESSON_MAP: Record<string, string> = {
-  's(': '1.1', 'sound(': '1.1', '.bank(': '1.4',
-  'euclidean': '2.8', '(beats,': '2.8',
-  'note(': '3.1', '.scale(': '3.3', 'n(': '3.3', '.voicings(': '3.6',
-  'stack(': '4.1', '.slow(': '4.3', '.fast(': '4.3',
-  '.attack(': '5.2', '.decay(': '5.2', '.sustain(': '5.2', '.release(': '5.2',
-  '.gain(': '5.3', '.speed(': '5.4', '.cutoff(': '5.5', '.lpf(': '5.5',
-  '.room(': '6.1', '.reverb(': '6.1', '.delay(': '6.2',
-  '.shape(': '6.3', '.crush(': '6.3', '.pan(': '6.4',
-  'sine': '7.1', 'cosine': '7.1', 'perlin': '7.2',
-  'rand': '7.3', '.sometimes(': '7.4', '.rarely(': '7.4', '.often(': '7.4',
-  '.degradeBy(': '7.4',
-}
 
 export const allLessons = chapters.flatMap((chapter) => chapter.lessons)
 
