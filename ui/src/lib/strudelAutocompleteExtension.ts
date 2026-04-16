@@ -5,6 +5,31 @@ import { indentWithTab } from '@codemirror/commands'
 import { buildMergedCompletionSource, renderStrudelCompletion } from './strudelCompletionSource'
 import { strudelHoverExtension } from './strudelHoverExtension'
 
+interface StrudelExtensionStatusOk {
+  status: 'ok'
+  extensions: string[]
+}
+
+interface StrudelExtensionStatusDegraded {
+  status: 'degraded'
+  error: string
+  fallback: true
+}
+
+declare global {
+  interface Window {
+    __strudelExtensions?: StrudelExtensionStatusOk | StrudelExtensionStatusDegraded
+  }
+}
+
+const setStrudelExtensionStatus = (status: Window['__strudelExtensions']) => {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  window.__strudelExtensions = status
+}
+
 const tabCompletionKeymap: KeyBinding = {
   key: 'Tab',
   run: (view) => {
@@ -39,8 +64,7 @@ export function buildStrudelAutocompleteExtension(getCode: () => string) {
 
   try {
     const mergedSource = buildMergedCompletionSource(getCode)
-
-    return [
+    const extensions = [
       closeBrackets(),
       autocompletion({
         ...autocompleteConfig,
@@ -49,8 +73,21 @@ export function buildStrudelAutocompleteExtension(getCode: () => string) {
       baseKeymap,
       strudelHoverExtension,
     ]
+
+    setStrudelExtensionStatus({
+      status: 'ok',
+      extensions: ['closeBrackets', 'autocompletion', 'keymap', 'strudelHoverExtension'],
+    })
+
+    return extensions
   } catch (error) {
-    console.error('[strudelAutocomplete] failed to build extension:', error)
+    const message = error instanceof Error ? error.message : String(error)
+    console.warn('[strudelAutocomplete] failed to build extension:', error)
+    setStrudelExtensionStatus({
+      status: 'degraded',
+      error: message,
+      fallback: true,
+    })
 
     return [
       closeBrackets(),
