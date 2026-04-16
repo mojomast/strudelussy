@@ -263,7 +263,7 @@ const HomePage = () => {
         onPreviewDiff={orchestrator.onPreviewDiff}
         onStopPreview={(messageId) => orchestrator.onStopPreview(messageId)}
         tutorial={{
-          onInjectCode: orchestrator.onInjectCode,
+          onInjectCode: orchestrator.setEditorCode,
           getEditorCode: orchestrator.getCurrentCode,
           state: tutorial.state,
           currentLesson: tutorial.currentLesson,

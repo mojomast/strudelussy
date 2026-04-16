@@ -43,7 +43,7 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 ### Key Behaviors
 
 **Inject button:**
-- Calls shared `onInjectCode(lesson.scaffold)` passed down from `HomePage`
+- Calls the shared page-level editor bridge passed down from `HomePage` to replace the current editor contents with `lesson.scaffold`
 - On first use, show inline confirm prompt: `"Replace current code? [Yes] [Cancel]"` — NOT a browser `confirm()` dialog
 - After injecting, show a small toast: `"Loaded into editor!"`
 - Selecting a lesson can also auto-load that lesson scaffold into the editor without auto-evaluating it
@@ -53,11 +53,12 @@ The main teaching UI. Renders inside the left `ChatPanel` when the `[Learn]` tab
 - **On pass:** Green checkmark animation + `"🎉 Nice! You nailed it."` message + `"Next lesson →"` button appears
 - **On fail:** Horizontal shake animation (`@keyframes shake`) + reveal next hint level
 - The current lesson also shows debounced live validation inline while the user types, without requiring a button press
+- A passing validation result automatically marks the current lesson complete, but does not auto-advance to the next lesson
 
 **Pass animation sequence:**
 1. Flash validate button to green for 600ms
 2. Render 8 `<span>` confetti elements with `@keyframes confetti-fall` (pure CSS, no library)
-3. Wait 1200ms, then auto-advance to next lesson (reset `hintLevel` to 0)
+3. Hide the confetti after 1200ms without auto-advancing the lesson
 
 **Hint system:**
 - Hints hidden by default

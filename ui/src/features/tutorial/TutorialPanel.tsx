@@ -64,7 +64,7 @@ const TutorialPanel = ({
   const [hasInjectedBefore, setHasInjectedBefore] = useState(false)
   const [shakeKey, setShakeKey] = useState(0)
   const passTimeoutRef = useRef<number | null>(null)
-  const advanceTimeoutRef = useRef<number | null>(null)
+  const confettiTimeoutRef = useRef<number | null>(null)
 
   useEffect(() => {
     setShowReplaceConfirm(false)
@@ -79,8 +79,8 @@ const TutorialPanel = ({
       if (passTimeoutRef.current) {
         window.clearTimeout(passTimeoutRef.current)
       }
-      if (advanceTimeoutRef.current) {
-        window.clearTimeout(advanceTimeoutRef.current)
+      if (confettiTimeoutRef.current) {
+        window.clearTimeout(confettiTimeoutRef.current)
       }
     }
   }, [])
@@ -94,8 +94,10 @@ const TutorialPanel = ({
   }, [loadedToast])
 
   const currentLessonIndex = currentChapter.lessons.findIndex((lesson) => lesson.id === currentLesson.id)
+  const isCurrentLessonComplete = state.completedLessons.has(currentLesson.id)
   const isFirstLesson = currentChapter.id === 1 && currentLessonIndex === 0
   const isLastLesson = currentLessonIndex === currentChapter.lessons.length - 1 && !isChapterUnlocked(currentChapter.id + 1)
+  const canAdvance = validationResult?.pass === true || isCurrentLessonComplete
   const progressWidth = `${(chapterProgress.completed / chapterProgress.total) * 100}%`
 
   const chapterCards = chapters.map((chapter) => {
@@ -140,17 +142,16 @@ const TutorialPanel = ({
       if (passTimeoutRef.current) {
         window.clearTimeout(passTimeoutRef.current)
       }
-      if (advanceTimeoutRef.current) {
-        window.clearTimeout(advanceTimeoutRef.current)
+      if (confettiTimeoutRef.current) {
+        window.clearTimeout(confettiTimeoutRef.current)
       }
 
       passTimeoutRef.current = window.setTimeout(() => {
         setValidationState('idle')
       }, 600)
 
-      advanceTimeoutRef.current = window.setTimeout(() => {
+      confettiTimeoutRef.current = window.setTimeout(() => {
         setShowConfetti(false)
-        nextLesson()
       }, 1200)
       return
     }
@@ -269,7 +270,7 @@ const TutorialPanel = ({
         {feedback ? (
           <div className="rounded-xl border border-[var(--ussy-divider)] bg-[var(--ussy-surface-2)] p-3 text-sm text-[var(--ussy-text)]" aria-live="polite">
             <p>{feedback}</p>
-            {validationState === 'pass' ? (
+            {validationState === 'pass' || canAdvance ? (
               <Button type="button" variant="link" className="h-auto px-0 text-[var(--ussy-accent)]" onClick={nextLesson}>Next lesson →</Button>
             ) : null}
           </div>
@@ -283,28 +284,48 @@ const TutorialPanel = ({
               const completed = chapter.lessons.filter((lesson) => state.completedLessons.has(lesson.id)).length
               const isLocked = !unlocked
               return (
-                <button
+                <div
                   key={chapter.id}
-                  type="button"
-                  title={isLocked ? unlockMessage ?? undefined : undefined}
-                  onClick={(event) => {
-                    if (isLocked) {
-                      event.preventDefault()
-                      return
-                    }
-                    openTutorial(chapter.lessons[0]?.id)
-                  }}
-                  className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left transition-colors ${isCurrentChapter ? 'border-[var(--ussy-accent)] bg-[var(--ussy-accent-glow)]' : 'border-[var(--ussy-divider)] bg-[var(--ussy-surface-3)]'} ${isLocked ? 'cursor-not-allowed opacity-45' : 'hover:border-[var(--ussy-accent)] hover:bg-[var(--ussy-surface)]'}`}
+                  className={`rounded-lg border px-3 py-2 transition-colors ${isCurrentChapter ? 'border-[var(--ussy-accent)] bg-[var(--ussy-accent-glow)]' : 'border-[var(--ussy-divider)] bg-[var(--ussy-surface-3)]'} ${isLocked ? 'opacity-45' : ''}`}
                 >
-                  <span className="flex items-center gap-2 text-sm text-[var(--ussy-text)]">
-                    <span>{isLocked ? '🔒' : chapter.emoji}</span>
-                    <span>Ch {chapter.id} · {chapter.title}</span>
-                  </span>
-                  <span className="text-xs text-[var(--ussy-text-muted)]">
-                    {completed}/{chapter.lessons.length}
-                    {isLocked && unlockMessage ? ` · ${Math.round(previousRatio * 100)}%` : ''}
-                  </span>
-                </button>
+                  <button
+                    type="button"
+                    title={isLocked ? unlockMessage ?? undefined : undefined}
+                    onClick={(event) => {
+                      if (isLocked) {
+                        event.preventDefault()
+                        return
+                      }
+                      openTutorial(chapter.lessons[0]?.id)
+                    }}
+                    className={`flex w-full items-center justify-between text-left ${isLocked ? 'cursor-not-allowed' : 'hover:text-[var(--ussy-text)]'}`}
+                  >
+                    <span className="flex items-center gap-2 text-sm text-[var(--ussy-text)]">
+                      <span>{isLocked ? '🔒' : chapter.emoji}</span>
+                      <span>Ch {chapter.id} · {chapter.title}</span>
+                    </span>
+                    <span className="text-xs text-[var(--ussy-text-muted)]">
+                      {completed}/{chapter.lessons.length}
+                      {isLocked && unlockMessage ? ` · ${Math.round(previousRatio * 100)}%` : ''}
+                    </span>
+                  </button>
+
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {chapter.lessons.map((lesson) => {
+                      const isComplete = state.completedLessons.has(lesson.id)
+                      const isActive = lesson.id === currentLesson.id
+                      return (
+                        <span
+                          key={lesson.id}
+                          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] ${isActive ? 'border-[var(--ussy-accent)] text-[var(--ussy-text)]' : 'border-[var(--ussy-divider)] text-[var(--ussy-text-muted)]'} ${isComplete ? 'lesson-complete' : ''}`}
+                        >
+                          <span>{lesson.id}</span>
+                          {isComplete ? <span aria-hidden="true">✓</span> : null}
+                        </span>
+                      )
+                    })}
+                  </div>
+                </div>
               )
             })}
           </div>
@@ -315,7 +336,7 @@ const TutorialPanel = ({
             <Button type="button" variant="outline" size="sm" className="border-[var(--ussy-divider)] bg-transparent text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]" onClick={prevLesson} disabled={isFirstLesson}>
               ← Prev
             </Button>
-            <Button type="button" variant="outline" size="sm" className="border-[var(--ussy-divider)] bg-transparent text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]" onClick={nextLesson} disabled={isLastLesson}>
+            <Button type="button" variant="outline" size="sm" className="border-[var(--ussy-divider)] bg-transparent text-[var(--ussy-text)] hover:bg-[var(--ussy-surface-2)]" onClick={nextLesson} disabled={isLastLesson || !canAdvance}>
               Next →
             </Button>
           </div>
@@ -329,9 +350,11 @@ const TutorialPanel = ({
                   key={lesson.id}
                   type="button"
                   onClick={() => openTutorial(lesson.id)}
-                  className={`h-2.5 w-2.5 rounded-full ${isComplete || isCurrent ? 'bg-[var(--ussy-accent)]' : 'bg-[var(--ussy-surface-3)]'} ${isCurrent ? 'ring-2 ring-[var(--ussy-text)] ring-offset-2 ring-offset-[var(--ussy-surface)]' : ''}`}
+                  className={`flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[10px] ${isComplete ? 'lesson-complete bg-emerald-950/30' : isCurrent ? 'bg-[var(--ussy-accent)] text-[var(--ussy-bg)]' : 'bg-[var(--ussy-surface-3)] text-[var(--ussy-text-muted)]'} ${isCurrent ? 'ring-2 ring-[var(--ussy-text)] ring-offset-2 ring-offset-[var(--ussy-surface)]' : ''}`}
                   aria-label={`Lesson ${index + 1} of ${currentChapter.lessons.length}`}
-                />
+                >
+                  {isComplete ? '✓' : index + 1}
+                </button>
               )
             })}
           </div>

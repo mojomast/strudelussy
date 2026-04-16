@@ -7,6 +7,13 @@ const LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
 const USER_KEY = 'strudelussy.userId'
 const CHAT_PROVIDER_KEY = 'strudelussy.chatProvider'
 const PROMPT_PRESETS_KEY = 'strudelussy.promptPresets'
+const TUTORIAL_PROGRESS_KEY = 'strudelussy_tutorial_progress'
+
+export interface TutorialProgressData {
+  completedLessons: string[]
+  currentLessonId: string | null
+  revealedHintCount: number
+}
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 
@@ -140,4 +147,43 @@ export const upsertPromptPreset = (label: string, content: string): SavedPromptP
 
   savePromptPresets(nextPresets)
   return nextPresets
+}
+
+export function saveTutorialProgress(data: TutorialProgressData): void {
+  if (!canUseStorage()) return
+
+  try {
+    localStorage.setItem(TUTORIAL_PROGRESS_KEY, JSON.stringify(data))
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+export function loadTutorialProgress(): TutorialProgressData | null {
+  if (!canUseStorage()) return null
+
+  try {
+    const raw = localStorage.getItem(TUTORIAL_PROGRESS_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as unknown
+    if (
+      typeof parsed === 'object' && parsed !== null &&
+      'completedLessons' in parsed && Array.isArray((parsed as Record<string, unknown>).completedLessons)
+    ) {
+      return parsed as TutorialProgressData
+    }
+    return null
+  } catch {
+    return null
+  }
+}
+
+export function clearTutorialProgress(): void {
+  if (!canUseStorage()) return
+
+  try {
+    localStorage.removeItem(TUTORIAL_PROGRESS_KEY)
+  } catch {
+    // ignore
+  }
 }

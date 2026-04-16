@@ -58,12 +58,13 @@ ui/src/features/tutorial/
 | Integration | How |
 |---|---|
 | **Left panel tab bar** | Add `[Chat] [Learn]` tab to `ChatPanel`'s header — `Learn` renders `<TutorialPanel />` |
-| **Inject button** | Calls the shared page-level `onInjectCode(scaffold)` bridge wired through `HomePage` |
-| **Validate button** | Reads the live editor value via the shared page-level `getEditorCode()` bridge, with a debounced live validation result shown in the lesson panel |
+| **Inject button** | Calls the shared page-level editor bridge wired through `HomePage` to replace the editor contents with the lesson scaffold |
+| **Validate button** | Reads the live editor value via the shared page-level `getEditorCode()` bridge, with a debounced live validation result shown in the lesson panel and automatic lesson completion on pass |
 | **Live typing apply** | While playback is running, manual editor typing triggers a debounced reevaluation after a short idle pause |
 | **Inline autocomplete** | The editor offers Strudel-aware completions while typing, including static helpers plus live variables and track names, with `Ctrl/Cmd+Space` for explicit open and `Tab` to accept the selected completion |
 | **Hover docs** | Hovering a known Strudel helper in the editor shows its signature, one-line description, and linked lesson reference when available |
-| **Lesson scaffold sync** | Selecting a lesson can replace the editor contents with that lesson scaffold without auto-evaluating it |
+| **Lesson scaffold sync** | Selecting a lesson replaces the editor contents with that lesson scaffold without auto-evaluating it |
+| **Tutorial progress persistence** | `useTutorial.ts` persists completed lessons, the current lesson, and revealed hint count through `projectStorage.ts` localStorage helpers |
 | **Spotlight overlay** | Renders at the page root as a fixed overlay sibling so it stays above all panels |
 | **Progress badge** | Show a lesson count badge on the `[Learn]` tab button using the remaining lesson total |
 | **AI Chat hook** | When user asks about a function, agent offers a deep-link: "Want to learn `.room()` interactively? → [Open Lesson 6.1]" |

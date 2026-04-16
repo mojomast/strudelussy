@@ -6,7 +6,7 @@
 
 - Repository: `https://github.com/mojomast/strudelussy`
 - License: `https://github.com/mojomast/strudelussy/blob/main/LICENSE`
-- Live deployment flow: `scripts/live_sync.sh` fast-forwards a dedicated live clone to `origin/main`, rebuilds `ui/dist`, and restarts the local proxy and worker.
+- Live deployment flow: `scripts/live_sync.sh` fast-forwards a dedicated live clone to `origin/main`, while `scripts/deploy-live.sh` performs a full locked reinstall in `ui` and `server` before rebuilding and restarting the local proxy and worker.
 
 As a result, the maintained public source for the deployed site is this repository's `main` branch.
 

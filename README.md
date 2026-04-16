@@ -13,7 +13,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - streaming AI chat flow with live assistant typing, preview/apply/reject review, and per-message pending diffs
 - live Strudel editor and playback using the existing `StrudelEditor.tsx`
 - inline Strudel-aware autocomplete in the editor with Ctrl/Cmd+Space trigger, Tab accept, function signatures, method suggestions, live variables, parsed track names, hover docs, and tutorial lesson references
-- tutorial lessons can auto-load their scaffold into the editor, show live validation feedback while you type, and visually gate later chapters until earlier progress thresholds are met
+- tutorial lessons can auto-load their scaffold into the editor without auto-evaluating, persist progress locally, auto-complete lessons when validation passes, show live validation feedback while you type, and visually gate later chapters until earlier progress thresholds are met
 - parsed BPM, key, sections, and a per-track gain/pan mixer from live code
 - guest-mode local persistence plus server-side KV-backed project persistence
 - projects gallery route, share/export basics, and version restore UI
@@ -171,6 +171,8 @@ Public runtime on the maintainer machine currently uses:
 - a local path-aware proxy that serves the built SPA and forwards `/api/*` to the worker on `:8788`
 - the public proxy now streams `text/event-stream` responses through directly so `/api/chat` works on the live host without buffering the full reply first
 - a dedicated deploy clone at `/home/mojo/projects/strudelussy-live` plus `scripts/live_sync.sh` to fast-forward `origin/main`, rebuild `ui/dist`, and restart the local proxy/worker
+- `scripts/deploy-live.sh` forces `pnpm install --frozen-lockfile` in both `ui` and `server` before rebuilding, which is the safer path after lockfile or dependency changes
+- tutorial progress is stored in browser localStorage via `ui/src/lib/projectStorage.ts` under `strudelussy_tutorial_progress`
 
 ## Environment
 
@@ -217,7 +219,7 @@ pnpm exec tsc --noEmit
 
 ## Source And License Notice
 
-The public `strudel.ussyco.de` deployment is served from this repository's `main` branch via `scripts/live_sync.sh`.
+The public `strudel.ussyco.de` deployment is served from this repository's `main` branch via `scripts/live_sync.sh` and `scripts/deploy-live.sh`.
 
 - Corresponding source: `https://github.com/mojomast/strudelussy`
 - License: `LICENSE`

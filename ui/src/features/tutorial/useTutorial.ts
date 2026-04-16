@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { clearTutorialProgress, loadTutorialProgress, saveTutorialProgress, type TutorialProgressData } from '@/lib/projectStorage'
 import {
   UNLOCK_THRESHOLD,
   allLessons,
@@ -36,13 +37,6 @@ interface TutorialState {
   lastActivity: number
 }
 
-interface PersistedState {
-  activeChapterId: ChapterId
-  activeLessonId: LessonId
-  completedLessons: LessonId[]
-  seenOverlays: LessonId[]
-}
-
 interface UseTutorialReturn {
   state: TutorialState
   currentLesson: Lesson
@@ -66,43 +60,24 @@ interface UseTutorialReturn {
   closeProgressMap: () => void
 }
 
-const STORAGE_KEY = 'strudelussy:tutorialProgress'
 const DEFAULT_LESSON_ID: LessonId = '1.1'
 
-const readPersistedState = (): PersistedState | null => {
-  try {
-    const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as PersistedState | null
-    if (!saved || typeof saved !== 'object') {
-      return null
-    }
-    if (!hasLessonId(saved.activeLessonId)) {
-      return null
-    }
-
-    return {
-      activeChapterId: typeof saved.activeChapterId === 'number' ? saved.activeChapterId : 1,
-      activeLessonId: saved.activeLessonId,
-      completedLessons: Array.isArray(saved.completedLessons) ? saved.completedLessons.filter(hasLessonId) : [],
-      seenOverlays: Array.isArray(saved.seenOverlays) ? saved.seenOverlays.filter(hasLessonId) : [],
-    }
-  } catch {
-    return null
-  }
-}
-
 export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseTutorialReturn => {
-  const persistedRef = useRef<PersistedState | null>(readPersistedState())
   const debounceRef = useRef<ReturnType<typeof setTimeout>>()
   const validationDebounceRef = useRef<ReturnType<typeof setTimeout>>()
+  const initialProgress = loadTutorialProgress()
+  const initialLessonId = initialProgress?.currentLessonId && hasLessonId(initialProgress.currentLessonId)
+    ? initialProgress.currentLessonId
+    : DEFAULT_LESSON_ID
 
   const [state, setState] = useState<TutorialState>(() => ({
     isOpen: false,
     activeTab: 'chat',
-    activeChapterId: persistedRef.current?.activeChapterId ?? 1,
-    activeLessonId: persistedRef.current?.activeLessonId ?? DEFAULT_LESSON_ID,
-    completedLessons: new Set<LessonId>(persistedRef.current?.completedLessons ?? []),
+    activeChapterId: getChapterByLessonId(initialLessonId).id,
+    activeLessonId: initialLessonId,
+    completedLessons: new Set<LessonId>((initialProgress?.completedLessons ?? []).filter(hasLessonId)),
     showProgressMap: false,
-    hintLevel: 0,
+    hintLevel: initialProgress?.revealedHintCount ?? 0,
     lastActivity: Date.now(),
   }))
   const [validationResult, setValidationResult] = useState<ValidationResult | null>(null)
@@ -126,6 +101,7 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
 
   const currentChapterLessons = useMemo(() => currentChapter.lessons, [currentChapter])
   const currentLessonIndex = useMemo(() => currentChapterLessons.findIndex((lesson) => lesson.id === state.activeLessonId), [currentChapterLessons, state.activeLessonId])
+  const isCurrentLessonComplete = useMemo(() => state.completedLessons.has(state.activeLessonId), [state.activeLessonId, state.completedLessons])
 
   const setLesson = useCallback((lessonId: LessonId) => {
     const lesson = getLessonById(lessonId)
@@ -150,38 +126,27 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
 
   const incompleteCount = useMemo(() => allLessons.filter((lesson) => !state.completedLessons.has(lesson.id)).length, [state.completedLessons])
 
-  const persist = useCallback((nextState: PersistedState) => {
+  const persist = useCallback((nextState: TutorialProgressData) => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current)
     }
 
     debounceRef.current = setTimeout(() => {
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState))
-      } catch {
-        // Keep tutorial state in memory if storage is unavailable.
-      }
+      saveTutorialProgress({
+        completedLessons: nextState.completedLessons,
+        currentLessonId: nextState.currentLessonId,
+        revealedHintCount: nextState.revealedHintCount,
+      })
     }, 500)
   }, [])
 
   useEffect(() => {
-    let seenOverlays = persistedRef.current?.seenOverlays ?? []
-    try {
-      const latest = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null') as PersistedState | null
-      if (latest && Array.isArray(latest.seenOverlays)) {
-        seenOverlays = latest.seenOverlays.filter(hasLessonId)
-      }
-    } catch {
-      // Keep the last known overlay state if storage read fails.
-    }
-
     persist({
-      activeChapterId: state.activeChapterId,
-      activeLessonId: state.activeLessonId,
+      currentLessonId: state.activeLessonId,
       completedLessons: Array.from(state.completedLessons),
-      seenOverlays,
+      revealedHintCount: state.hintLevel,
     })
-  }, [persist, state.activeChapterId, state.activeLessonId, state.completedLessons])
+  }, [persist, state.activeLessonId, state.completedLessons, state.hintLevel])
 
   useEffect(() => () => {
     if (debounceRef.current) {
@@ -198,7 +163,19 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
     }
 
     validationDebounceRef.current = setTimeout(() => {
-      setValidationResult(currentLesson.validator(getCode()))
+      const result = currentLesson.validator(getCode())
+      setValidationResult(result)
+      if (result.pass && !isCurrentLessonComplete) {
+        setState((current) => {
+          if (current.completedLessons.has(current.activeLessonId)) {
+            return current
+          }
+
+          const completedLessons = new Set(current.completedLessons)
+          completedLessons.add(current.activeLessonId)
+          return { ...current, completedLessons }
+        })
+      }
     }, 400)
 
     return () => {
@@ -206,7 +183,7 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
         clearTimeout(validationDebounceRef.current)
       }
     }
-  }, [currentLesson, getCode, state.lastActivity])
+  }, [currentLesson, getCode, isCurrentLessonComplete, state.lastActivity])
 
   const setActiveTab = useCallback((tab: 'chat' | 'learn') => {
     setState((current) => ({
@@ -222,17 +199,10 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
       const requestedChapter = getChapterByLessonId(requestedLessonId)
 
       if (!isChapterUnlocked(requestedChapter.id)) {
-       if (requestedLessonId !== current.activeLessonId) {
-         const lesson = getLessonById(requestedLessonId)
-         if (lesson.scaffold && onLessonLoad) {
-           onLessonLoad(lesson.scaffold)
-         }
-       }
-
-       return {
-         ...current,
-         isOpen: true,
-         activeTab: 'learn',
+        return {
+          ...current,
+          isOpen: true,
+          activeTab: 'learn',
         }
       }
 
@@ -240,12 +210,16 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
         ...current,
         isOpen: true,
         activeTab: 'learn',
-        activeChapterId: requestedChapter.id,
-        activeLessonId: requestedLessonId,
-        hintLevel: 0,
       }
     })
-  }, [isChapterUnlocked])
+
+    if (lessonId && hasLessonId(lessonId)) {
+      const requestedChapter = getChapterByLessonId(lessonId)
+      if (isChapterUnlocked(requestedChapter.id)) {
+        setLesson(lessonId)
+      }
+    }
+  }, [isChapterUnlocked, setLesson])
 
   const closeTutorial = useCallback(() => {
     setState((current) => ({ ...current, isOpen: false, activeTab: 'chat', showProgressMap: false }))
@@ -294,13 +268,6 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
 
   const validateLesson = useCallback((lessonId: LessonId, code: string) => {
     const result = getLessonById(lessonId).validator(code)
-    if (result.pass) {
-      setState((current) => {
-        const completedLessons = new Set(current.completedLessons)
-        completedLessons.add(lessonId)
-        return { ...current, completedLessons, hintLevel: 0 }
-      })
-    }
     return result
   }, [])
 
@@ -332,13 +299,6 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
       // Ignore storage failures and still reset in-memory tutorial state.
     }
 
-    persistedRef.current = {
-      activeChapterId: 1,
-      activeLessonId: DEFAULT_LESSON_ID,
-      completedLessons: [],
-      seenOverlays: [],
-    }
-
     setState({
       isOpen: true,
       activeTab: 'learn',
@@ -349,6 +309,7 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
       hintLevel: 0,
       lastActivity: Date.now(),
     })
+    clearTutorialProgress()
     const lesson = getLessonById(DEFAULT_LESSON_ID)
     if (lesson.scaffold && onLessonLoad) {
       onLessonLoad(lesson.scaffold)
