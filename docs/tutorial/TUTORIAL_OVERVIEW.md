@@ -1,13 +1,13 @@
 # Tutorial Feature — Overview & Vision
 
-> **Source of truth for the strudelussy in-app Strudel learning system.**
+> **Source of truth for the shoedelussy in-app Strudel learning system.**
 > Related docs: [Curriculum](./TUTORIAL_CURRICULUM.md) · [Components](./TUTORIAL_COMPONENTS.md) · [Data Spec](./TUTORIAL_DATA_SPEC.md) · [Build Prompt](./TUTORIAL_PROMPT.md)
 
 ---
 
 ## Vision
 
-The tutorial feature transforms users from **AI-dependent pattern consumers** into **independent Strudel composers**. The goal is not to replicate the official docs — it's to teach *within the context of their own code*, using the strudelussy editor as the live classroom.
+The tutorial feature transforms users from **AI-dependent pattern consumers** into **independent Strudel composers**. The goal is not to replicate the official docs — it's to teach *within the context of their own code*, using the shoedelussy editor as the live classroom.
 
 Official Strudel learning resources (source of truth for all lesson content):
 - https://strudel.cc/workshop/getting-started/

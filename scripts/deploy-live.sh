@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="${1:-/home/mojo/projects/strudelussy-live}"
-LOCKFILE="/tmp/strudelussy-deploy-live.lock"
+REPO_ROOT="${1:-/home/mojo/projects/shoedelussy-live}"
+LOCKFILE="/tmp/shoedelussy-deploy-live.lock"
 
 exec 9>"${LOCKFILE}"
 flock -n 9 || exit 0
@@ -23,5 +23,5 @@ pkill -f "${REPO_ROOT}/scripts/run_worker.sh" || true
 # Do not let background child processes inherit the deploy lock fd.
 exec 9>&-
 
-nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/strudelussy-live-worker.log 2>&1 &
-nohup python3 "${REPO_ROOT}/scripts/public_proxy.py" >/tmp/strudelussy-live-proxy.log 2>&1 &
+nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/shoedelussy-live-worker.log 2>&1 &
+nohup python3 "${REPO_ROOT}/scripts/public_proxy.py" >/tmp/shoedelussy-live-proxy.log 2>&1 &

@@ -20,9 +20,9 @@ import { Disc3, Settings, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 // ── Constants ────────────────────────────────────────────────────
-const SOURCE_REPO_URL = 'https://github.com/mojomast/strudelussy'
-const LICENSE_URL = 'https://github.com/mojomast/strudelussy/blob/main/LICENSE'
-const DISCLOSURE_URL = 'https://github.com/mojomast/strudelussy/blob/main/docs/STRUDEL_SOURCE_DISCLOSURE.md'
+const SOURCE_REPO_URL = 'https://github.com/mojomast/shoedelussy'
+const LICENSE_URL = 'https://github.com/mojomast/shoedelussy/blob/main/LICENSE'
+const DISCLOSURE_URL = 'https://github.com/mojomast/shoedelussy/blob/main/docs/STRUDEL_SOURCE_DISCLOSURE.md'
 
 // ── Types ────────────────────────────────────────────────────────
 type DrawerTab = 'ai' | 'prompts' | 'api' | 'export'
@@ -189,7 +189,7 @@ const ProjectTopbar = ({
 
         {/* 2. Brand label */}
         <span className="shrink-0 text-[10px] uppercase tracking-[0.2em] text-[var(--ussy-text-muted)]">
-          strudelussy
+          shoedelussy
         </span>
 
         {/* Divider */}
@@ -359,7 +359,7 @@ const ProjectTopbar = ({
                   className={`${inputClass} min-w-[170px]`}
                 >
                   <option value="legacy-toaster">Legacy toaster prompt</option>
-                  <option value="strudelussy">Strudelussy prompt</option>
+                  <option value="shoedelussy">Shoedelussy prompt</option>
                 </select>
               </label>
 

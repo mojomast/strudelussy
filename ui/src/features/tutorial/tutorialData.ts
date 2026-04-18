@@ -146,13 +146,13 @@ export const chapters: Chapter[] = [
     id: 0,
     emoji: '💡',
     title: 'DMX & Lighting Control',
-    description: 'Use the bridge, DMX monitor, scenes, groups, and project bindings to drive lighting from Strudelussy.',
+    description: 'Use the bridge, DMX monitor, scenes, groups, and project bindings to drive lighting from Shoedelussy.',
     lessons: [
       lesson({
         id: 'dmx.1',
         title: 'DMX Monitor Basics',
         concept: 'Use the DMX Monitor panel to arm, blackout, trigger scenes, and inspect patch state.',
-        instructions: 'Open the DMX Monitor panel, inspect the patch, and understand that the bridge owns fixture/groups/scenes while Strudelussy stores musical bindings.',
+          instructions: 'Open the DMX Monitor panel, inspect the patch, and understand that the bridge owns fixture/groups/scenes while Shoedelussy stores musical bindings.',
         scaffold: '// [intro]\n$: s("bd ~ sd ~")',
         hints: [
           'The DMX Monitor lives in the right sidebar.',

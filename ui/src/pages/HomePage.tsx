@@ -1,5 +1,5 @@
 /**
- * HomePage – root page for the Strudelussy DAW.
+ * HomePage – root page for the Shoedelussy DAW.
  *
  * // What changed:
  * // - Wired the tutorial feature at the page level via useTutorial()

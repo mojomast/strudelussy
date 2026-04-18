@@ -142,7 +142,7 @@ const rect = target?.getBoundingClientRect()
 ### Behaviors
 - Re-render on `ResizeObserver` window resize
 - `pointer-events: none` on dim layer, `pointer-events: auto` on tooltip + cutout only
-- Dismissal metadata stored in `localStorage: strudelussy:seenOverlays` as a `string[]`
+- Dismissal metadata stored in `localStorage: shoedelussy:seenOverlays` as a `string[]`
 - A separate total dismiss counter disables overlays permanently after 3 dismissals
 - Tutorial reset clears overlay dismissal state so spotlights can appear again later
 - Must NOT block keyboard shortcuts

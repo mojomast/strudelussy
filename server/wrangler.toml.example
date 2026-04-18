@@ -1,11 +1,11 @@
-name = "strudelussy-api"
+name = "shoedelussy-api"
 main = "src/index.ts"
 compatibility_date = "2023-12-18"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
 # Environment variables
-APP_URL = "https://voloblack.com"
+APP_URL = "https://shoe.ussyco.de"
 OPENROUTER_MODEL = "google/gemini-2.5-flash"
 MCP_SECRET = ""
 

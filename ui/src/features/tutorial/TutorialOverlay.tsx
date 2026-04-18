@@ -13,14 +13,36 @@ interface TutorialOverlayProps {
   isOpen: boolean
 }
 
-const SEEN_KEY = 'strudelussy:seenOverlays'
-const DISABLED_KEY = 'strudelussy:overlaysDisabled'
-const DISMISS_COUNT_KEY = 'strudelussy:overlayDismissCount'
-const STORAGE_KEY = 'strudelussy:tutorialProgress'
+const SEEN_KEY = 'shoedelussy:seenOverlays'
+const LEGACY_SEEN_KEY = 'strudelussy:seenOverlays'
+const DISABLED_KEY = 'shoedelussy:overlaysDisabled'
+const LEGACY_DISABLED_KEY = 'strudelussy:overlaysDisabled'
+const DISMISS_COUNT_KEY = 'shoedelussy:overlayDismissCount'
+const LEGACY_DISMISS_COUNT_KEY = 'strudelussy:overlayDismissCount'
+const STORAGE_KEY = 'shoedelussy:tutorialProgress'
+const LEGACY_STORAGE_KEY = 'strudelussy:tutorialProgress'
+const LEGACY_STORAGE_KEY_ALT = 'strudelussy_tutorial_progress'
+
+const getStoredValue = (...keys: string[]): string | null => {
+  try {
+    for (const key of keys) {
+      const value = localStorage.getItem(key)
+      if (value === null) continue
+      if (key !== keys[0]) {
+        localStorage.setItem(keys[0], value)
+      }
+      return value
+    }
+  } catch {
+    return null
+  }
+
+  return null
+}
 
 const readSeenOverlays = (): string[] => {
   try {
-    const progressRaw = localStorage.getItem(STORAGE_KEY)
+    const progressRaw = getStoredValue(STORAGE_KEY, LEGACY_STORAGE_KEY, LEGACY_STORAGE_KEY_ALT)
     if (progressRaw) {
       const parsed = JSON.parse(progressRaw) as { seenOverlays?: string[] }
       if (Array.isArray(parsed.seenOverlays)) {
@@ -28,7 +50,7 @@ const readSeenOverlays = (): string[] => {
       }
     }
 
-    const raw = localStorage.getItem(SEEN_KEY)
+    const raw = getStoredValue(SEEN_KEY, LEGACY_SEEN_KEY)
     if (!raw) {
       return []
     }
@@ -41,7 +63,7 @@ const readSeenOverlays = (): string[] => {
 
 const overlaysDisabled = (): boolean => {
   try {
-    return localStorage.getItem(DISABLED_KEY) === 'true'
+    return getStoredValue(DISABLED_KEY, LEGACY_DISABLED_KEY) === 'true'
   } catch {
     return false
   }
@@ -49,7 +71,7 @@ const overlaysDisabled = (): boolean => {
 
 const readDismissCount = (): number => {
   try {
-    return Number(localStorage.getItem(DISMISS_COUNT_KEY) ?? '0') || 0
+    return Number(getStoredValue(DISMISS_COUNT_KEY, LEGACY_DISMISS_COUNT_KEY) ?? '0') || 0
   } catch {
     return 0
   }

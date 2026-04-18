@@ -166,7 +166,7 @@ const createProjectTemplate = (userId: string, template: 'empty' | 'demo' = 'dem
   return {
     id: createId(),
     user_id: userId,
-    name: template === 'demo' ? 'Demo Strudelussy Session' : 'Untitled Project',
+    name: template === 'demo' ? 'Demo Shoedelussy Session' : 'Untitled Project',
     strudel_code: strudelCode,
     chat_history: [
       {

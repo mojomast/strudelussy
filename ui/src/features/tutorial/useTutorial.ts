@@ -292,6 +292,9 @@ export const useTutorial = ({ getCode, onLessonLoad }: UseTutorialOptions): UseT
 
   const resetTutorial = useCallback(() => {
     try {
+      localStorage.removeItem('shoedelussy:seenOverlays')
+      localStorage.removeItem('shoedelussy:overlaysDisabled')
+      localStorage.removeItem('shoedelussy:overlayDismissCount')
       localStorage.removeItem('strudelussy:seenOverlays')
       localStorage.removeItem('strudelussy:overlaysDisabled')
       localStorage.removeItem('strudelussy:overlayDismissCount')

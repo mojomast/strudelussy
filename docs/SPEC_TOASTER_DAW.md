@@ -1,5 +1,5 @@
-# SPEC: strudelussy — AI-Powered Music DAW Dashboard
-> **Project:** `strudelussy`
+# SPEC: shoedelussy — AI-Powered Music DAW Dashboard
+> **Project:** `shoedelussy`
 > **Fork of:** [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster)
 > **Author:** Kyle Durepos / The Ussyverse
 > **Status:** In progress — MVP vertical slice implemented
@@ -68,7 +68,7 @@ This means the spec is no longer "ready for agent implementation" in the abstrac
 
 ## 1. Vision
 
-`strudelussy` is a supercharged fork of Toaster that transforms a simple AI-music chat interface into a **full-blown DAW-style dashboard** where:
+`shoedelussy` is a supercharged fork of Toaster that transforms a simple AI-music chat interface into a **full-blown DAW-style dashboard** where:
 
 - A user chats with an AI bot that writes, updates, and edits **Strudel code** in real time
 - The user has **full human-in-the-loop control** — they can override, tweak, undo, and re-prompt at any time
@@ -419,7 +419,7 @@ Include a condensed cheat sheet in the system prompt covering:
 ## 8. File Structure (New/Modified Files)
 
 ```
-strudelussy/
+shoedelussy/
 ├── ui/
 │   ├── src/
 │   │   ├── components/
@@ -625,4 +625,4 @@ CREATE POLICY "own versions" ON code_versions USING (
 
 ---
 
-*This spec is the single source of truth for the `strudelussy` implementation. An agent should be able to implement this fully without additional clarification. All ambiguities are intentionally resolved above.*
+*This spec is the single source of truth for the `shoedelussy` implementation. An agent should be able to implement this fully without additional clarification. All ambiguities are intentionally resolved above.*

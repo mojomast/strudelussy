@@ -77,7 +77,8 @@ interface SectionHeaderProps {
 // Constants
 // ---------------------------------------------------------------------------
 
-const STORAGE_KEY = 'strudelussy:sidebarSections'
+const STORAGE_KEY = 'shoedelussy:sidebarSections'
+const LEGACY_STORAGE_KEY = 'strudelussy:sidebarSections'
 const FX_PATTERN = /\.(room|delay|reverb|crush|distort|lpf|hpf)\b/g
 
 type SectionId = 'mixer' | 'rhythm' | 'arrange' | 'fx' | 'dmx' | 'versionHistory'
@@ -101,8 +102,11 @@ const PREFERS_REDUCED_MOTION =
 /** Read persisted section state from localStorage, falling back to defaults. */
 function loadSectionState(): Record<SectionId, boolean> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem(LEGACY_STORAGE_KEY)
     if (raw) {
+      if (localStorage.getItem(STORAGE_KEY) === null) {
+        localStorage.setItem(STORAGE_KEY, raw)
+      }
       const parsed: unknown = JSON.parse(raw)
       if (parsed && typeof parsed === 'object') {
         return { ...DEFAULT_OPEN_STATE, ...(parsed as Record<string, boolean>) }

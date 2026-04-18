@@ -1,6 +1,6 @@
-# Strudelussy MCP Guide
+# Shoedelussy MCP Guide
 
-`strudelussy` exposes a server-native Model Context Protocol endpoint at `/mcp` so MCP-capable clients can inspect and modify Strudelussy projects without browser automation.
+`shoedelussy` exposes a server-native Model Context Protocol endpoint at `/mcp` so MCP-capable clients can inspect and modify Shoedelussy projects without browser automation.
 
 This document describes the current implementation in `server/`, how to configure it, what tools and resources are available, and the main operational constraints.
 
@@ -23,7 +23,7 @@ Request flow:
 1. An MCP client sends an HTTP request to `/mcp`.
 2. `server/src/index.ts` applies optional bearer auth using `MCP_SECRET`.
 3. `server/src/routes/mcp.ts` builds a fresh `McpServer` and connects it to `StreamableHTTPTransport`.
-4. The tool or resource handler reads or writes Cloudflare KV through existing Strudelussy server helpers.
+4. The tool or resource handler reads or writes Cloudflare KV through existing Shoedelussy server helpers.
 5. The MCP client receives a standard MCP response.
 
 Key implementation detail:
@@ -341,7 +341,7 @@ Resources are registered in `server/src/lib/mcp-tools/resources.ts`.
 
 - Returns the checked-in Strudel reference text used by the server.
 
-This is useful for agents that want Strudelussy-adjacent reference material without scraping the repo or prompting through `/api/chat`.
+This is useful for agents that want Shoedelussy-adjacent reference material without scraping the repo or prompting through `/api/chat`.
 
 ## KV Layout
 
@@ -403,8 +403,8 @@ Also note:
 ```json
 {
   "mcpServers": {
-    "strudelussy": {
-      "url": "https://strudel.ussyco.de/mcp",
+    "shoedelussy": {
+      "url": "https://shoe.ussyco.de/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_MCP_SECRET"
       }
@@ -418,8 +418,8 @@ Also note:
 ```json
 {
   "mcpServers": {
-    "strudelussy": {
-      "url": "https://strudel.ussyco.de/mcp",
+    "shoedelussy": {
+      "url": "https://shoe.ussyco.de/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_MCP_SECRET"
       }

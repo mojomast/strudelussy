@@ -5,6 +5,7 @@ from __future__ import annotations
 import http.client
 import os
 import select
+from pathlib import Path
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from socket import timeout as SocketTimeout
 from urllib.parse import urlsplit
@@ -13,7 +14,7 @@ from urllib.parse import urlsplit
 HOST = "127.0.0.1"
 PORT = 9511
 API_BASE = "http://127.0.0.1:8788"
-DIST_DIR = "/home/mojo/projects/strudelussy/ui/dist"
+DIST_DIR = str(Path(__file__).resolve().parents[1] / "ui" / "dist")
 
 
 class PublicProxyHandler(SimpleHTTPRequestHandler):
@@ -70,7 +71,7 @@ class PublicProxyHandler(SimpleHTTPRequestHandler):
             headers = {key: value for key, value in self.headers.items()}
             headers["Host"] = target.netloc
             headers["X-Forwarded-Proto"] = "https"
-            headers["X-Forwarded-Host"] = self.headers.get("Host", "strudel.ussyco.de")
+            headers["X-Forwarded-Host"] = self.headers.get("Host", "shoe.ussyco.de")
 
             connection.request(self.command, self.path, body=body, headers=headers)
             response = connection.getresponse()

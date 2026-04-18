@@ -1,6 +1,6 @@
-# strudelussy
+# shoedelussy
 
-`strudelussy` is a DAW-style fork of Toaster for building Strudel projects with an AI copilot.
+`shoedelussy` is a DAW-style fork of Toaster for building Strudel projects with an AI copilot.
 
 Upstream credit: this repo extends [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster), and keeps large parts of the original editor/runtime workflow intact while layering DAW-oriented orchestration on top.
 
@@ -34,7 +34,7 @@ This repo now includes a working MVP built on top of the upstream toaster codeba
 - token usage pill with `≈` prefix format and red pulse warning animation at high usage
 - mixer slider value popover: floating tooltip above thumb during drag
 - `prefers-reduced-motion` respected globally (motion durations, pulse animations)
-- public host runtime for `strudel.ussyco.de`
+- public host runtime for `shoe.ussyco.de`
 
 The full long-form spec remains in `docs/SPEC_TOASTER_DAW.md`. This implementation intentionally focuses on the first coherent vertical slice rather than the entire spec at once.
 
@@ -103,11 +103,11 @@ Highlights:
 - chat SSE parsing is hardened so malformed chunks, keepalive comments, CRLF frames, and delayed `[DONE]` boundaries do not drop pending AI patches
 - transient empty/truncated chat responses are automatically retried once before surfacing an error to the user
 - chat requests default to `google/gemini-2.5-flash`, but users can override the endpoint and API key in the topbar
-- the topbar can switch between a legacy toaster-style system prompt and a stricter Strudelussy prompt
+- the topbar can switch between a legacy toaster-style system prompt and a stricter Shoedelussy prompt
 - users can also append their own custom system prompt instructions from the topbar
 - users can load baseline or improved prompt text into the editable prompt field and save local prompt presets for testing
 - custom-provider model lists are loaded dynamically from `/models` after the user clicks `Load Models`, so the picker reflects the connected API without firing early requests
-- the Strudelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
+- the Shoedelussy prompt uses an always-4-fields JSON contract, a closed-world Strudel rule set, and an explicit decision ladder for unsupported requests
 - the improved prompt also steers “occasional” events toward explicit `~`-based pattern choices instead of misusing `sometimesBy()`
 - invalid rare-event sample patterns like `s("").sometimesBy(0.1, x => s("token"))` and no-op `.sometimesBy(..., x => x)` output are now auto-repaired into safe explicit `~`-based mini-notation before reaching the editor
 - older chat history is summarized while only recent turns are sent verbatim, keeping the LLM context healthier in long sessions
@@ -142,8 +142,8 @@ Highlights:
 ### Install
 
 ```bash
-git clone https://github.com/mojomast/strudelussy.git
-cd strudelussy
+git clone https://github.com/mojomast/shoedelussy.git
+cd shoedelussy
 pnpm install --dir ui
 pnpm install --dir server
 ```
@@ -169,12 +169,12 @@ Open `http://localhost:5173`.
 
 Public runtime on the maintainer machine currently uses:
 
-- `https://strudel.ussyco.de` for the app
+- `https://shoe.ussyco.de` for the app
 - a local path-aware proxy that serves the built SPA and forwards `/api/*` to the worker on `:8788`
 - the public proxy now streams `text/event-stream` responses through directly so `/api/chat` works on the live host without buffering the full reply first
-- a dedicated deploy clone at `/home/mojo/projects/strudelussy-live` plus `scripts/live_sync.sh` to fast-forward `origin/main`, rebuild `ui/dist`, and restart the local proxy/worker
+- a dedicated deploy clone at `/home/mojo/projects/shoedelussy-live` plus `scripts/live_sync.sh` to fast-forward `origin/main`, rebuild `ui/dist`, and restart the local proxy/worker
 - `scripts/deploy-live.sh` forces `pnpm install --frozen-lockfile` in both `ui` and `server` before rebuilding, which is the safer path after lockfile or dependency changes
-- tutorial progress is stored in browser localStorage via `ui/src/lib/projectStorage.ts` under `strudelussy_tutorial_progress`
+- tutorial progress is stored in browser localStorage via `ui/src/lib/projectStorage.ts` under `shoedelussy:tutorialProgress`
 
 ## Environment
 
@@ -221,9 +221,9 @@ pnpm exec tsc --noEmit
 
 ## Source And License Notice
 
-The public `strudel.ussyco.de` deployment is served from this repository's `main` branch via `scripts/live_sync.sh` and `scripts/deploy-live.sh`.
+The public `shoe.ussyco.de` deployment is served from this repository's `main` branch via `scripts/live_sync.sh` and `scripts/deploy-live.sh`.
 
-- Corresponding source: `https://github.com/mojomast/strudelussy`
+- Corresponding source: `https://github.com/mojomast/shoedelussy`
 - License: `LICENSE`
 - Embedded Strudel prompt reference: `server/src/lib/strudel-docs/`
 

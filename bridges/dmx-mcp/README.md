@@ -1,6 +1,6 @@
 # dmx-mcp
 
-`dmx-mcp` is Strudelussy's local DMX bridge. The Strudelussy UI talks to it over HTTP, the bridge resolves scenes and group writes against a patch, and then forwards those writes to either the built-in simulator or an OLA-backed hardware path.
+`dmx-mcp` is Shoedelussy's local DMX bridge. The Shoedelussy UI talks to it over HTTP, the bridge resolves scenes and group writes against a patch, and then forwards those writes to either the built-in simulator or an OLA-backed hardware path.
 
 ## Prerequisites
 
@@ -149,7 +149,7 @@ Current limitation:
 ## Architecture Diagram
 
 ```text
-Strudelussy UI
+Shoedelussy UI
     |
     | HTTP
     v

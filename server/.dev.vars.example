@@ -1,4 +1,4 @@
-# Development environment variables for strudelussy API
+# Development environment variables for shoedelussy API
 # Copy this file to .dev.vars and fill in your actual values
 # .dev.vars is gitignored and used by wrangler for local development
 

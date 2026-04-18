@@ -10,7 +10,7 @@
 
 Chapters unlock sequentially. A chapter unlocks when the **previous chapter is 60%+ complete** (not 100%, to avoid blocking users on hard lessons).
 
-Progress is persisted to `localStorage` key: `strudelussy:tutorialProgress`
+Progress is persisted to `localStorage` key: `shoedelussy:tutorialProgress`
 
 ---
 

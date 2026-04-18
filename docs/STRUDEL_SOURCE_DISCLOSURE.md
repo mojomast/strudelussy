@@ -1,11 +1,11 @@
 ## Strudel Source Disclosure
 
-`strudelussy` ships and deploys code that depends on Strudel packages published under `AGPL-3.0`. The live app therefore needs a clear, public path to the corresponding source code of the version being run.
+`shoedelussy` ships and deploys code that depends on Strudel packages published under `AGPL-3.0`. The live app therefore needs a clear, public path to the corresponding source code of the version being run.
 
 ## Corresponding Source
 
-- Repository: `https://github.com/mojomast/strudelussy`
-- License: `https://github.com/mojomast/strudelussy/blob/main/LICENSE`
+- Repository: `https://github.com/mojomast/shoedelussy`
+- License: `https://github.com/mojomast/shoedelussy/blob/main/LICENSE`
 - Live deployment flow: `scripts/live_sync.sh` fast-forwards a dedicated live clone to `origin/main`, while `scripts/deploy-live.sh` performs a full locked reinstall in `ui` and `server` before rebuilding and restarting the local proxy and worker.
 
 As a result, the maintained public source for the deployed site is this repository's `main` branch.

@@ -133,7 +133,7 @@ interface UseTutorialReturn {
 
 ```typescript
 // Keys
-const STORAGE_KEY = 'strudelussy:tutorialProgress'
+const STORAGE_KEY = 'shoedelussy:tutorialProgress'
 
 // Shape stored
 interface PersistedState {
@@ -147,9 +147,9 @@ interface PersistedState {
 const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? 'null')
 
 // Overlay helpers also use:
-// - localStorage['strudelussy:seenOverlays']
-// - localStorage['strudelussy:overlaysDisabled']
-// - localStorage['strudelussy:overlayDismissCount']
+// - localStorage['shoedelussy:seenOverlays']
+// - localStorage['shoedelussy:overlaysDisabled']
+// - localStorage['shoedelussy:overlayDismissCount']
 
 // Write on change — debounced 500ms
 // Use a ref for the debounce timer — NOT a new setTimeout every render

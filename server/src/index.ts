@@ -41,8 +41,8 @@ app.use('/*', cors({
     }
     // In production, only allow specific production origins
     const allowedOrigins = [
-        'https://voloblack.com',
-        'https://mojomast.github.io',
+        'https://shoe.ussyco.de',
+        'https://shoedelussy.ussyco.de',
       ];
       return allowedOrigins.includes(origin || '') ? origin : undefined;
   },
@@ -72,7 +72,7 @@ app.use('/api/*', async (c, next) => {
 app.get('/', (c) => {
   return c.json({ 
     status: 'ok',
-    message: 'strudelussy API',
+    message: 'shoedelussy API',
     version: '0.0.1'
   })
 })

@@ -1,6 +1,6 @@
 # Agent Prompt: DMX MCP Implementation
 
-You are implementing the chosen DMX-via-MCP architecture for Strudelussy.
+You are implementing the chosen DMX-via-MCP architecture for Shoedelussy.
 
 ## Goal
 

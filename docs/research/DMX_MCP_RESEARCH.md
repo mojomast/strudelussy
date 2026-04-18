@@ -1,10 +1,10 @@
-# DMX via MCP for Strudelussy
+# DMX via MCP for Shoedelussy
 
 Status: research + implementation planning package
 
 ## Executive Summary
 
-Primary recommendation: build a thin standalone `dmx-mcp` bridge in this repo as a separate process, and keep Strudelussy's existing Cloudflare Worker MCP server focused on project and lighting-intent state.
+Primary recommendation: build a thin standalone `dmx-mcp` bridge in this repo as a separate process, and keep Shoedelussy's existing Cloudflare Worker MCP server focused on project and lighting-intent state.
 
 Recommended development backend: OLA with its Dummy plugin.
 
@@ -14,14 +14,14 @@ Smallest viable MVP: a local `bridges/dmx-mcp` package exposing a safe MCP serve
 
 UI requirement: the spec must also preserve a clean path to replace the current HAL visualization with an OLA/DMX-backed visualization in the same center-panel slot.
 
-Why: this keeps hardware and timing-sensitive code out of Strudelussy's Worker runtime, avoids patching large DMX applications, gives a simulator-first workflow, and preserves a clean path to real hardware.
+Why: this keeps hardware and timing-sensitive code out of Shoedelussy's Worker runtime, avoids patching large DMX applications, gives a simulator-first workflow, and preserves a clean path to real hardware.
 
 ## Repo Context
 
-Relevant Strudelussy architecture observed in this repo:
+Relevant Shoedelussy architecture observed in this repo:
 
 - The backend is a Cloudflare Workers + Hono app in `server/`; the main entrypoint is `server/src/index.ts`.
-- Strudelussy already exposes an inbound MCP server at `/mcp`, bootstrapped in `server/src/routes/mcp.ts` and documented in `docs/MCP.md`.
+- Shoedelussy already exposes an inbound MCP server at `/mcp`, bootstrapped in `server/src/routes/mcp.ts` and documented in `docs/MCP.md`.
 - Existing MCP tools live in `server/src/lib/mcp-tools/` and currently operate on KV-backed project/pattern state, not local hardware.
 - Project persistence is a KV-backed `ProjectRecord` in `server/src/lib/projectStore.ts` and mirrored in the frontend `Project` type in `ui/src/types/project.ts`.
 - Musical structure already has useful cue anchors:
@@ -30,7 +30,7 @@ Relevant Strudelussy architecture observed in this repo:
   - version snapshots already exist in project state
 - The DAW UI boundary lives around `ui/src/pages/HomePage.tsx` and `ui/src/components/DawPanel.tsx`.
 
-Implication: Strudelussy already has a good place to store lighting intent and expose MCP-readable metadata, but the Worker runtime is the wrong place for direct DMX I/O, local UDP device ownership, or USB hardware control.
+Implication: Shoedelussy already has a good place to store lighting intent and expose MCP-readable metadata, but the Worker runtime is the wrong place for direct DMX I/O, local UDP device ownership, or USB hardware control.
 
 Additional UI implication: the current visualization is mounted directly as `HalVisualization` from `ui/src/pages/HomePage.tsx`, so the spec needs an explicit visualization abstraction if DMX/OLA state is going to replace HAL cleanly.
 
@@ -98,7 +98,7 @@ Key evidence:
 
 ### Subagent D
 
-Exact question: Among existing DMX simulators/emulators/virtual backends, which is the best development backend candidate for a Strudelussy + MCP integration?
+Exact question: Among existing DMX simulators/emulators/virtual backends, which is the best development backend candidate for a Shoedelussy + MCP integration?
 
 Bottom line:
 
@@ -115,7 +115,7 @@ Key evidence:
 
 ### Subagent E
 
-Exact question: What is the best production-ready path from Strudelussy to real DMX hardware, while preserving a simulator-first development story?
+Exact question: What is the best production-ready path from Shoedelussy to real DMX hardware, while preserving a simulator-first development story?
 
 Bottom line:
 
@@ -132,12 +132,12 @@ Key evidence:
 
 ### Subagent F
 
-Exact question: Inspect the Strudelussy repository and determine the best integration shape for DMX via MCP.
+Exact question: Inspect the Shoedelussy repository and determine the best integration shape for DMX via MCP.
 
 Bottom line:
 
-- Strudelussy should remain primarily an MCP server, not become an MCP client for MVP.
-- Lighting intent should live in Strudelussy project state and MCP tools/resources.
+- Shoedelussy should remain primarily an MCP server, not become an MCP client for MVP.
+- Lighting intent should live in Shoedelussy project state and MCP tools/resources.
 - Actual DMX transport should live in a separate hardware-local bridge process.
 
 Relevant repo evidence:
@@ -156,7 +156,7 @@ Exact question: Is it better to add MCP support into an existing DMX tool, or bu
 Bottom line:
 
 - The thin standalone bridge pattern scored highest.
-- Embedding DMX transport directly into Strudelussy is a runtime mismatch.
+- Embedding DMX transport directly into Shoedelussy is a runtime mismatch.
 - Patching OLA or QLC+ to add MCP is higher maintenance and lower leverage.
 
 ## Candidate Survey
@@ -182,7 +182,7 @@ Finding: no credible public MCP-native DMX control server appears to exist today
 Implications:
 
 - Do not plan around discovering a ready-made MCP-native lighting stack.
-- The implementation should assume Strudelussy is entering a greenfield integration space.
+- The implementation should assume Shoedelussy is entering a greenfield integration space.
 - The design should keep the owned code small and layered over proven DMX infrastructure.
 
 ## Best Practices for MCP with Stateful/Hardware Systems
@@ -227,11 +227,11 @@ Recommended MCP resources:
 
 Four serious architecture options were compared.
 
-### Option 1: Embed DMX-facing MCP directly into Strudelussy
+### Option 1: Embed DMX-facing MCP directly into Shoedelussy
 
 Shape:
 
-- Add DMX transport logic into Strudelussy's existing `server/` MCP server.
+- Add DMX transport logic into Shoedelussy's existing `server/` MCP server.
 
 Pros:
 
@@ -277,7 +277,7 @@ Pros:
 - Clean simulator-first path.
 - Clear hardware boundary.
 - Best fit with MCP's multi-server model.
-- Best fit with Strudelussy's current architecture.
+- Best fit with Shoedelussy's current architecture.
 - Smallest owned surface area.
 
 Cons:
@@ -320,7 +320,7 @@ Weights:
 - Linux workflow fit: 8
 - low operational complexity: 8
 - clean fit with MCP: 6
-- clean fit with Strudelussy: 5
+- clean fit with Shoedelussy: 5
 - safety and testability: 5
 
 ### Architecture Scores
@@ -330,7 +330,7 @@ Weights:
 | Thin standalone MCP-to-DMX bridge | 4.52 / 5 | Best separation of concerns, best simulator-to-hardware path |
 | Simulator-only tooling | 3.74 / 5 | Good dev ergonomics, weak production path |
 | Add MCP into existing DMX tool | 2.78 / 5 | Too much upstream complexity for too little benefit |
-| Embed DMX directly in Strudelussy Worker | 2.31 / 5 | Wrong runtime and higher risk |
+| Embed DMX directly in Shoedelussy Worker | 2.31 / 5 | Wrong runtime and higher risk |
 
 ### Backend Scores
 
@@ -350,18 +350,18 @@ Pick exactly one primary recommendation:
 
 ### Recommended architecture
 
-Use an external standalone MCP server that bridges Strudelussy to DMX backends.
+Use an external standalone MCP server that bridges Shoedelussy to DMX backends.
 
 Concrete shape:
 
-- Strudelussy remains its own MCP server for project and lighting-intent state.
+- Shoedelussy remains its own MCP server for project and lighting-intent state.
 - A new local `dmx-mcp` bridge is added in this repo as a separate package and separate runtime.
 - Agents that need both composition context and lighting control connect to both MCP servers.
 - The bridge owns backend selection, timing, reconciliation, simulator mode, and hardware safety.
 
 Why this is the best fit:
 
-- It respects Strudelussy's current runtime boundaries.
+- It respects Shoedelussy's current runtime boundaries.
 - It keeps hardware-specific logic out of the Worker.
 - It preserves a simulator-first workflow.
 - It allows development against OLA Dummy now and real hardware later.
@@ -369,15 +369,15 @@ Why this is the best fit:
 
 ### Why this is better than the alternatives
 
-Against embedding MCP directly into Strudelussy for DMX:
+Against embedding MCP directly into Shoedelussy for DMX:
 
-- Strudelussy's current server is a Cloudflare Worker, which is not a good hardware-local runtime.
+- Shoedelussy's current server is a Cloudflare Worker, which is not a good hardware-local runtime.
 - A Worker should not be the system of record for low-latency device output.
 
 Against adding MCP support into an existing DMX tool:
 
 - OLA and QLC+ are valuable backends, but patching them creates more maintenance than value.
-- A standalone bridge lets Strudelussy own MCP semantics without owning their internals.
+- A standalone bridge lets Shoedelussy own MCP semantics without owning their internals.
 
 Against writing to simulator-only tooling that does not scale to hardware:
 
@@ -398,7 +398,7 @@ Why:
 Optional visual QA path:
 
 - Feed a visualizer or QLC+ downstream over Art-Net or sACN for human preview, but do not make that tool the core backend.
-- In Strudelussy itself, make the center visualization slot capable of rendering DMX universe state so the current HAL panel can be replaced instead of only supplemented.
+- In Shoedelussy itself, make the center visualization slot capable of rendering DMX universe state so the current HAL panel can be replaced instead of only supplemented.
 
 ## Recommended Production Backend
 
@@ -419,7 +419,7 @@ Important implementation nuance:
 
 Development setup:
 
-1. Run Strudelussy as it exists today.
+1. Run Shoedelussy as it exists today.
 2. Run `bridges/dmx-mcp` locally.
 3. Configure `DMX_BACKEND=simulator` or `DMX_BACKEND=ola` with OLA Dummy.
 4. Use MCP tools to target named fixtures/groups/scenes.
@@ -431,7 +431,7 @@ Key rule: the same MCP tool contract must work in both simulator and production 
 
 Production setup:
 
-1. Strudelussy remains the composition/project MCP server.
+1. Shoedelussy remains the composition/project MCP server.
 2. A local or edge-hosted `dmx-mcp` bridge runs on the lighting machine or trusted LAN.
 3. The bridge loads a patch file and fixture/group definitions.
 4. The bridge outputs to `sACN` by default.
@@ -515,7 +515,7 @@ This proves:
 ### Transport mismatch
 
 - OLA, `sACN`, and `Art-Net` differ in topology and ops assumptions.
-- Keep Strudelussy and the MCP tool surface transport-agnostic.
+- Keep Shoedelussy and the MCP tool surface transport-agnostic.
 
 ### Testing
 
@@ -539,7 +539,7 @@ Recommended new locations:
 - `docs/specs/TASKS_DMX_MCP.md` for task breakdown
 - `docs/specs/AGENT_PROMPT_DMX_MCP_IMPLEMENTATION.md` for the follow-up coding prompt
 
-Recommended Strudelussy-side future touchpoints:
+Recommended Shoedelussy-side future touchpoints:
 
 - `server/src/lib/projectStore.ts` and `ui/src/types/project.ts` for optional persisted lighting metadata
 - `server/src/lib/mcp-tools/` for optional lighting-intent tools/resources later
@@ -568,7 +568,7 @@ Use an external standalone MCP-to-DMX bridge as a separate local package/runtime
 
 ### Why this is better than the alternatives
 
-- Better than embedding DMX in Strudelussy: avoids the Worker runtime mismatch.
+- Better than embedding DMX in Shoedelussy: avoids the Worker runtime mismatch.
 - Better than patching OLA or QLC+: smaller owned surface and lower maintenance.
 - Better than simulator-only tooling: one contract scales from dev to hardware.
 

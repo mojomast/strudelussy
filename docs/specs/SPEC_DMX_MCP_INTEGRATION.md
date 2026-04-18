@@ -6,7 +6,7 @@ Implementation note: the repo now contains a working first implementation of thi
 
 ## Goal
 
-Add a development-first, production-capable DMX control path for Strudelussy using MCP, with simulators/emulators first and real hardware later.
+Add a development-first, production-capable DMX control path for Shoedelussy using MCP, with simulators/emulators first and real hardware later.
 
 ## Primary Recommendation
 
@@ -18,7 +18,7 @@ This package is:
 - a local hardware-adjacent process
 - the owner of DMX timing, safety, reconciliation, and backend selection
 
-Strudelussy itself remains:
+Shoedelussy itself remains:
 
 - the existing Cloudflare Worker MCP server for composition/project state
 - an optional future source of persisted lighting metadata
@@ -26,11 +26,11 @@ Strudelussy itself remains:
 
 ## Why This Architecture
 
-Strudelussy's existing backend in `server/` is a Cloudflare Worker (`server/src/index.ts`, `server/src/routes/mcp.ts`). That is a good fit for project state and existing MCP tools, but a poor fit for local DMX hardware, low-latency transport loops, or local services such as OLA.
+Shoedelussy's existing backend in `server/` is a Cloudflare Worker (`server/src/index.ts`, `server/src/routes/mcp.ts`). That is a good fit for project state and existing MCP tools, but a poor fit for local DMX hardware, low-latency transport loops, or local services such as OLA.
 
 The standalone bridge pattern keeps the boundaries clean:
 
-- Strudelussy owns musical state and optional lighting intent.
+- Shoedelussy owns musical state and optional lighting intent.
 - `dmx-mcp` owns lighting execution state.
 - OLA, `sACN`, or `Art-Net` own the actual output path.
 
@@ -40,7 +40,7 @@ The standalone bridge pattern keeps the boundaries clean:
 
 ```text
 Agent / MCP client
-  |- Strudelussy MCP server (/mcp)
+  |- Shoedelussy MCP server (/mcp)
   |- dmx-mcp bridge
        |- simulator backend
        |- OLA backend -> OLA Dummy
@@ -49,7 +49,7 @@ Agent / MCP client
 
 ### UI Visualization Topology
 
-Strudelussy currently renders the center visualization with `ui/src/components/HalVisualization.tsx`, mounted from `ui/src/pages/HomePage.tsx`, and fed by the audio analyser created in `ui/src/components/StrudelEditor.tsx`.
+Shoedelussy currently renders the center visualization with `ui/src/components/HalVisualization.tsx`, mounted from `ui/src/pages/HomePage.tsx`, and fed by the audio analyser created in `ui/src/components/StrudelEditor.tsx`.
 
 The DMX integration must not hard-wire the app to HAL.
 
@@ -83,7 +83,7 @@ This keeps the current HAL path working while making OLA/DMX visualization a fir
 
 ```text
 Agent / MCP client
-  |- Strudelussy MCP server (/mcp)
+  |- Shoedelussy MCP server (/mcp)
   |- dmx-mcp bridge on lighting host
        |- sACN backend -> Ethernet DMX node -> fixtures
        |- optional OLA backend -> USB widget / protocol conversion
@@ -336,16 +336,16 @@ Art-Net:
 - `ARTNET_TARGET_HOST=192.168.1.60`
 - `ARTNET_UNIVERSE=0`
 
-## Strudelussy Integration Shape
+## Shoedelussy Integration Shape
 
 MVP: no direct runtime coupling required.
 
 The first working path is simply that an MCP-capable agent connects to both:
 
-- Strudelussy MCP for project context
+- Shoedelussy MCP for project context
 - `dmx-mcp` for lighting control
 
-Later Strudelussy-side additions can include:
+Later Shoedelussy-side additions can include:
 
 - persisted `lighting` metadata in `ProjectRecord` / `Project`
 - MCP resources exposing derived lighting cues from sections/tracks
@@ -393,7 +393,7 @@ Recommended later visualization upgrade:
 - per-group intensity summary
 - warning badges for blackout, disarmed output, and strobe-safe mode
 
-Suggested future additions to Strudelussy project schema:
+Suggested future additions to Shoedelussy project schema:
 
 ```ts
 interface LightingProjectState {
@@ -409,7 +409,7 @@ interface LightingProjectState {
 }
 ```
 
-## Mapping Existing Strudelussy Abstractions
+## Mapping Existing Shoedelussy Abstractions
 
 - `// [section]` markers map well to cues or scene triggers.
 - Named `$:` tracks map well to fixture groups.
@@ -440,7 +440,7 @@ Do not infer DMX channel layouts from Strudel code. Patch and fixture definition
 
 ### Phase 3
 
-- Add Strudelussy-side optional lighting metadata and docs.
+- Add Shoedelussy-side optional lighting metadata and docs.
 - Add simple cue/group mapping from sections/tracks.
 - Add visualization abstraction in the UI so HAL and DMX renderers can be swapped.
 - Add a basic `DmxVisualization` component that renders universe state from bridge resources.

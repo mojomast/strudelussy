@@ -1,6 +1,6 @@
-# strudelussy API
+# shoedelussy API
 
-Cloudflare Workers + Hono backend for the strudelussy MVP.
+Cloudflare Workers + Hono backend for the shoedelussy MVP.
 
 Upstream credit: this API layer builds on the forked [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster) server structure and adapts it for the DAW/chat review flow.
 
@@ -68,7 +68,7 @@ pnpm exec tsc --noEmit
 - The server currently uses `OPENROUTER_MODEL` or falls back to `google/gemini-2.5-flash`.
 - The chat route defaults to `google/gemini-2.5-flash`, but it also proxies custom endpoint + API key overrides from the UI.
 - `POST /api/chat/models` loads available model ids from a custom provider's `/models` endpoint so the UI can populate its selector dynamically.
-- The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `strudelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
+- The chat route supports two prompt modes: `legacy-toaster` for a lighter baseline and `shoedelussy` for stricter JSON/schema adherence and safer Strudel-only edits.
 - The chat route can also append a user-authored custom system prompt override on top of the selected base prompt.
 - The embedded Strudel reference that feeds the chat prompt is checked into `src/lib/strudel-docs/` and combined by `src/lib/strudel-docs/index.ts`.
 - `src/lib/strudel-docs/10-full-song-examples.ts` is currently a placeholder and is intentionally not imported into the combined `STRUDEL_DOCS` export.

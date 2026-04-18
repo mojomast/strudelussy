@@ -7,8 +7,8 @@ import { api } from '@/lib/api'
 import { deleteLocalProject, getOrCreateGuestUserId, listLocalProjects } from '@/lib/projectStorage'
 import type { ProjectSummary } from '@/types/project'
 
-const SOURCE_REPO_URL = 'https://github.com/mojomast/strudelussy'
-const LICENSE_URL = 'https://github.com/mojomast/strudelussy/blob/main/LICENSE'
+const SOURCE_REPO_URL = 'https://github.com/mojomast/shoedelussy'
+const LICENSE_URL = 'https://github.com/mojomast/shoedelussy/blob/main/LICENSE'
 
 const ProjectsPage = () => {
   const navigate = useNavigate()
@@ -52,7 +52,7 @@ const ProjectsPage = () => {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-xs uppercase tracking-[0.28em] text-zinc-500">Projects</p>
-            <h1 className="mt-2 text-3xl font-semibold">Your strudelussy sessions</h1>
+            <h1 className="mt-2 text-3xl font-semibold">Your shoedelussy sessions</h1>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" className="border-zinc-700 bg-transparent text-zinc-200 hover:bg-zinc-900" onClick={() => navigate('/?template=demo')}>

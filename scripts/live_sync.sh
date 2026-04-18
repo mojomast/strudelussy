@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO_ROOT="${1:-/home/mojo/projects/strudelussy-live}"
-LOCKFILE="/tmp/strudelussy-live-sync.lock"
+REPO_ROOT="${1:-/home/mojo/projects/shoedelussy-live}"
+LOCKFILE="/tmp/shoedelussy-live-sync.lock"
 
 exec 9>"${LOCKFILE}"
 flock -n 9 || exit 0
@@ -40,9 +40,9 @@ fi
 exec 9>&-
 
 if ! pgrep -f "${REPO_ROOT}/scripts/run_worker.sh" >/dev/null; then
-  nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/strudelussy-live-worker.log 2>&1 &
+  nohup bash "${REPO_ROOT}/scripts/run_worker.sh" >/tmp/shoedelussy-live-worker.log 2>&1 &
 fi
 
 if ! pgrep -f "${REPO_ROOT}/scripts/public_proxy.py" >/dev/null; then
-  nohup python3 "${REPO_ROOT}/scripts/public_proxy.py" >/tmp/strudelussy-live-proxy.log 2>&1 &
+  nohup python3 "${REPO_ROOT}/scripts/public_proxy.py" >/tmp/shoedelussy-live-proxy.log 2>&1 &
 fi

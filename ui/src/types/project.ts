@@ -1,8 +1,9 @@
 export const DEFAULT_CHAT_MODEL = 'google/gemini-2.5-flash'
-export const DEFAULT_SYSTEM_PROMPT_MODE = 'strudelussy'
+export const DEFAULT_SYSTEM_PROMPT_MODE = 'shoedelussy'
 
 export type ChatModel = string
-export type SystemPromptMode = 'legacy-toaster' | 'strudelussy'
+// Keep the legacy 'strudelussy' mode value readable so old localStorage config still loads.
+export type SystemPromptMode = 'legacy-toaster' | 'shoedelussy' | 'strudelussy'
 export type CustomSystemPrompt = string
 
 export interface SavedPromptPreset {

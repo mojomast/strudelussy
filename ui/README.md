@@ -1,8 +1,8 @@
-# strudelussy UI
+# shoedelussy UI
 
-Frontend for the strudelussy DAW MVP.
+Frontend for the shoedelussy DAW MVP.
 
-Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster), with strudelussy extending it through wrapper components and orchestration rather than replacing the core editor internals.
+Upstream credit: the editor/runtime foundation comes from [VoloBuilds/toaster](https://github.com/VoloBuilds/toaster), with shoedelussy extending it through wrapper components and orchestration rather than replacing the core editor internals.
 
 ## What Is In This UI
 
@@ -91,11 +91,11 @@ VITE_API_URL=http://localhost:8788
 - The `[` and `]` shortcuts are guarded against firing in text inputs, textareas, selects, and contenteditable elements (including CodeMirror's editor).
 - The editor remains the upstream toaster Strudel editor; it was extended rather than replaced.
 - `pnpm preview` is only the local Vite production preview, not the production hosting path.
-- Public `strudel.ussyco.de` hosting should use a production build, not the Vite dev server.
+- Public `shoe.ussyco.de` hosting should use a production build, not the Vite dev server.
 - The DAW shell is intentionally designed around panel-local scrolling rather than document-level page scrolling.
 - Chat requests default to `google/gemini-2.5-flash`, but users can provide a custom endpoint + API key override in the settings drawer.
 - When a custom provider is configured, clicking `Load Models` populates the model selector from that provider's `/models` API.
-- The settings drawer switches between a legacy toaster prompt and a stricter Strudelussy prompt tuned for full-code JSON responses and safer Strudel edits.
+- The settings drawer switches between a legacy toaster prompt and a stricter Shoedelussy prompt tuned for full-code JSON responses and safer Strudel edits.
 - Users can also append their own custom system prompt instructions from the Prompts tab without replacing the selected base prompt entirely.
 - The custom prompt area starts with the baseline prompt template loaded, can swap to the improved template, and lets users save named prompt presets to localStorage for repeatable testing.
 - The settings drawer is organized as a tabbed panel (AI Settings, Prompts, API, Export & Share) with full ARIA tab roles.

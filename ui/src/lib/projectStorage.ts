@@ -2,12 +2,19 @@ import { DEFAULT_SYSTEM_PROMPT_MODE } from '@/types/project'
 import type { Project, SavedPromptPreset, SystemPromptMode } from '@/types/project'
 import { createId } from '@/lib/utils'
 
-const PROJECTS_KEY = 'strudelussy.projects'
-const LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
-const USER_KEY = 'strudelussy.userId'
-const CHAT_PROVIDER_KEY = 'strudelussy.chatProvider'
-const PROMPT_PRESETS_KEY = 'strudelussy.promptPresets'
-const TUTORIAL_PROGRESS_KEY = 'strudelussy_tutorial_progress'
+const PROJECTS_KEY = 'shoedelussy.projects'
+const LEGACY_PROJECTS_KEY = 'strudelussy.projects'
+const LAST_PROJECT_KEY = 'shoedelussy.lastProjectId'
+const LEGACY_LAST_PROJECT_KEY = 'strudelussy.lastProjectId'
+const USER_KEY = 'shoedelussy.userId'
+const LEGACY_USER_KEY = 'strudelussy.userId'
+const CHAT_PROVIDER_KEY = 'shoedelussy.chatProvider'
+const LEGACY_CHAT_PROVIDER_KEY = 'strudelussy.chatProvider'
+const PROMPT_PRESETS_KEY = 'shoedelussy.promptPresets'
+const LEGACY_PROMPT_PRESETS_KEY = 'strudelussy.promptPresets'
+const TUTORIAL_PROGRESS_KEY = 'shoedelussy:tutorialProgress'
+const LEGACY_TUTORIAL_PROGRESS_KEY = 'strudelussy_tutorial_progress'
+const LEGACY_TUTORIAL_PROGRESS_KEY_ALT = 'strudelussy:tutorialProgress'
 
 export interface TutorialProgressData {
   completedLessons: string[]
@@ -17,9 +24,34 @@ export interface TutorialProgressData {
 
 const canUseStorage = () => typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
 
+const getStorageItem = (...keys: string[]): string | null => {
+  if (!canUseStorage()) return null
+
+  for (const key of keys) {
+    const value = window.localStorage.getItem(key)
+    if (value === null) continue
+
+    if (key !== keys[0]) {
+      try {
+        window.localStorage.setItem(keys[0], value)
+      } catch {
+        // Ignore migration failures and still return the legacy value.
+      }
+    }
+
+    return value
+  }
+
+  return null
+}
+
+const normalizeSystemPromptMode = (value?: string): SystemPromptMode => (
+  value === 'legacy-toaster' ? 'legacy-toaster' : DEFAULT_SYSTEM_PROMPT_MODE
+)
+
 const readProjects = (): Record<string, Project> => {
   if (!canUseStorage()) return {}
-  const raw = window.localStorage.getItem(PROJECTS_KEY)
+  const raw = getStorageItem(PROJECTS_KEY, LEGACY_PROJECTS_KEY)
   if (!raw) return {}
 
   try {
@@ -39,7 +71,7 @@ export const getOrCreateGuestUserId = (): string => {
     return 'guest-session'
   }
 
-  const existing = window.localStorage.getItem(USER_KEY)
+  const existing = getStorageItem(USER_KEY, LEGACY_USER_KEY)
   if (existing) return existing
 
   const created = createId('guest')
@@ -72,8 +104,7 @@ export const deleteLocalProject = (projectId: string) => {
 }
 
 export const getLastProjectId = (): string | null => {
-  if (!canUseStorage()) return null
-  return window.localStorage.getItem(LAST_PROJECT_KEY)
+  return getStorageItem(LAST_PROJECT_KEY, LEGACY_LAST_PROJECT_KEY)
 }
 
 export interface StoredChatProviderConfig {
@@ -86,7 +117,7 @@ export interface StoredChatProviderConfig {
 
 export const loadChatProviderConfig = (): StoredChatProviderConfig | null => {
   if (!canUseStorage()) return null
-  const raw = window.localStorage.getItem(CHAT_PROVIDER_KEY)
+  const raw = getStorageItem(CHAT_PROVIDER_KEY, LEGACY_CHAT_PROVIDER_KEY)
   if (!raw) return null
 
   try {
@@ -95,7 +126,7 @@ export const loadChatProviderConfig = (): StoredChatProviderConfig | null => {
       endpoint: parsed.endpoint || '',
       apiKey: parsed.apiKey || '',
       selectedModel: parsed.selectedModel || '',
-      systemPromptMode: parsed.systemPromptMode || DEFAULT_SYSTEM_PROMPT_MODE,
+      systemPromptMode: normalizeSystemPromptMode(parsed.systemPromptMode),
       customSystemPrompt: parsed.customSystemPrompt || '',
     }
   } catch {
@@ -110,12 +141,15 @@ export const saveChatProviderConfig = (config: StoredChatProviderConfig | null) 
     return
   }
 
-  window.localStorage.setItem(CHAT_PROVIDER_KEY, JSON.stringify(config))
+  window.localStorage.setItem(CHAT_PROVIDER_KEY, JSON.stringify({
+    ...config,
+    systemPromptMode: normalizeSystemPromptMode(config.systemPromptMode),
+  }))
 }
 
 export const loadPromptPresets = (): SavedPromptPreset[] => {
   if (!canUseStorage()) return []
-  const raw = window.localStorage.getItem(PROMPT_PRESETS_KEY)
+  const raw = getStorageItem(PROMPT_PRESETS_KEY, LEGACY_PROMPT_PRESETS_KEY)
   if (!raw) return []
 
   try {
@@ -163,7 +197,11 @@ export function loadTutorialProgress(): TutorialProgressData | null {
   if (!canUseStorage()) return null
 
   try {
-    const raw = localStorage.getItem(TUTORIAL_PROGRESS_KEY)
+    const raw = getStorageItem(
+      TUTORIAL_PROGRESS_KEY,
+      LEGACY_TUTORIAL_PROGRESS_KEY,
+      LEGACY_TUTORIAL_PROGRESS_KEY_ALT,
+    )
     if (!raw) return null
     const parsed = JSON.parse(raw) as unknown
     if (
@@ -183,6 +221,8 @@ export function clearTutorialProgress(): void {
 
   try {
     localStorage.removeItem(TUTORIAL_PROGRESS_KEY)
+    localStorage.removeItem(LEGACY_TUTORIAL_PROGRESS_KEY)
+    localStorage.removeItem(LEGACY_TUTORIAL_PROGRESS_KEY_ALT)
   } catch {
     // ignore
   }

@@ -8,7 +8,7 @@ import { registerResources } from '../lib/mcp-tools/resources'
 import { registerTransportTools } from '../lib/mcp-tools/transport-tools'
 
 export const buildMcpServer = (env: Env) => {
-  const server = new McpServer({ name: 'strudelussy', version: '0.1.0' })
+  const server = new McpServer({ name: 'shoedelussy', version: '0.1.0' })
   registerPatternTools(server, env)
   registerProjectTools(server, env)
   registerTransportTools(server, env)

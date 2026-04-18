@@ -25,7 +25,7 @@
 - Add tests for idempotent retry behavior.
 - Add tests for blackout priority.
 
-## Phase 1.5: Visualization seam in Strudelussy UI
+## Phase 1.5: Visualization seam in Shoedelussy UI
 
 - Add `ui/src/components/visualization/types.ts` for visualization mode and payload types.
 - Add `ui/src/components/visualization/VisualizationSurface.tsx` as the new stable viz entrypoint.
@@ -73,7 +73,7 @@
 - Add `dmx://safety/interlocks` resource.
 - Add `dmx://operations/{id}` resource.
 
-## Phase 5: Strudelussy-side metadata
+## Phase 5: Shoedelussy-side metadata
 
 - Extend `server/src/lib/projectStore.ts` with optional persisted lighting metadata.
 - Extend `ui/src/types/project.ts` with matching lighting types.

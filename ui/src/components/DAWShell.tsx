@@ -49,15 +49,22 @@ const DAW_MAX = 520
 const COLLAPSED_WIDTH = 40
 
 // localStorage keys
-const LS_CHAT_WIDTH = 'strudelussy:chatWidth'
-const LS_DAW_WIDTH = 'strudelussy:dawWidth'
-const LS_CHAT_COLLAPSED = 'strudelussy:chatCollapsed'
-const LS_DAW_COLLAPSED = 'strudelussy:dawCollapsed'
+const LS_CHAT_WIDTH = 'shoedelussy:chatWidth'
+const LEGACY_LS_CHAT_WIDTH = 'strudelussy:chatWidth'
+const LS_DAW_WIDTH = 'shoedelussy:dawWidth'
+const LEGACY_LS_DAW_WIDTH = 'strudelussy:dawWidth'
+const LS_CHAT_COLLAPSED = 'shoedelussy:chatCollapsed'
+const LEGACY_LS_CHAT_COLLAPSED = 'strudelussy:chatCollapsed'
+const LS_DAW_COLLAPSED = 'shoedelussy:dawCollapsed'
+const LEGACY_LS_DAW_COLLAPSED = 'strudelussy:dawCollapsed'
 
-function readNumber(key: string, fallback: number, min: number, max: number): number {
+function readNumber(key: string, fallback: number, min: number, max: number, legacyKey?: string): number {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(key) ?? (legacyKey ? localStorage.getItem(legacyKey) : null)
     if (raw !== null) {
+      if (legacyKey && localStorage.getItem(key) === null) {
+        localStorage.setItem(key, raw)
+      }
       const n = Number(raw)
       if (Number.isFinite(n)) return Math.min(max, Math.max(min, n))
     }
@@ -65,9 +72,12 @@ function readNumber(key: string, fallback: number, min: number, max: number): nu
   return fallback
 }
 
-function readBool(key: string, fallback: boolean): boolean {
+function readBool(key: string, fallback: boolean, legacyKey?: string): boolean {
   try {
-    const raw = localStorage.getItem(key)
+    const raw = localStorage.getItem(key) ?? (legacyKey ? localStorage.getItem(legacyKey) : null)
+    if (raw !== null && legacyKey && localStorage.getItem(key) === null) {
+      localStorage.setItem(key, raw)
+    }
     if (raw === 'true') return true
     if (raw === 'false') return false
   } catch { /* storage unavailable */ }
@@ -85,10 +95,10 @@ const DAWShell = ({
   versionPanel: _versionPanel,
   overlay,
 }: DAWShellProps) => {
-  const [chatWidth, setChatWidth] = useState(() => readNumber(LS_CHAT_WIDTH, CHAT_DEFAULT, CHAT_MIN, CHAT_MAX))
-  const [dawWidth, setDawWidth] = useState(() => readNumber(LS_DAW_WIDTH, DAW_DEFAULT, DAW_MIN, DAW_MAX))
-  const [chatCollapsed, setChatCollapsed] = useState(() => readBool(LS_CHAT_COLLAPSED, false))
-  const [dawCollapsed, setDawCollapsed] = useState(() => readBool(LS_DAW_COLLAPSED, false))
+  const [chatWidth, setChatWidth] = useState(() => readNumber(LS_CHAT_WIDTH, CHAT_DEFAULT, CHAT_MIN, CHAT_MAX, LEGACY_LS_CHAT_WIDTH))
+  const [dawWidth, setDawWidth] = useState(() => readNumber(LS_DAW_WIDTH, DAW_DEFAULT, DAW_MIN, DAW_MAX, LEGACY_LS_DAW_WIDTH))
+  const [chatCollapsed, setChatCollapsed] = useState(() => readBool(LS_CHAT_COLLAPSED, false, LEGACY_LS_CHAT_COLLAPSED))
+  const [dawCollapsed, setDawCollapsed] = useState(() => readBool(LS_DAW_COLLAPSED, false, LEGACY_LS_DAW_COLLAPSED))
   const [focusMode, setFocusMode] = useState(false)
   const [isDragging, setIsDragging] = useState(false)
 

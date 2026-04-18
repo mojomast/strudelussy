@@ -4,9 +4,9 @@ import { Env } from '../index'
 export const shareRoute = new Hono<{ Bindings: Env }>()
 
 const getPublicAppUrl = (appUrl?: string) => {
-  if (!appUrl) return 'https://strudel.ussyco.de'
+  if (!appUrl) return 'https://shoe.ussyco.de'
   if (appUrl.includes('100.72.41.9') || appUrl.includes('localhost')) {
-    return 'https://strudel.ussyco.de'
+    return 'https://shoe.ussyco.de'
   }
   return appUrl
 }

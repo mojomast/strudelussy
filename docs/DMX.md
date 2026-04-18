@@ -1,8 +1,8 @@
-# DMX in Strudelussy
+# DMX in Shoedelussy
 
 ## Overview
 
-Strudelussy includes a development-first DMX control path built around a standalone bridge at `bridges/dmx-mcp/`.
+Shoedelussy includes a development-first DMX control path built around a standalone bridge at `bridges/dmx-mcp/`.
 
 Current supported backends:
 
@@ -22,7 +22,7 @@ Current UI support:
 
 ## Architecture
 
-- Strudelussy stores musical and project-side lighting metadata.
+- Shoedelussy stores musical and project-side lighting metadata.
 - `bridges/dmx-mcp` owns DMX transport, patch loading, state, and control actions.
 - Agents can use MCP tools against the bridge.
 - The frontend talks to the bridge over local HTTP for live monitoring and control.

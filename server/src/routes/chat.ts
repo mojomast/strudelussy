@@ -22,7 +22,8 @@ interface ChatPayload {
   messages: { role: string; content: string }[]
   current_code: string
   model?: string
-  system_prompt_mode?: 'legacy-toaster' | 'strudelussy'
+  // Keep accepting the legacy 'strudelussy' mode value so older saved UI config remains valid.
+  system_prompt_mode?: 'legacy-toaster' | 'shoedelussy' | 'strudelussy'
   custom_system_prompt?: string
   provider?: ChatProviderOverride
   project_meta?: { bpm?: number; key?: string; tags?: string[] }
@@ -62,7 +63,7 @@ const getClientOptions = (env: Env, provider?: ChatProviderOverride) => {
     apiKey: env.OPENROUTER_API_KEY,
     defaultHeaders: {
       'HTTP-Referer': env.APP_URL || 'http://localhost:5173',
-      'X-Title': 'strudelussy chat',
+      'X-Title': 'shoedelussy chat',
     },
   }
 }
@@ -147,7 +148,7 @@ JSON shape:
 Core Strudel reference:
 ${STRUDEL_DOCS}`
 
-const buildStrudelussyPrompt = (payload: ChatPayload) => `You are an expert Strudel live coding assistant.
+const buildShoedelussyPrompt = (payload: ChatPayload) => `You are an expert Strudel live coding assistant.
 Your ONLY job is to help the user create and refine music using supported Strudel code.
 Think silently first, then output ONLY the final JSON object described below. Do not include your reasoning.
 
@@ -250,7 +251,7 @@ const buildSystemPrompt = (payload: ChatPayload) =>
   [
     payload.system_prompt_mode === 'legacy-toaster'
       ? buildLegacyToasterPrompt(payload)
-      : buildStrudelussyPrompt(payload),
+      : buildShoedelussyPrompt(payload),
     payload.custom_system_prompt?.trim()
       ? `\n\nCUSTOM SYSTEM PROMPT OVERRIDE\n\nApply these additional instructions on top of the selected base prompt. If they conflict with user safety or supported Strudel behavior, prefer the safer supported behavior.\n\n${payload.custom_system_prompt.trim()}`
       : '',

@@ -1,5 +1,5 @@
 /* ============================================================================
-   strudelussy — Tailwind Config v2
+   shoedelussy — Tailwind Config v2
    
    What changed:
    - Added ussy color tokens (bg, surface, accent, text hierarchy)

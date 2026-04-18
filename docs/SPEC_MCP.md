@@ -1,22 +1,22 @@
-# Strudelussy MCP Integration Spec
+# Shoedelussy MCP Integration Spec
 
 > **Status:** Draft — April 2026
-> **Scope:** Adds a Model Context Protocol (MCP) server endpoint to the existing Cloudflare Workers / Hono backend so that any MCP-capable agent (Claude Desktop, Cursor, custom agents, etc.) can drive the Strudelussy editor over a standard protocol — no browser automation required.
+> **Scope:** Adds a Model Context Protocol (MCP) server endpoint to the existing Cloudflare Workers / Hono backend so that any MCP-capable agent (Claude Desktop, Cursor, custom agents, etc.) can drive the Shoedelussy editor over a standard protocol — no browser automation required.
 
 ---
 
-## 1. Why MCP in Strudelussy
+## 1. Why MCP in Shoedelussy
 
-The existing `POST /api/chat` flow is tightly coupled to the Strudelussy web UI.  
+The existing `POST /api/chat` flow is tightly coupled to the Shoedelussy web UI.  
 MCP decouples AI control from the browser session, enabling:
 
 - **External agents** (Claude Desktop, Cursor, custom scripts) to generate/inject Strudel code without opening the web app
 - **Tool-use patterns** — agents can call atomic operations (`write_pattern`, `set_bpm`, `inject_section`) instead of talking through a free-form chat prompt
-- **Composability** — Strudelussy tools can be mixed with other MCP servers in a single agent workflow
-- **Real-time remote control** — the Strudelussy runtime at `strudel.ussyco.de` becomes a proper AI instrument endpoint
+- **Composability** — Shoedelussy tools can be mixed with other MCP servers in a single agent workflow
+- **Real-time remote control** — the Shoedelussy runtime at `shoe.ussyco.de` becomes a proper AI instrument endpoint
 
 The prior art confirms demand: the `williamzujkowski/strudel-mcp-server` project (40+ tools, Playwright-based) and the `strudel-mcp` npm package both took the approach of bolting a separate MCP process onto Strudel.cc via browser automation.  
-Strudelussy can do this natively — no browser required — because the pattern state already lives in the server KV and SSE stream.
+Shoedelussy can do this natively — no browser required — because the pattern state already lives in the server KV and SSE stream.
 
 ---
 
@@ -50,7 +50,7 @@ MCP Client (Claude Desktop / Cursor / custom agent)
         │  KV reads/writes (PROJECTS_KV)
         │  SSE broadcast (optional phase 2)
         ▼
-   Strudelussy UI at strudel.ussyco.de
+   Shoedelussy UI at shoe.ussyco.de
    (polls or subscribes for live pattern updates)
 ```
 
@@ -119,7 +119,7 @@ import type { Env } from '../index'
 
 export function buildMcpHandler(env: Env) {
   const server = new McpServer({
-    name: 'strudelussy',
+    name: 'shoedelussy',
     version: '0.1.0',
   })
 
@@ -431,8 +431,8 @@ This is non-blocking — the MCP server works fully without UI changes.
 ```json
 {
   "mcpServers": {
-    "strudelussy": {
-      "url": "https://strudel.ussyco.de/mcp",
+    "shoedelussy": {
+      "url": "https://shoe.ussyco.de/mcp",
       "headers": {
         "Authorization": "Bearer YOUR_MCP_SECRET"
       }
@@ -445,8 +445,8 @@ This is non-blocking — the MCP server works fully without UI changes.
 ```json
 {
   "mcpServers": {
-    "strudelussy": {
-      "url": "https://strudel.ussyco.de/mcp",
+    "shoedelussy": {
+      "url": "https://shoe.ussyco.de/mcp",
       "headers": { "Authorization": "Bearer YOUR_MCP_SECRET" }
     }
   }
@@ -520,5 +520,5 @@ Use Cloudflare's `vitest` + `@cloudflare/vitest-pool-workers` setup already pres
 - [@hono/mcp — Cloudflare + Hono MCP adapter](https://zenn.dev/collabostyle/articles/0db6a34e549fd6)
 - [williamzujkowski/strudel-mcp-server](https://github.com/williamzujkowski/strudel-mcp-server) — prior art (browser-based)
 - [strudel-mcp npm package](https://www.npmjs.com/package/strudel-mcp) — prior art (inject-bridge approach)
-- [Strudelussy README](https://github.com/mojomast/strudelussy/blob/main/README.md)
-- [Strudelussy DAW Spec](docs/SPEC_TOASTER_DAW.md)
+- [Shoedelussy README](https://github.com/mojomast/shoedelussy/blob/main/README.md)
+- [Shoedelussy DAW Spec](docs/SPEC_TOASTER_DAW.md)

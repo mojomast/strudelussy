@@ -12,8 +12,8 @@
 ---
 
 ```
-You are building a complete in-app tutorial feature for **strudelussy**.
-Repository: https://github.com/mojomast/strudelussy
+You are building a complete in-app tutorial feature for **shoedelussy**.
+Repository: https://github.com/mojomast/shoedelussy
 
 Before writing a single line of code, read ALL of the following spec files
 from the repository. They are your complete source of truth — do not deviate
@@ -50,7 +50,7 @@ After reading, confirm:
 - All TypeScript types and the full useTutorial API from TUTORIAL_DATA_SPEC.md
 
 ### 0B — Read the existing codebase
-Read these files in full from the strudelussy repository:
+Read these files in full from the shoedelussy repository:
   - `ui/src/components/ChatPanel.tsx`
   - `ui/src/components/EditorPanel.tsx`
   - `ui/src/components/DAWShell.tsx`
@@ -119,7 +119,7 @@ Requirements (all from TUTORIAL_DATA_SPEC.md):
    previous chapter must have ≥ `UNLOCK_THRESHOLD` (60%) of lessons completed
 4. `incompleteCount`: total lessons across all chapters NOT in `completedLessons`
 5. Implement localStorage persistence exactly as specified in TUTORIAL_DATA_SPEC.md:
-   - Key: `strudelussy:tutorialProgress`
+   - Key: `shoedelussy:tutorialProgress`
    - Read on init with try/catch
    - Write debounced 500ms using a `useRef` timer (NOT a new setTimeout every render)
 6. Implement auto-hint timer exactly as in TUTORIAL_DATA_SPEC.md:
@@ -168,8 +168,8 @@ Requirements (all from TUTORIAL_COMPONENTS.md § TutorialOverlay.tsx):
 2. Use the CSS `box-shadow` cutout technique shown in TUTORIAL_COMPONENTS.md
 3. Implement `ResizeObserver` re-render on target element resize
 4. `pointer-events: none` on dim layer, `pointer-events: auto` on tooltip and cutout
-5. Dismissal stored to `localStorage` key `strudelussy:seenOverlays` as `string[]`
-6. After 3 total dismissals, set a flag `strudelussy:overlaysDisabled = 'true'`
+5. Dismissal stored to `localStorage` key `shoedelussy:seenOverlays` as `string[]`
+6. After 3 total dismissals, set a flag `shoedelussy:overlaysDisabled = 'true'`
    and never render overlays again
 7. Must NOT block keyboard shortcuts
 8. Tooltip card styling: `--ussy-surface-2` bg, `--ussy-text` text, `--radius-lg`, `--shadow-lg`
